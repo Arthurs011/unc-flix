@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Play, Plus, Check, Star, ArrowLeft } from "lucide-react";
-import { tmdb, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
+import { tmdb, Movie, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
 import { isInWatchlist, toggleWatchlist, addRecentlyViewed } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { DetailSkeleton } from "@/components/LoadingSkeleton";
+import ContentRow from "@/components/ContentRow";
 import { motion } from "framer-motion";
 
 export default function TvDetailsPage() {
   const { id } = useParams();
   const [show, setShow] = useState<MD | null>(null);
+  const [similar, setSimilar] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [inWL, setInWL] = useState(false);
 
@@ -24,6 +26,9 @@ export default function TvDetailsPage() {
       })
       .catch(() => setShow(null))
       .finally(() => setLoading(false));
+    tmdb.tvRecommendations(Number(id))
+      .then((d) => setSimilar(d.results.filter((m) => m.poster_path)))
+      .catch(() => setSimilar([]));
   }, [id]);
 
   if (loading) return <DetailSkeleton />;
@@ -130,6 +135,12 @@ export default function TvDetailsPage() {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {similar.length > 0 && (
+          <section className="mb-16">
+            <ContentRow title="Similar Shows" movies={similar} type="tv" />
           </section>
         )}
       </div>
