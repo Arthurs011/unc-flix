@@ -7,9 +7,10 @@ interface Props {
   title: string;
   movies: Movie[];
   type?: "movie" | "tv";
+  showRank?: boolean;
 }
 
-export default function ContentRow({ title, movies, type }: Props) {
+export default function ContentRow({ title, movies, type, showRank }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (dir: number) => {
@@ -42,8 +43,8 @@ export default function ContentRow({ title, movies, type }: Props) {
           ref={scrollRef}
           className="flex gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-0 pb-2"
         >
-          {movies.map((m) => (
-            <MovieCard key={m.id} movie={m} type={type} />
+          {movies.map((m, i) => (
+            <MovieCard key={m.id} movie={m} type={type} rank={showRank ? i + 1 : undefined} />
           ))}
         </div>
       </div>

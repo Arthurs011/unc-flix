@@ -6,9 +6,10 @@ import { motion } from "framer-motion";
 interface Props {
   movie: Movie;
   type?: "movie" | "tv";
+  rank?: number;
 }
 
-export default function MovieCard({ movie, type }: Props) {
+export default function MovieCard({ movie, type, rank }: Props) {
   const mediaType = type || movie.media_type || "movie";
   const to = mediaType === "tv" ? `/tv/${movie.id}` : `/movie/${movie.id}`;
 
@@ -27,6 +28,13 @@ export default function MovieCard({ movie, type }: Props) {
             className="w-full h-full object-cover transition-opacity duration-300"
             onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }}
           />
+          {/* Top 10 badge */}
+          {rank !== undefined && rank <= 10 && (
+            <div className="absolute top-2 left-2 flex items-center justify-center bg-primary text-primary-foreground text-[10px] font-bold rounded-md px-1.5 py-0.5 leading-none tracking-tight shadow-lg">
+              <span className="block">TOP</span>
+              <span className="block text-sm ml-0.5">{rank}</span>
+            </div>
+          )}
           {/* Rating badge */}
           {movie.vote_average > 0 && (
             <div className="absolute top-2 right-2 flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-md px-1.5 py-0.5 text-xs font-semibold">

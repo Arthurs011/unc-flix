@@ -59,6 +59,12 @@ export default function HeroBanner({ movies }: Props) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
+          {idx < 10 && (
+            <div className="inline-flex items-center gap-1.5 bg-primary/90 backdrop-blur-sm text-primary-foreground text-xs font-bold rounded-lg px-3 py-1 mb-3">
+              <span>TOP</span>
+              <span className="text-base leading-none">{idx + 1}</span>
+            </div>
+          )}
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-3 max-w-2xl">
             {getTitle(current)}
           </h1>
