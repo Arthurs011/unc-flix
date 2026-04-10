@@ -47,13 +47,34 @@ interface ListResponse {
   total_pages: number;
 }
 
+export interface Genre {
+  id: number;
+  name: string;
+}
+
+interface GenreResponse {
+  genres: Genre[];
+}
+
 export const tmdb = {
   trending: () => get<ListResponse>("/trending/movie/week"),
-  popular: () => get<ListResponse>("/movie/popular"),
+  popular: (page = 1, genreId?: number) =>
+    get<ListResponse>("/discover/movie", {
+      sort_by: "popularity.desc",
+      page: String(page),
+      ...(genreId ? { with_genres: String(genreId) } : {}),
+    }),
   topRated: () => get<ListResponse>("/movie/top_rated"),
   upcoming: () => get<ListResponse>("/movie/upcoming"),
-  tvPopular: () => get<ListResponse>("/tv/popular"),
+  tvPopular: (page = 1, genreId?: number) =>
+    get<ListResponse>("/discover/tv", {
+      sort_by: "popularity.desc",
+      page: String(page),
+      ...(genreId ? { with_genres: String(genreId) } : {}),
+    }),
   search: (query: string) => get<ListResponse>("/search/multi", { query }),
+  movieGenres: () => get<GenreResponse>("/genre/movie/list"),
+  tvGenres: () => get<GenreResponse>("/genre/tv/list"),
   movieDetails: (id: number) =>
     get<MovieDetails>(`/movie/${id}`, { append_to_response: "credits" }),
   tvDetails: (id: number) =>
