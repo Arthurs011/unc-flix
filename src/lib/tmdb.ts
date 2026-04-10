@@ -36,6 +36,18 @@ export interface MovieDetails extends Movie {
   status?: string;
 }
 
+export interface Review {
+  id: string;
+  author: string;
+  author_details: { avatar_path: string | null; rating: number | null };
+  content: string;
+  created_at: string;
+}
+
+interface ReviewResponse {
+  results: Review[];
+}
+
 export interface VideoResult {
   id: string;
   key: string;
@@ -92,6 +104,10 @@ export const tmdb = {
     get<ListResponse>(`/movie/${id}/recommendations`),
   tvRecommendations: (id: number) =>
     get<ListResponse>(`/tv/${id}/recommendations`),
+  movieReviews: (id: number) =>
+    get<ReviewResponse>(`/movie/${id}/reviews`),
+  tvReviews: (id: number) =>
+    get<ReviewResponse>(`/tv/${id}/reviews`),
 };
 
 export function imgUrl(path: string | null, size = "w500") {
