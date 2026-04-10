@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Play, Plus, Check, Star, ArrowLeft } from "lucide-react";
+import { Play, Plus, Check, Star, ArrowLeft, X, Film } from "lucide-react";
 import { tmdb, Movie, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
 import { isInWatchlist, toggleWatchlist, addRecentlyViewed } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { DetailSkeleton } from "@/components/LoadingSkeleton";
 import ContentRow from "@/components/ContentRow";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function TvDetailsPage() {
   const { id } = useParams();
@@ -14,6 +14,8 @@ export default function TvDetailsPage() {
   const [similar, setSimilar] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [inWL, setInWL] = useState(false);
+  const [trailerKey, setTrailerKey] = useState<string | null>(null);
+  const [showTrailer, setShowTrailer] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -23,6 +25,10 @@ export default function TvDetailsPage() {
         setShow(d);
         setInWL(isInWatchlist(d.id));
         addRecentlyViewed({ ...d, media_type: "tv" });
+        const videos = d.videos?.results || [];
+        const trailer = videos.find((v) => v.site === "YouTube" && v.type === "Trailer")
+          || videos.find((v) => v.site === "YouTube");
+        setTrailerKey(trailer?.key || null);
       })
       .catch(() => setShow(null))
       .finally(() => setLoading(false));
@@ -45,6 +51,42 @@ export default function TvDetailsPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen">
+      {/* Trailer Modal */}
+      <AnimatePresence>
+        {showTrailer && trailerKey && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md p-4"
+            onClick={() => setShowTrailer(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <iframe
+                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`}
+                title="Trailer"
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+                className="w-full h-full"
+              />
+              <button
+                onClick={() => setShowTrailer(false)}
+                className="absolute top-3 right-3 p-2 rounded-full bg-background/80 backdrop-blur-sm text-foreground hover:bg-secondary transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="relative h-[50vh] sm:h-[60vh]">
         <img src={imgUrl(show.backdrop_path, "original")} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
@@ -82,13 +124,24 @@ export default function TvDetailsPage() {
 
             <p className="text-muted-foreground leading-relaxed mb-6 max-w-2xl">{show.overview}</p>
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="rounded-full px-8 gap-2 text-base font-semibold">
                 <Link to={`/watch/tv/${show.id}/1/1`}>
                   <Play className="w-5 h-5 fill-current" />
                   Play S1E1
                 </Link>
               </Button>
+              {trailerKey && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="rounded-full px-6 gap-2"
+                  onClick={() => setShowTrailer(true)}
+                >
+                  <Film className="w-5 h-5" />
+                  Trailer
+                </Button>
+              )}
               <Button
                 variant="secondary" size="lg" className="rounded-full px-6 gap-2"
                 onClick={() => { const added = toggleWatchlist(show); setInWL(added); }}
