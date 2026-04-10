@@ -12,11 +12,12 @@ interface Props {
 
 export default function HeroBanner({ movies }: Props) {
   const [idx, setIdx] = useState(0);
+  const [inWatchlist, setInWatchlist] = useState(false);
   const featured = movies.slice(0, 5);
   const current = featured[idx];
 
   const next = useCallback(() => {
-    setIdx((i) => (i + 1) % featured.length);
+    setIdx((i) => (i + 1) % Math.max(featured.length, 1));
   }, [featured.length]);
 
   useEffect(() => {
@@ -24,13 +25,11 @@ export default function HeroBanner({ movies }: Props) {
     return () => clearInterval(t);
   }, [next]);
 
-  if (!current) return null;
-
-  const [inWatchlist, setInWatchlist] = useState(false);
-
   useEffect(() => {
-    setInWatchlist(isInWatchlist(current.id));
-  }, [current.id]);
+    if (current) setInWatchlist(isInWatchlist(current.id));
+  }, [current?.id]);
+
+  if (!current) return null;
 
   return (
     <div className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden">
@@ -48,13 +47,11 @@ export default function HeroBanner({ movies }: Props) {
             alt={getTitle(current)}
             className="w-full h-full object-cover"
           />
-          {/* Gradient overlays */}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
         </motion.div>
       </AnimatePresence>
 
-      {/* Content */}
       <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10 lg:p-16 z-10">
         <motion.div
           key={current.id + "-content"}
@@ -90,7 +87,6 @@ export default function HeroBanner({ movies }: Props) {
           </div>
         </motion.div>
 
-        {/* Indicators */}
         <div className="flex gap-2 mt-6">
           {featured.map((_, i) => (
             <button

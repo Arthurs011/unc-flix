@@ -24,6 +24,7 @@ export default function WatchTv() {
         progress: Math.floor(Math.random() * 60) + 10,
         season: s,
         episode: e,
+        timestamp: Date.now(),
       });
     }).catch(() => {});
   }, [id, s, e]);

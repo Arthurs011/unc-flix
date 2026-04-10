@@ -17,7 +17,8 @@ export default function WatchMovie() {
         title: getTitle(m),
         poster_path: m.poster_path,
         backdrop_path: m.backdrop_path,
-        progress: Math.floor(Math.random() * 60) + 10, // simulate progress
+        progress: Math.floor(Math.random() * 60) + 10,
+        timestamp: Date.now(),
       });
     }).catch(() => {});
   }, [id]);
