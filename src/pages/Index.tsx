@@ -73,7 +73,7 @@ export default function Index() {
       <HeroBanner movies={trending} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 pb-16">
         <ContinueRow />
-        <ContentRow title="Trending This Week" movies={trending} />
+        <ContentRow title="Trending This Week" movies={trending} showRank />
         <ContentRow title="Top Rated" movies={topRated} />
         <ContentRow title="Popular TV Shows" movies={tvShows} type="tv" />
         <ContentRow title="Upcoming Movies" movies={upcoming} />
