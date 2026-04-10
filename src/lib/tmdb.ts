@@ -36,6 +36,18 @@ export interface MovieDetails extends Movie {
   status?: string;
 }
 
+export interface Review {
+  id: string;
+  author: string;
+  author_details: { avatar_path: string | null; rating: number | null };
+  content: string;
+  created_at: string;
+}
+
+interface ReviewResponse {
+  results: Review[];
+}
+
 export interface VideoResult {
   id: string;
   key: string;
