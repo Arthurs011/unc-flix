@@ -79,6 +79,10 @@ export const tmdb = {
     get<MovieDetails>(`/movie/${id}`, { append_to_response: "credits" }),
   tvDetails: (id: number) =>
     get<MovieDetails>(`/tv/${id}`, { append_to_response: "credits" }),
+  movieRecommendations: (id: number) =>
+    get<ListResponse>(`/movie/${id}/recommendations`),
+  tvRecommendations: (id: number) =>
+    get<ListResponse>(`/tv/${id}/recommendations`),
 };
 
 export function imgUrl(path: string | null, size = "w500") {
