@@ -31,8 +31,17 @@ export interface MovieDetails extends Movie {
   number_of_seasons?: number;
   seasons?: { season_number: number; episode_count: number; name: string }[];
   credits?: { cast: CastMember[] };
+  videos?: { results: VideoResult[] };
   tagline?: string;
   status?: string;
+}
+
+export interface VideoResult {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  type: string;
 }
 
 export interface CastMember {
@@ -76,9 +85,9 @@ export const tmdb = {
   movieGenres: () => get<GenreResponse>("/genre/movie/list"),
   tvGenres: () => get<GenreResponse>("/genre/tv/list"),
   movieDetails: (id: number) =>
-    get<MovieDetails>(`/movie/${id}`, { append_to_response: "credits" }),
+    get<MovieDetails>(`/movie/${id}`, { append_to_response: "credits,videos" }),
   tvDetails: (id: number) =>
-    get<MovieDetails>(`/tv/${id}`, { append_to_response: "credits" }),
+    get<MovieDetails>(`/tv/${id}`, { append_to_response: "credits,videos" }),
   movieRecommendations: (id: number) =>
     get<ListResponse>(`/movie/${id}/recommendations`),
   tvRecommendations: (id: number) =>
