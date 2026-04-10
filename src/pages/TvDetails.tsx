@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Play, Plus, Check, Star, ArrowLeft, X, Film } from "lucide-react";
-import { tmdb, Movie, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
+import { tmdb, Movie, Review, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
 import { isInWatchlist, toggleWatchlist, addRecentlyViewed } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { DetailSkeleton } from "@/components/LoadingSkeleton";
 import ContentRow from "@/components/ContentRow";
+import ReviewsSection from "@/components/ReviewsSection";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function TvDetailsPage() {
   const { id } = useParams();
   const [show, setShow] = useState<MD | null>(null);
   const [similar, setSimilar] = useState<Movie[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [inWL, setInWL] = useState(false);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
@@ -35,6 +37,9 @@ export default function TvDetailsPage() {
     tmdb.tvRecommendations(Number(id))
       .then((d) => setSimilar(d.results.filter((m) => m.poster_path)))
       .catch(() => setSimilar([]));
+    tmdb.tvReviews(Number(id))
+      .then((d) => setReviews(d.results))
+      .catch(() => setReviews([]));
   }, [id]);
 
   if (loading) return <DetailSkeleton />;
@@ -190,6 +195,8 @@ export default function TvDetailsPage() {
             </div>
           </section>
         )}
+
+        <ReviewsSection reviews={reviews} />
 
         {similar.length > 0 && (
           <section className="mb-16">
