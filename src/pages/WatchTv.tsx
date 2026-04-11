@@ -13,6 +13,7 @@ const LANGUAGES = [
   { code: "it", label: "Italiano" },
   { code: "pt", label: "Português" },
   { code: "tr", label: "Türkçe" },
+  { code: "hi", label: "हिन्दी" },
 ];
 
 export default function WatchTv() {
