@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="13" fill="#0d0d0d"/>
+  <!-- Outer glow ring subtle -->
+  <rect width="64" height="64" rx="13" fill="url(#grad)" opacity="0.15"/>
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1e40af"/>
+    </linearGradient>
+  </defs>
+  <!-- A shape: two diagonal strokes meeting at top center -->
+  <path d="M10 54 L32 12 L54 54" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- A crossbar -->
+  <line x1="19" y1="38" x2="45" y2="38" stroke="white" stroke-width="6" stroke-linecap="round"/>
+  <!-- M inner V peak (blue accent overlaid on A center) -->
+  <path d="M22 54 L32 34 L42 54" stroke="#2563EB" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
