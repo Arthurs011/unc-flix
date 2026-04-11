@@ -1,15 +1,15 @@
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle } from "@/lib/tmdb";
 
 export default function WatchMovie() {
   const { id } = useParams();
+  const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    // Save to continue watching
     tmdb.movieDetails(Number(id)).then((m) => {
       updateContinueWatching({
         id: m.id,
@@ -21,6 +21,12 @@ export default function WatchMovie() {
         timestamp: Date.now(),
       });
     }).catch(() => {});
+  }, [id]);
+
+  useEffect(() => {
+    setShowFallback(false);
+    const timer = setTimeout(() => setShowFallback(true), 15000);
+    return () => clearTimeout(timer);
   }, [id]);
 
   return (
@@ -39,19 +45,18 @@ export default function WatchMovie() {
           allow="autoplay; fullscreen"
           title="Movie Player"
         />
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none">
-          <div className="pointer-events-auto text-center bg-background/80 backdrop-blur-sm rounded-xl p-6 opacity-0 hover:opacity-100 transition-opacity duration-300">
-            <p className="text-muted-foreground text-sm mb-3">Video not loading?</p>
+        {showFallback && (
+          <div className="absolute bottom-4 right-4 z-10">
             <a
               href={`https://vsembed.ru/embed/movie/${id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-background/80 backdrop-blur-sm text-foreground rounded-lg text-sm font-medium hover:bg-background/90 transition-colors border border-border"
             >
-              Open in new tab
+              Video not loading? Open in new tab
             </a>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
