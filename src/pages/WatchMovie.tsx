@@ -1,9 +1,20 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, X, Languages } from "lucide-react";
 import { useEffect, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, imgUrl, Movie } from "@/lib/tmdb";
 import { motion, AnimatePresence } from "framer-motion";
+
+const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "ru", label: "Русский" },
+  { code: "es", label: "Español" },
+  { code: "fr", label: "Français" },
+  { code: "de", label: "Deutsch" },
+  { code: "it", label: "Italiano" },
+  { code: "pt", label: "Português" },
+  { code: "tr", label: "Türkçe" },
+];
 
 export default function WatchMovie() {
   const { id } = useParams();
@@ -12,6 +23,7 @@ export default function WatchMovie() {
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
   const [movieTitle, setMovieTitle] = useState("");
+  const [lang, setLang] = useState("en");
 
   useEffect(() => {
     if (!id) return;
@@ -37,8 +49,6 @@ export default function WatchMovie() {
     setShowFallback(false);
     setShowRecommendations(false);
     const fallbackTimer = setTimeout(() => setShowFallback(true), 15000);
-    // Show recommendations after ~90 minutes (simulating movie end)
-    // For demo purposes, show after 2 minutes
     const recoTimer = setTimeout(() => setShowRecommendations(true), 120000);
     return () => {
       clearTimeout(fallbackTimer);
@@ -46,25 +56,47 @@ export default function WatchMovie() {
     };
   }, [id]);
 
+  const embedSrc = `https://vsembed.ru/embed/movie/${id}?lang=${lang}`;
+
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col">
-      <div className="glass-strong px-4 py-3 flex items-center gap-4 z-10">
+      <div className="glass-strong px-4 py-3 flex items-center gap-4 z-10 flex-wrap">
         <Link to={`/movie/${id}`} className="p-2 rounded-full hover:bg-secondary transition-colors text-foreground">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <span className="text-sm font-medium text-foreground">Now Playing</span>
-        {recommendations.length > 0 && (
-          <button
-            onClick={() => setShowRecommendations(true)}
-            className="ml-auto text-xs px-3 py-1.5 rounded-lg bg-secondary text-foreground hover:bg-secondary/80 transition-colors"
-          >
-            Up Next
-          </button>
-        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          {/* Language selector */}
+          <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-3 py-1.5 border border-border">
+            <Languages className="w-4 h-4 text-muted-foreground shrink-0" />
+            <select
+              value={lang}
+              onChange={(e) => setLang(e.target.value)}
+              className="bg-transparent text-foreground text-sm outline-none cursor-pointer"
+              data-testid="select-language"
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>{l.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {recommendations.length > 0 && (
+            <button
+              onClick={() => setShowRecommendations(true)}
+              className="text-xs px-3 py-1.5 rounded-lg bg-secondary text-foreground hover:bg-secondary/80 transition-colors border border-border"
+            >
+              Up Next
+            </button>
+          )}
+        </div>
       </div>
+
       <div className="flex-1 relative">
         <iframe
-          src={`https://vsembed.ru/embed/movie/${id}`}
+          key={`${id}-${lang}`}
+          src={embedSrc}
           className="w-full h-full border-0"
           allowFullScreen
           allow="autoplay; fullscreen"
@@ -73,7 +105,7 @@ export default function WatchMovie() {
         {showFallback && (
           <div className="absolute bottom-4 right-4 z-10">
             <a
-              href={`https://vsembed.ru/embed/movie/${id}`}
+              href={embedSrc}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-background/80 backdrop-blur-sm text-foreground rounded-lg text-sm font-medium hover:bg-background/90 transition-colors border border-border"
@@ -83,7 +115,6 @@ export default function WatchMovie() {
           </div>
         )}
 
-        {/* Recommendations overlay */}
         <AnimatePresence>
           {showRecommendations && recommendations.length > 0 && (
             <motion.div
