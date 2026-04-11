@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, imgUrl, Movie } from "@/lib/tmdb";
 import { motion, AnimatePresence } from "framer-motion";
+import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -20,6 +21,7 @@ const LANGUAGES = [
 export default function WatchMovie() {
   const { id } = useParams();
   const navigate = useNavigate();
+  useFullscreenOrientation();
   const [showFallback, setShowFallback] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [recommendations, setRecommendations] = useState<Movie[]>([]);

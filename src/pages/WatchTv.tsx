@@ -3,6 +3,7 @@ import { ArrowLeft, Languages } from "lucide-react";
 import { useEffect, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, MovieDetails } from "@/lib/tmdb";
+import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -19,6 +20,7 @@ const LANGUAGES = [
 export default function WatchTv() {
   const { id, season, episode } = useParams();
   const navigate = useNavigate();
+  useFullscreenOrientation();
   const [show, setShow] = useState<MovieDetails | null>(null);
   const [showFallback, setShowFallback] = useState(false);
   const [lang, setLang] = useState("en");
