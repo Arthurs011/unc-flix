@@ -5,7 +5,7 @@ import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, imgUrl, Movie } from "@/lib/tmdb";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
-import { DEFAULT_SERVER_ID, getServer, getNextServerId } from "@/lib/servers";
+import { DEFAULT_SERVER_ID, getServer } from "@/lib/servers";
 import ServerPicker from "@/components/ServerPicker";
 
 const LANGUAGES = [
@@ -30,7 +30,6 @@ export default function WatchMovie() {
   const [movieTitle, setMovieTitle] = useState("");
   const [lang, setLang] = useState("en");
   const [serverId, setServerId] = useState<string>(DEFAULT_SERVER_ID);
-  const [autoFellBack, setAutoFellBack] = useState(false);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -58,14 +57,7 @@ export default function WatchMovie() {
     setShowRecommendations(false);
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
     fallbackTimerRef.current = setTimeout(() => {
-      // Try to auto-switch to the next server once before showing the fallback CTA.
-      const next = getNextServerId(serverId);
-      if (next && !autoFellBack) {
-        setAutoFellBack(true);
-        setServerId(next);
-      } else {
-        setShowFallback(true);
-      }
+      setShowFallback(true);
     }, 15000);
     const recoTimer = setTimeout(() => setShowRecommendations(true), 120000);
     return () => {
@@ -76,7 +68,6 @@ export default function WatchMovie() {
 
   // Reset auto-fallback tracking when navigating to a new movie.
   useEffect(() => {
-    setAutoFellBack(false);
     setServerId(DEFAULT_SERVER_ID);
   }, [id]);
 
@@ -97,7 +88,6 @@ export default function WatchMovie() {
           <ServerPicker
             value={serverId}
             onChange={(next) => {
-              setAutoFellBack(true);
               setServerId(next);
             }}
           />
