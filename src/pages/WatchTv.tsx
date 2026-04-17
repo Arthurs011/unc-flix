@@ -1,10 +1,11 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Languages, Server } from "lucide-react";
+import { ArrowLeft, Languages } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, MovieDetails } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
-import { STREAM_SERVERS, DEFAULT_SERVER_ID, getServer, getNextServerId } from "@/lib/servers";
+import { DEFAULT_SERVER_ID, getServer, getNextServerId } from "@/lib/servers";
+import ServerPicker from "@/components/ServerPicker";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -91,22 +92,13 @@ export default function WatchTv() {
 
         <div className="flex items-center gap-2 ml-auto flex-wrap justify-end">
           {/* Server selector */}
-          <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-3 py-1.5 border border-border">
-            <Server className="w-4 h-4 text-muted-foreground shrink-0" />
-            <select
-              value={serverId}
-              onChange={(ev) => {
-                setAutoFellBack(true);
-                setServerId(ev.target.value);
-              }}
-              className="bg-transparent text-foreground text-sm outline-none cursor-pointer"
-              data-testid="select-server"
-            >
-              {STREAM_SERVERS.map((sv) => (
-                <option key={sv.id} value={sv.id}>{sv.label}</option>
-              ))}
-            </select>
-          </div>
+          <ServerPicker
+            value={serverId}
+            onChange={(next) => {
+              setAutoFellBack(true);
+              setServerId(next);
+            }}
+          />
 
           {/* Language selector */}
           <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-3 py-1.5 border border-border">

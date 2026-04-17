@@ -1,11 +1,12 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, X, Languages, Server } from "lucide-react";
+import { ArrowLeft, X, Languages } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, imgUrl, Movie } from "@/lib/tmdb";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
-import { STREAM_SERVERS, DEFAULT_SERVER_ID, getServer, getNextServerId } from "@/lib/servers";
+import { DEFAULT_SERVER_ID, getServer, getNextServerId } from "@/lib/servers";
+import ServerPicker from "@/components/ServerPicker";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -93,23 +94,13 @@ export default function WatchMovie() {
         <span className="text-sm font-medium text-foreground">Now Playing</span>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Server selector */}
-          <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-3 py-1.5 border border-border">
-            <Server className="w-4 h-4 text-muted-foreground shrink-0" />
-            <select
-              value={serverId}
-              onChange={(e) => {
-                setAutoFellBack(true); // user picked manually — disable auto-switch
-                setServerId(e.target.value);
-              }}
-              className="bg-transparent text-foreground text-sm outline-none cursor-pointer"
-              data-testid="select-server"
-            >
-              {STREAM_SERVERS.map((s) => (
-                <option key={s.id} value={s.id}>{s.label}</option>
-              ))}
-            </select>
-          </div>
+          <ServerPicker
+            value={serverId}
+            onChange={(next) => {
+              setAutoFellBack(true);
+              setServerId(next);
+            }}
+          />
 
           {/* Language selector */}
           <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-3 py-1.5 border border-border">
