@@ -1,9 +1,10 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Languages } from "lucide-react";
+import { ArrowLeft, Languages, Server } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, MovieDetails } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
+import { STREAM_SERVERS, DEFAULT_SERVER_ID, getServer, getNextServerId } from "@/lib/servers";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -24,6 +25,8 @@ export default function WatchTv() {
   const [show, setShow] = useState<MovieDetails | null>(null);
   const [showFallback, setShowFallback] = useState(false);
   const [lang, setLang] = useState("en");
+  const [serverId, setServerId] = useState<string>(DEFAULT_SERVER_ID);
+  const [autoFellBack, setAutoFellBack] = useState(false);
   const s = Number(season) || 1;
   const e = Number(episode) || 1;
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,15 +52,32 @@ export default function WatchTv() {
   useEffect(() => {
     setShowFallback(false);
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-    fallbackTimerRef.current = setTimeout(() => setShowFallback(true), 15000);
+    fallbackTimerRef.current = setTimeout(() => {
+      const next = getNextServerId(serverId);
+      if (next && !autoFellBack) {
+        setAutoFellBack(true);
+        setServerId(next);
+      } else {
+        setShowFallback(true);
+      }
+    }, 15000);
     return () => {
       if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
     };
+  }, [id, s, e, serverId]);
+
+  // Reset auto-fallback when changing episode/show.
+  useEffect(() => {
+    setAutoFellBack(false);
+    setServerId(DEFAULT_SERVER_ID);
   }, [id, s, e]);
 
   const currentSeason = show?.seasons?.find((ss) => ss.season_number === s);
   const episodeCount = currentSeason?.episode_count || 10;
-  const embedSrc = `https://vsembed.ru/embed/tv/${id}/${s}/${e}?lang=${lang}`;
+  const server = getServer(serverId);
+  const embedSrc = id
+    ? server.build({ type: "tv", id, season: s, episode: e, lang: server.supportsLang ? lang : undefined })
+    : "";
 
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col">
@@ -70,6 +90,24 @@ export default function WatchTv() {
         </span>
 
         <div className="flex items-center gap-2 ml-auto flex-wrap justify-end">
+          {/* Server selector */}
+          <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-3 py-1.5 border border-border">
+            <Server className="w-4 h-4 text-muted-foreground shrink-0" />
+            <select
+              value={serverId}
+              onChange={(ev) => {
+                setAutoFellBack(true);
+                setServerId(ev.target.value);
+              }}
+              className="bg-transparent text-foreground text-sm outline-none cursor-pointer"
+              data-testid="select-server"
+            >
+              {STREAM_SERVERS.map((sv) => (
+                <option key={sv.id} value={sv.id}>{sv.label}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Language selector */}
           <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-3 py-1.5 border border-border">
             <Languages className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -115,7 +153,7 @@ export default function WatchTv() {
 
       <div className="flex-1 relative">
         <iframe
-          key={`${id}-${s}-${e}-${lang}`}
+          key={`${id}-${s}-${e}-${serverId}-${lang}`}
           src={embedSrc}
           className="w-full h-full border-0"
           allowFullScreen

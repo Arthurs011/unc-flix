@@ -1,10 +1,11 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, X, Languages } from "lucide-react";
+import { ArrowLeft, X, Languages, Server } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, imgUrl, Movie } from "@/lib/tmdb";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
+import { STREAM_SERVERS, DEFAULT_SERVER_ID, getServer, getNextServerId } from "@/lib/servers";
 
 const LANGUAGES = [
   { code: "en", label: "English" },
@@ -27,6 +28,8 @@ export default function WatchMovie() {
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
   const [movieTitle, setMovieTitle] = useState("");
   const [lang, setLang] = useState("en");
+  const [serverId, setServerId] = useState<string>(DEFAULT_SERVER_ID);
+  const [autoFellBack, setAutoFellBack] = useState(false);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -53,15 +56,33 @@ export default function WatchMovie() {
     setShowFallback(false);
     setShowRecommendations(false);
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-    fallbackTimerRef.current = setTimeout(() => setShowFallback(true), 15000);
+    fallbackTimerRef.current = setTimeout(() => {
+      // Try to auto-switch to the next server once before showing the fallback CTA.
+      const next = getNextServerId(serverId);
+      if (next && !autoFellBack) {
+        setAutoFellBack(true);
+        setServerId(next);
+      } else {
+        setShowFallback(true);
+      }
+    }, 15000);
     const recoTimer = setTimeout(() => setShowRecommendations(true), 120000);
     return () => {
       if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
       clearTimeout(recoTimer);
     };
+  }, [id, serverId]);
+
+  // Reset auto-fallback tracking when navigating to a new movie.
+  useEffect(() => {
+    setAutoFellBack(false);
+    setServerId(DEFAULT_SERVER_ID);
   }, [id]);
 
-  const embedSrc = `https://vsembed.ru/embed/movie/${id}?lang=${lang}`;
+  const server = getServer(serverId);
+  const embedSrc = id
+    ? server.build({ type: "movie", id, lang: server.supportsLang ? lang : undefined })
+    : "";
 
   return (
     <div className="fixed inset-0 bg-background z-50 flex flex-col">
@@ -72,6 +93,24 @@ export default function WatchMovie() {
         <span className="text-sm font-medium text-foreground">Now Playing</span>
 
         <div className="ml-auto flex items-center gap-2">
+          {/* Server selector */}
+          <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-3 py-1.5 border border-border">
+            <Server className="w-4 h-4 text-muted-foreground shrink-0" />
+            <select
+              value={serverId}
+              onChange={(e) => {
+                setAutoFellBack(true); // user picked manually — disable auto-switch
+                setServerId(e.target.value);
+              }}
+              className="bg-transparent text-foreground text-sm outline-none cursor-pointer"
+              data-testid="select-server"
+            >
+              {STREAM_SERVERS.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Language selector */}
           <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-3 py-1.5 border border-border">
             <Languages className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -100,7 +139,7 @@ export default function WatchMovie() {
 
       <div className="flex-1 relative">
         <iframe
-          key={`${id}-${lang}`}
+          key={`${id}-${serverId}-${lang}`}
           src={embedSrc}
           className="w-full h-full border-0"
           allowFullScreen
