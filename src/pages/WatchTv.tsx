@@ -86,7 +86,6 @@ export default function WatchTv() {
           <ServerPicker
             value={serverId}
             onChange={(next) => {
-              setAutoFellBack(true);
               setServerId(next);
             }}
           />
