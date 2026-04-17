@@ -106,7 +106,7 @@ export default function WatchMovie() {
           title="Movie Player"
         />
         {showFallback && (
-          <div className="absolute bottom-4 right-4 z-10">
+          <div className="absolute top-4 right-4 z-10">
             <a
               href={embedSrc}
               target="_blank"
