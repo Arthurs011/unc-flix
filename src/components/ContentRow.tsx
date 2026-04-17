@@ -17,6 +17,16 @@ export default function ContentRow({ title, movies, type, showRank }: Props) {
     scrollRef.current?.scrollBy({ left: dir * 400, behavior: "smooth" });
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      scroll(1);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      scroll(-1);
+    }
+  };
+
   if (!movies.length) return null;
 
   return (
@@ -25,22 +35,25 @@ export default function ContentRow({ title, movies, type, showRank }: Props) {
         {title}
       </h2>
       <div className="relative group/row">
-        {/* Scroll buttons */}
+        {/* Scroll left — always visible on TV (no hover), hover-visible on desktop */}
         <button
           onClick={() => scroll(-1)}
-          className="absolute left-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-r from-background/80 to-transparent opacity-0 group-hover/row:opacity-100 transition-opacity"
+          aria-label="Scroll left"
+          className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center bg-gradient-to-r from-background/80 to-transparent opacity-0 group-hover/row:opacity-100 tv-show-always transition-opacity focus-visible:opacity-100"
         >
-          <ChevronLeft className="w-6 h-6 text-foreground" />
+          <ChevronLeft className="w-7 h-7 text-foreground" />
         </button>
         <button
           onClick={() => scroll(1)}
-          className="absolute right-0 top-0 bottom-0 z-10 w-10 flex items-center justify-center bg-gradient-to-l from-background/80 to-transparent opacity-0 group-hover/row:opacity-100 transition-opacity"
+          aria-label="Scroll right"
+          className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center bg-gradient-to-l from-background/80 to-transparent opacity-0 group-hover/row:opacity-100 tv-show-always transition-opacity focus-visible:opacity-100"
         >
-          <ChevronRight className="w-6 h-6 text-foreground" />
+          <ChevronRight className="w-7 h-7 text-foreground" />
         </button>
 
         <div
           ref={scrollRef}
+          onKeyDown={handleKeyDown}
           className="flex gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-0 pb-2"
         >
           {movies.map((m, i) => (

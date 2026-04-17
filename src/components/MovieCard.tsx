@@ -16,10 +16,11 @@ export default function MovieCard({ movie, type, rank }: Props) {
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
+      whileFocus={{ scale: 1.05 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className="flex-shrink-0 w-[160px] sm:w-[180px] group"
+      className="flex-shrink-0 w-[160px] sm:w-[180px] group card-focus-glow"
     >
-      <Link to={to} className="block">
+      <Link to={to} className="block rounded-xl" tabIndex={0}>
         <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-secondary">
           <img
             src={imgUrl(movie.poster_path)}
@@ -42,8 +43,8 @@ export default function MovieCard({ movie, type, rank }: Props) {
               {movie.vote_average.toFixed(1)}
             </div>
           )}
-          {/* Hover overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
+          {/* Overlay — visible on hover AND keyboard focus */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300 flex items-end p-3">
             <p className="text-sm font-medium text-foreground line-clamp-2">
               {getTitle(movie)}
             </p>

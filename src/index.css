@@ -75,6 +75,22 @@
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(0 0% 40%);
   }
+
+  /* =============================================
+     Android TV / D-pad Focus Styles
+     ============================================= */
+
+  /* High-contrast focus ring for D-pad/keyboard navigation */
+  :focus-visible {
+    outline: 3px solid hsl(var(--primary));
+    outline-offset: 4px;
+    border-radius: 10px;
+  }
+
+  /* Remove default outline (we use focus-visible instead) */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
 }
 
 @layer utilities {
@@ -97,5 +113,25 @@
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* TV safe zone — keeps content away from the overscan edges */
+  .tv-safe {
+    padding-left: clamp(16px, 4vw, 72px);
+    padding-right: clamp(16px, 4vw, 72px);
+  }
+
+  /* Card focus glow used by MovieCard */
+  .card-focus-glow:focus-within {
+    box-shadow: 0 0 0 3px hsl(var(--primary)), 0 0 24px hsl(var(--primary) / 0.4);
+    border-radius: 0.75rem;
+  }
+
+  /* On non-hover devices (TV/touch) show elements that are hover-only on desktop */
+  @media (hover: none) {
+    .tv-show-always {
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Play, Plus, Check } from "lucide-react";
+import { Play, Plus, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { Movie, imgUrl, getTitle } from "@/lib/tmdb";
 import { isInWatchlist, toggleWatchlist } from "@/lib/storage";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,6 +20,10 @@ export default function HeroBanner({ movies }: Props) {
     setIdx((i) => (i + 1) % Math.max(featured.length, 1));
   }, [featured.length]);
 
+  const prev = useCallback(() => {
+    setIdx((i) => (i - 1 + featured.length) % Math.max(featured.length, 1));
+  }, [featured.length]);
+
   useEffect(() => {
     const t = setInterval(next, 7000);
     return () => clearInterval(t);
@@ -29,10 +33,18 @@ export default function HeroBanner({ movies }: Props) {
     if (current) setInWatchlist(isInWatchlist(current.id));
   }, [current?.id]);
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); next(); }
+  };
+
   if (!current) return null;
 
   return (
-    <div className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden">
+    <div
+      className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden"
+      onKeyDown={handleKeyDown}
+    >
       <AnimatePresence mode="wait">
         <motion.div
           key={current.id}
@@ -51,6 +63,22 @@ export default function HeroBanner({ movies }: Props) {
           <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
         </motion.div>
       </AnimatePresence>
+
+      {/* Prev / Next arrows — always visible on TV, hover-visible on desktop */}
+      <button
+        onClick={prev}
+        aria-label="Previous"
+        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-background/50 backdrop-blur-sm text-foreground opacity-0 hover:opacity-100 focus-visible:opacity-100 tv-show-always transition-opacity"
+      >
+        <ChevronLeft className="w-7 h-7" />
+      </button>
+      <button
+        onClick={next}
+        aria-label="Next"
+        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-background/50 backdrop-blur-sm text-foreground opacity-0 hover:opacity-100 focus-visible:opacity-100 tv-show-always transition-opacity"
+      >
+        <ChevronRight className="w-7 h-7" />
+      </button>
 
       <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10 lg:p-16 z-10">
         <motion.div
@@ -93,12 +121,15 @@ export default function HeroBanner({ movies }: Props) {
           </div>
         </motion.div>
 
+        {/* Dot indicators — keyboard focusable */}
         <div className="flex gap-2 mt-6">
           {featured.map((_, i) => (
             <button
               key={i}
               onClick={() => setIdx(i)}
-              className={`h-1 rounded-full transition-all duration-300 ${
+              aria-label={`Slide ${i + 1}`}
+              aria-current={i === idx ? "true" : undefined}
+              className={`h-1.5 rounded-full transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 ${
                 i === idx
                   ? "w-8 bg-primary"
                   : "w-4 bg-muted-foreground/40 hover:bg-muted-foreground/60"
