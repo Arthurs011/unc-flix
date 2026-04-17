@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [mobileQuery, setMobileQuery] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -23,6 +24,14 @@ export default function Navbar() {
       navigate(`/search?q=${encodeURIComponent(query.trim())}`);
       setSearchOpen(false);
       setQuery("");
+    }
+  };
+
+  const handleMobileSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mobileQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(mobileQuery.trim())}`);
+      setMobileQuery("");
     }
   };
 
@@ -64,8 +73,8 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Search */}
-          <div className="flex items-center gap-2">
+          {/* Desktop Search (icon toggle) */}
+          <div className="hidden md:flex items-center gap-2">
             <AnimatePresence>
               {searchOpen && (
                 <motion.form
@@ -108,7 +117,7 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Mobile Nav */}
+          {/* Mobile Nav icons (no search icon) */}
           <div className="flex md:hidden items-center gap-1" role="menubar">
             {links.map((l) => (
               <Link
@@ -129,6 +138,22 @@ export default function Navbar() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Mobile search bar — always visible below the navbar on small screens */}
+      <div className="md:hidden border-t border-border/30 px-4 py-2">
+        <form onSubmit={handleMobileSearch} role="search">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              value={mobileQuery}
+              onChange={(e) => setMobileQuery(e.target.value)}
+              placeholder="Search movies & TV shows..."
+              aria-label="Search movies and TV shows"
+              className="w-full bg-secondary/80 text-foreground text-sm rounded-xl pl-9 pr-4 py-2.5 outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        </form>
       </div>
     </nav>
   );

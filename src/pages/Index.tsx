@@ -53,7 +53,7 @@ export default function Index() {
 
   if (loading) {
     return (
-      <div className="pt-16">
+      <div className="pt-[120px] md:pt-16">
         <HeroSkeleton />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
           <RowSkeleton />

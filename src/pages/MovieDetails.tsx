@@ -45,7 +45,7 @@ export default function MovieDetailsPage() {
 
   if (loading) return <DetailSkeleton />;
   if (!movie) return (
-    <div className="min-h-screen flex items-center justify-center pt-16">
+    <div className="min-h-screen flex items-center justify-center pt-[120px] md:pt-16">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-foreground mb-2">Movie not found</h2>
         <Link to="/" className="text-primary hover:underline">Go Home</Link>

@@ -54,7 +54,7 @@ export default function TvShowsPage() {
   }, [loadMore]);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen pt-[120px] md:pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold text-foreground mb-6">Popular TV Shows</h1>
 
       <div className="flex flex-wrap gap-2 mb-8">
