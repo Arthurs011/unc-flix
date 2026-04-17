@@ -143,7 +143,9 @@ export default function WatchMovie() {
           src={embedSrc}
           className="w-full h-full border-0"
           allowFullScreen
-          allow="autoplay; fullscreen"
+          allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-orientation-lock"
+          referrerPolicy="no-referrer"
           title="Movie Player"
           onLoad={() => {
             if (fallbackTimerRef.current) {
