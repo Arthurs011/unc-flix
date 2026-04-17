@@ -1,8 +1,9 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, Film, Tv, BookmarkPlus, Home } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import SearchDropdown from "@/components/SearchDropdown";
 
 export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -11,12 +12,37 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
+
   const links = [
     { to: "/", label: "Home", icon: Home },
     { to: "/tv", label: "TV Shows", icon: Tv },
     { to: "/movies", label: "Movies", icon: Film },
     { to: "/watchlist", label: "Watchlist", icon: BookmarkPlus },
   ];
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (desktopSearchRef.current && !desktopSearchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+        setQuery("");
+      }
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)) {
+        setMobileQuery("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Clear queries on route change
+  useEffect(() => {
+    setQuery("");
+    setMobileQuery("");
+    setSearchOpen(false);
+  }, [location.pathname]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +66,10 @@ export default function Navbar() {
       setSearchOpen(false);
       setQuery("");
     }
+  };
+
+  const handleMobileKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") setMobileQuery("");
   };
 
   return (
@@ -73,32 +103,37 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Desktop Search (icon toggle) */}
-          <div className="hidden md:flex items-center gap-2">
-            <AnimatePresence>
-              {searchOpen && (
-                <motion.form
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 240, opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  onSubmit={handleSearch}
-                  className="overflow-hidden"
-                  role="search"
-                >
-                  <input
-                    autoFocus
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={handleSearchKeyDown}
-                    placeholder="Search movies & TV..."
-                    aria-label="Search movies and TV shows"
-                    className="w-full bg-secondary/80 text-foreground text-sm rounded-lg px-3 py-2 outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary"
-                    onBlur={() => !query && setSearchOpen(false)}
-                  />
-                </motion.form>
-              )}
-            </AnimatePresence>
+          {/* Desktop Search */}
+          <div className="hidden md:flex items-center gap-2" ref={desktopSearchRef}>
+            <div className="relative">
+              <AnimatePresence>
+                {searchOpen && (
+                  <motion.form
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 260, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    onSubmit={handleSearch}
+                    className="overflow-visible"
+                    role="search"
+                  >
+                    <input
+                      autoFocus
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={handleSearchKeyDown}
+                      placeholder="Search movies & TV..."
+                      aria-label="Search movies and TV shows"
+                      className="w-full bg-secondary/80 text-foreground text-sm rounded-lg px-3 py-2 outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary"
+                    />
+                    <SearchDropdown
+                      query={query}
+                      onSelect={() => { setSearchOpen(false); setQuery(""); }}
+                    />
+                  </motion.form>
+                )}
+              </AnimatePresence>
+            </div>
             <button
               onClick={() => {
                 if (searchOpen && query.trim()) {
@@ -117,7 +152,7 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Mobile Nav icons (no search icon) */}
+          {/* Mobile Nav icons */}
           <div className="flex md:hidden items-center gap-1" role="menubar">
             {links.map((l) => (
               <Link
@@ -140,20 +175,27 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile search bar — always visible below the navbar on small screens */}
+      {/* Mobile search bar with live suggestions */}
       <div className="md:hidden border-t border-border/30 px-4 py-2">
-        <form onSubmit={handleMobileSearch} role="search">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input
-              value={mobileQuery}
-              onChange={(e) => setMobileQuery(e.target.value)}
-              placeholder="Search movies & TV shows..."
-              aria-label="Search movies and TV shows"
-              className="w-full bg-secondary/80 text-foreground text-sm rounded-xl pl-9 pr-4 py-2.5 outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary"
-            />
-          </div>
-        </form>
+        <div className="relative" ref={mobileSearchRef}>
+          <form onSubmit={handleMobileSearch} role="search">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <input
+                value={mobileQuery}
+                onChange={(e) => setMobileQuery(e.target.value)}
+                onKeyDown={handleMobileKeyDown}
+                placeholder="Search movies & TV shows..."
+                aria-label="Search movies and TV shows"
+                className="w-full bg-secondary/80 text-foreground text-sm rounded-xl pl-9 pr-4 py-2.5 outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary"
+              />
+            </div>
+          </form>
+          <SearchDropdown
+            query={mobileQuery}
+            onSelect={() => setMobileQuery("")}
+          />
+        </div>
       </div>
     </nav>
   );
