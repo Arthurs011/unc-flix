@@ -33,7 +33,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <span className="text-xl font-bold tracking-tight text-foreground">
-              APL<span className="text-primary">_MOV</span>
+              Uncle<span className="text-primary">flix</span>
             </span>
           </Link>
 
