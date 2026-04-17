@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Languages } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, MovieDetails } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
@@ -26,6 +26,7 @@ export default function WatchTv() {
   const [lang, setLang] = useState("en");
   const s = Number(season) || 1;
   const e = Number(episode) || 1;
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -47,8 +48,11 @@ export default function WatchTv() {
 
   useEffect(() => {
     setShowFallback(false);
-    const timer = setTimeout(() => setShowFallback(true), 15000);
-    return () => clearTimeout(timer);
+    if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+    fallbackTimerRef.current = setTimeout(() => setShowFallback(true), 15000);
+    return () => {
+      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+    };
   }, [id, s, e]);
 
   const currentSeason = show?.seasons?.find((ss) => ss.season_number === s);
@@ -117,6 +121,13 @@ export default function WatchTv() {
           allowFullScreen
           allow="autoplay; fullscreen"
           title="TV Player"
+          onLoad={() => {
+            if (fallbackTimerRef.current) {
+              clearTimeout(fallbackTimerRef.current);
+              fallbackTimerRef.current = null;
+            }
+            setShowFallback(false);
+          }}
         />
         {showFallback && (
           <div className="absolute top-4 right-4 z-10">
