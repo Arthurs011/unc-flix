@@ -59,6 +59,22 @@ export default function WatchMovie() {
     };
   }, [id]);
 
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    fallbackTimerRef.current = setTimeout(() => setShowFallback(true), 15000);
+    return () => {
+      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+    };
+  }, [id]);
+
+  const handleIframeLoad = () => {
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    setShowFallback(false);
+  };
+
   const embedSrc = `https://vsembed.ru/embed/movie/${id}?lang=${lang}`;
 
   return (
