@@ -25,6 +25,16 @@ export interface StreamServer {
  */
 export const STREAM_SERVERS: StreamServer[] = [
   {
+    id: "premium",
+    label: "Premium",
+    flag: "🇺🇸",
+    tag: "4K",
+    build: ({ type, id, season, episode }) =>
+      type === "movie"
+        ? `https://vidsrc.cc/v2/embed/movie/${id}`
+        : `https://vidsrc.cc/v2/embed/tv/${id}/${season ?? 1}/${episode ?? 1}`,
+  },
+  {
     id: "vsembed",
     label: "Vidfast",
     flag: "🇬🇧",
@@ -45,16 +55,6 @@ export const STREAM_SERVERS: StreamServer[] = [
       type === "movie"
         ? `https://vsembed.su/embed/movie/${id}`
         : `https://vsembed.su/embed/tv/${id}/${season ?? 1}/${episode ?? 1}`,
-  },
-  {
-    id: "premium",
-    label: "Premium",
-    flag: "🇺🇸",
-    tag: "4K",
-    build: ({ type, id, season, episode }) =>
-      type === "movie"
-        ? `https://vidsrc.cc/v2/embed/movie/${id}`
-        : `https://vidsrc.cc/v2/embed/tv/${id}/${season ?? 1}/${episode ?? 1}`,
   },
   {
     id: "vidpro",
