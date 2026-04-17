@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, X, Languages } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, imgUrl, Movie } from "@/lib/tmdb";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,6 +27,7 @@ export default function WatchMovie() {
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
   const [movieTitle, setMovieTitle] = useState("");
   const [lang, setLang] = useState("en");
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -51,29 +52,14 @@ export default function WatchMovie() {
   useEffect(() => {
     setShowFallback(false);
     setShowRecommendations(false);
-    const fallbackTimer = setTimeout(() => setShowFallback(true), 15000);
+    if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+    fallbackTimerRef.current = setTimeout(() => setShowFallback(true), 15000);
     const recoTimer = setTimeout(() => setShowRecommendations(true), 120000);
     return () => {
-      clearTimeout(fallbackTimer);
+      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
       clearTimeout(recoTimer);
     };
   }, [id]);
-
-  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    fallbackTimerRef.current = setTimeout(() => setShowFallback(true), 15000);
-    return () => {
-      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-    };
-  }, [id]);
-
-  const handleIframeLoad = () => {
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
-    }
-    setShowFallback(false);
-  };
 
   const embedSrc = `https://vsembed.ru/embed/movie/${id}?lang=${lang}`;
 
@@ -120,6 +106,13 @@ export default function WatchMovie() {
           allowFullScreen
           allow="autoplay; fullscreen"
           title="Movie Player"
+          onLoad={() => {
+            if (fallbackTimerRef.current) {
+              clearTimeout(fallbackTimerRef.current);
+              fallbackTimerRef.current = null;
+            }
+            setShowFallback(false);
+          }}
         />
         {showFallback && (
           <div className="absolute top-4 right-4 z-10">
