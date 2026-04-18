@@ -225,6 +225,37 @@ export default function Navbar() {
                 <l.icon className="w-5 h-5" />
               </Link>
             ))}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    aria-label="Account"
+                    className="ml-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                  >
+                    <span className="text-xs font-semibold">
+                      {(user.user_metadata?.display_name || user.email || "U").charAt(0).toUpperCase()}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="truncate">
+                    {user.user_metadata?.display_name || user.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                    <LogOut className="w-4 h-4 mr-2" /> Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link
+                to="/auth"
+                aria-label="Sign in"
+                className="ml-1 p-2 rounded-lg text-primary"
+              >
+                <UserIcon className="w-5 h-5" />
+              </Link>
+            )}
           </div>
         </div>
       </div>
