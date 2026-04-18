@@ -1,6 +1,7 @@
 modules = ["nodejs-20", "web"]
 [agent]
 expertMode = true
+integrations = ["javascript_database:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
@@ -37,3 +38,10 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+VITE_SUPABASE_URL = "https://ygtoxtbtiwedxpldfmon.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlndG94dGJ0aXdlZHhwbGRmbW9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTY3NzcsImV4cCI6MjA5MjA5Mjc3N30.8EZ8uHABltaH3TPlV3yDjBm2P3K6dos3_EtJoLV8Pko"
+VITE_TMDB_API_KEY = "06b3db8d25d0fc3c7fe63120d58c4594"

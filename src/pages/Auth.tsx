@@ -3,7 +3,6 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/contexts/AuthContext";
 import { pushLocalToCloud, syncFromCloud } from "@/lib/storage";
 import { toast } from "sonner";
@@ -89,10 +88,13 @@ export default function Auth() {
   const handleGoogle = async () => {
     setSubmitting(true);
     try {
-      const result: any = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + "/auth",
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin + "/auth",
+        },
       });
-      if (result?.error) toast.error(result.error.message || "Google sign-in failed");
+      if (error) toast.error(error.message || "Google sign-in failed");
     } catch (err: any) {
       toast.error(err?.message || "Google sign-in failed");
     } finally {
