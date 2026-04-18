@@ -44,6 +44,36 @@ export type Database = {
         }
         Relationships: []
       }
+      signup_notifications: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          email_error: string | null
+          email_sent: boolean
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          email_error?: string | null
+          email_sent?: boolean
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          email_error?: string | null
+          email_sent?: boolean
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_continue_watching: {
         Row: {
           backdrop_path: string | null
