@@ -1,11 +1,28 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Film, Tv, BookmarkPlus, Home } from "lucide-react";
+import { Search, Film, Tv, BookmarkPlus, Home, LogIn, LogOut, User as UserIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import SearchDropdown from "@/components/SearchDropdown";
+import { useAuth } from "@/contexts/AuthContext";
+import { clearLocalUserData } from "@/lib/storage";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 export default function Navbar() {
+  const { user, signOut } = useAuth();
+  const handleSignOut = async () => {
+    await signOut();
+    clearLocalUserData();
+    toast.success("Signed out");
+  };
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [mobileQuery, setMobileQuery] = useState("");
