@@ -14,7 +14,105 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_continue_watching: {
+        Row: {
+          backdrop_path: string | null
+          episode: number | null
+          id: string
+          media_type: string
+          poster_path: string | null
+          progress: number
+          season: number | null
+          title: string
+          tmdb_id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          backdrop_path?: string | null
+          episode?: number | null
+          id?: string
+          media_type: string
+          poster_path?: string | null
+          progress?: number
+          season?: number | null
+          title: string
+          tmdb_id: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          backdrop_path?: string | null
+          episode?: number | null
+          id?: string
+          media_type?: string
+          poster_path?: string | null
+          progress?: number
+          season?: number | null
+          title?: string
+          tmdb_id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_watchlist: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          media_type: string
+          tmdb_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          id?: string
+          media_type: string
+          tmdb_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          media_type?: string
+          tmdb_id?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
