@@ -48,8 +48,8 @@ export default function WatchMovie() {
     }).catch(() => {});
 
     tmdb.movieRecommendations(Number(id)).then((res) => {
-      setRecommendations(res.results.slice(0, 12));
-    }).catch(() => {});
+      setRecommendations((res.results ?? []).slice(0, 12));
+    }).catch(() => setRecommendations([]));
   }, [id]);
 
   useEffect(() => {
@@ -66,7 +66,6 @@ export default function WatchMovie() {
     };
   }, [id, serverId]);
 
-  // Reset auto-fallback tracking when navigating to a new movie.
   useEffect(() => {
     setServerId(DEFAULT_SERVER_ID);
   }, [id]);
@@ -92,7 +91,6 @@ export default function WatchMovie() {
             }}
           />
 
-          {/* Language selector */}
           <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-3 py-1.5 border border-border">
             <Languages className="w-4 h-4 text-muted-foreground shrink-0" />
             <select

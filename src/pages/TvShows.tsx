@@ -16,14 +16,19 @@ export default function TvShowsPage() {
   const observerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    tmdb.tvGenres().then((d) => setGenres(d.genres)).catch(() => {});
+    tmdb.tvGenres()
+      .then((d) => setGenres(d.genres ?? []))
+      .catch(() => setGenres([]));
   }, []);
 
   useEffect(() => {
     setLoading(true);
     setPage(1);
     tmdb.tvPopular(1, selectedGenre ?? undefined)
-      .then((d) => { setShows(d.results); setTotalPages(d.total_pages); })
+      .then((d) => {
+        setShows(d.results ?? []);
+        setTotalPages(d.total_pages ?? 1);
+      })
       .catch(() => setShows([]))
       .finally(() => setLoading(false));
   }, [selectedGenre]);
@@ -34,9 +39,9 @@ export default function TvShowsPage() {
     setLoadingMore(true);
     tmdb.tvPopular(nextPage, selectedGenre ?? undefined)
       .then((d) => {
-        setShows((prev) => [...prev, ...d.results]);
+        setShows((prev) => [...prev, ...(d.results ?? [])]);
         setPage(nextPage);
-        setTotalPages(d.total_pages);
+        setTotalPages(d.total_pages ?? 1);
       })
       .catch(() => {})
       .finally(() => setLoadingMore(false));

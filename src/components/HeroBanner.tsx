@@ -7,14 +7,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 interface Props {
-  movies: Movie[];
+  movies: Movie[] | undefined;
 }
 
 export default function HeroBanner({ movies }: Props) {
   const [idx, setIdx] = useState(0);
   const [inWatchlist, setInWatchlist] = useState(false);
-  const featured = movies.slice(0, 5);
-  const current = featured[idx];
+  const safeMovies = movies ?? [];
+  const featured = safeMovies.slice(0, 5);
+  const current = featured[idx] ?? null;
 
   const next = useCallback(() => {
     setIdx((i) => (i + 1) % Math.max(featured.length, 1));
@@ -25,9 +26,10 @@ export default function HeroBanner({ movies }: Props) {
   }, [featured.length]);
 
   useEffect(() => {
+    if (!featured.length) return;
     const t = setInterval(next, 7000);
     return () => clearInterval(t);
-  }, [next]);
+  }, [next, featured.length]);
 
   useEffect(() => {
     if (current) setInWatchlist(isInWatchlist(current.id));
@@ -64,7 +66,6 @@ export default function HeroBanner({ movies }: Props) {
         </motion.div>
       </AnimatePresence>
 
-      {/* Prev / Next arrows — always visible on TV, hover-visible on desktop */}
       <button
         onClick={prev}
         aria-label="Previous"
@@ -121,7 +122,6 @@ export default function HeroBanner({ movies }: Props) {
           </div>
         </motion.div>
 
-        {/* Dot indicators — keyboard focusable */}
         <div className="flex gap-2 mt-6">
           {featured.map((_, i) => (
             <button

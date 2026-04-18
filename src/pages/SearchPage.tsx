@@ -12,14 +12,29 @@ export default function SearchPage() {
   const [results, setResults] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!q) return;
+    if (!q) {
+      setResults([]);
+      setSearched(false);
+      return;
+    }
     setLoading(true);
     setSearched(true);
+    setError(false);
     tmdb.search(q)
-      .then((d) => setResults(d.results.filter((r) => r.poster_path && (r.media_type === "movie" || r.media_type === "tv"))))
-      .catch(() => setResults([]))
+      .then((d) =>
+        setResults(
+          (d.results ?? []).filter(
+            (r) => r.poster_path && (r.media_type === "movie" || r.media_type === "tv")
+          )
+        )
+      )
+      .catch(() => {
+        setResults([]);
+        setError(true);
+      })
       .finally(() => setLoading(false));
   }, [q]);
 
@@ -53,7 +68,14 @@ export default function SearchPage() {
         </div>
       )}
 
-      {!loading && results.length > 0 && (
+      {!loading && error && (
+        <div className="text-center py-20">
+          <h3 className="text-xl font-semibold text-foreground mb-2">Search failed</h3>
+          <p className="text-muted-foreground">Something went wrong. Please try again.</p>
+        </div>
+      )}
+
+      {!loading && !error && results.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {results.map((m) => (
             <MovieCard key={m.id} movie={m} type={m.media_type as "movie" | "tv"} />
@@ -61,7 +83,7 @@ export default function SearchPage() {
         </div>
       )}
 
-      {!loading && searched && results.length === 0 && (
+      {!loading && !error && searched && results.length === 0 && (
         <div className="text-center py-20">
           <Search className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-foreground mb-2">No results found</h3>

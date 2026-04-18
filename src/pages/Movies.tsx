@@ -16,14 +16,19 @@ export default function MoviesPage() {
   const observerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    tmdb.movieGenres().then((d) => setGenres(d.genres)).catch(() => {});
+    tmdb.movieGenres()
+      .then((d) => setGenres(d.genres ?? []))
+      .catch(() => setGenres([]));
   }, []);
 
   useEffect(() => {
     setLoading(true);
     setPage(1);
     tmdb.popular(1, selectedGenre ?? undefined)
-      .then((d) => { setMovies(d.results); setTotalPages(d.total_pages); })
+      .then((d) => {
+        setMovies(d.results ?? []);
+        setTotalPages(d.total_pages ?? 1);
+      })
       .catch(() => setMovies([]))
       .finally(() => setLoading(false));
   }, [selectedGenre]);
@@ -34,9 +39,9 @@ export default function MoviesPage() {
     setLoadingMore(true);
     tmdb.popular(nextPage, selectedGenre ?? undefined)
       .then((d) => {
-        setMovies((prev) => [...prev, ...d.results]);
+        setMovies((prev) => [...prev, ...(d.results ?? [])]);
         setPage(nextPage);
-        setTotalPages(d.total_pages);
+        setTotalPages(d.total_pages ?? 1);
       })
       .catch(() => {})
       .finally(() => setLoadingMore(false));

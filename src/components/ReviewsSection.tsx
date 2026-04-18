@@ -4,21 +4,22 @@ import { Review, imgUrl } from "@/lib/tmdb";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
-  reviews: Review[];
+  reviews: Review[] | undefined;
 }
 
 export default function ReviewsSection({ reviews }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const safeReviews = reviews ?? [];
 
-  if (!reviews.length) return null;
+  if (!safeReviews.length) return null;
 
   return (
     <section className="mt-12 mb-16">
       <h2 className="text-xl font-semibold text-foreground mb-6">
-        Reviews ({reviews.length})
+        Reviews ({safeReviews.length})
       </h2>
       <div className="space-y-4">
-        {reviews.slice(0, 10).map((review) => {
+        {safeReviews.slice(0, 10).map((review) => {
           const isExpanded = expandedId === review.id;
           const isLong = review.content.length > 300;
           const avatarUrl = review.author_details.avatar_path

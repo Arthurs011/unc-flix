@@ -27,18 +27,18 @@ export default function TvDetailsPage() {
         setShow(d);
         setInWL(isInWatchlist(d.id));
         addRecentlyViewed({ ...d, media_type: "tv" });
-        const videos = d.videos?.results || [];
+        const videos = d.videos?.results ?? [];
         const trailer = videos.find((v) => v.site === "YouTube" && v.type === "Trailer")
-          || videos.find((v) => v.site === "YouTube");
-        setTrailerKey(trailer?.key || null);
+          ?? videos.find((v) => v.site === "YouTube");
+        setTrailerKey(trailer?.key ?? null);
       })
       .catch(() => setShow(null))
       .finally(() => setLoading(false));
     tmdb.tvRecommendations(Number(id))
-      .then((d) => setSimilar(d.results.filter((m) => m.poster_path)))
+      .then((d) => setSimilar((d.results ?? []).filter((m) => m.poster_path)))
       .catch(() => setSimilar([]));
     tmdb.tvReviews(Number(id))
-      .then((d) => setReviews(d.results))
+      .then((d) => setReviews(d.results ?? []))
       .catch(() => setReviews([]));
   }, [id]);
 
@@ -52,11 +52,10 @@ export default function TvDetailsPage() {
     </div>
   );
 
-  const cast = show.credits?.cast?.slice(0, 20) || [];
+  const cast = show.credits?.cast?.slice(0, 20) ?? [];
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen">
-      {/* Trailer Modal */}
       <AnimatePresence>
         {showTrailer && trailerKey && (
           <motion.div
@@ -119,9 +118,9 @@ export default function TvDetailsPage() {
               {show.number_of_seasons && <span>{show.number_of_seasons} Season{show.number_of_seasons > 1 ? "s" : ""}</span>}
             </div>
 
-            {show.genres && (
+            {(show.genres?.length ?? 0) > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
-                {show.genres.map((g) => (
+                {show.genres!.map((g) => (
                   <span key={g.id} className="px-3 py-1 bg-secondary rounded-full text-xs text-muted-foreground">{g.name}</span>
                 ))}
               </div>
@@ -156,12 +155,11 @@ export default function TvDetailsPage() {
               </Button>
             </div>
 
-            {/* Seasons */}
-            {show.seasons && show.seasons.length > 0 && (
+            {(show.seasons?.length ?? 0) > 0 && (
               <div className="mt-8">
                 <h3 className="text-lg font-semibold text-foreground mb-3">Seasons</h3>
                 <div className="flex flex-wrap gap-2">
-                  {show.seasons
+                  {show.seasons!
                     .filter((s) => s.season_number > 0)
                     .map((s) => (
                       <Link

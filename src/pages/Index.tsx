@@ -26,11 +26,11 @@ export default function Index() {
       tmdb.upcoming(),
     ])
       .then(([t, tr, p, tv, u]) => {
-        setTrending(t.results);
-        setTopRated(tr.results);
-        setPopular(p.results);
-        setTvShows(tv.results);
-        setUpcoming(u.results);
+        setTrending(t.results ?? []);
+        setTopRated(tr.results ?? []);
+        setPopular(p.results ?? []);
+        setTvShows(tv.results ?? []);
+        setUpcoming(u.results ?? []);
         setRecent(getRecentlyViewed());
       })
       .catch(() => setError(true))
@@ -78,7 +78,7 @@ export default function Index() {
         <ContentRow title="Popular TV Shows" movies={tvShows} type="tv" />
         <ContentRow title="Upcoming Movies" movies={upcoming} />
         <ContentRow title="Popular Movies" movies={popular} />
-        {recent.length > 0 && <ContentRow title="Recently Viewed" movies={recent} />}
+        {(recent?.length ?? 0) > 0 && <ContentRow title="Recently Viewed" movies={recent} />}
       </div>
     </motion.div>
   );

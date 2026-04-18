@@ -5,13 +5,14 @@ import MovieCard from "./MovieCard";
 
 interface Props {
   title: string;
-  movies: Movie[];
+  movies: Movie[] | undefined;
   type?: "movie" | "tv";
   showRank?: boolean;
 }
 
 export default function ContentRow({ title, movies, type, showRank }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const safeMovies = movies ?? [];
 
   const scroll = (dir: number) => {
     scrollRef.current?.scrollBy({ left: dir * 400, behavior: "smooth" });
@@ -27,7 +28,7 @@ export default function ContentRow({ title, movies, type, showRank }: Props) {
     }
   };
 
-  if (!movies.length) return null;
+  if (!safeMovies.length) return null;
 
   return (
     <section className="mb-10">
@@ -35,7 +36,6 @@ export default function ContentRow({ title, movies, type, showRank }: Props) {
         {title}
       </h2>
       <div className="relative group/row">
-        {/* Scroll left — always visible on TV (no hover), hover-visible on desktop */}
         <button
           onClick={() => scroll(-1)}
           aria-label="Scroll left"
@@ -56,7 +56,7 @@ export default function ContentRow({ title, movies, type, showRank }: Props) {
           onKeyDown={handleKeyDown}
           className="flex gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-0 pb-2"
         >
-          {movies.map((m, i) => (
+          {safeMovies.map((m, i) => (
             <MovieCard key={m.id} movie={m} type={type} rank={showRank ? i + 1 : undefined} />
           ))}
         </div>

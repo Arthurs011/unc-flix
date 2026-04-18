@@ -27,19 +27,18 @@ export default function MovieDetailsPage() {
         setMovie(d);
         setInWL(isInWatchlist(d.id));
         addRecentlyViewed(d);
-        // Find YouTube trailer
-        const videos = d.videos?.results || [];
+        const videos = d.videos?.results ?? [];
         const trailer = videos.find((v) => v.site === "YouTube" && v.type === "Trailer")
-          || videos.find((v) => v.site === "YouTube");
-        setTrailerKey(trailer?.key || null);
+          ?? videos.find((v) => v.site === "YouTube");
+        setTrailerKey(trailer?.key ?? null);
       })
       .catch(() => setMovie(null))
       .finally(() => setLoading(false));
     tmdb.movieRecommendations(Number(id))
-      .then((d) => setSimilar(d.results.filter((m) => m.poster_path)))
+      .then((d) => setSimilar((d.results ?? []).filter((m) => m.poster_path)))
       .catch(() => setSimilar([]));
     tmdb.movieReviews(Number(id))
-      .then((d) => setReviews(d.results))
+      .then((d) => setReviews(d.results ?? []))
       .catch(() => setReviews([]));
   }, [id]);
 
@@ -53,11 +52,10 @@ export default function MovieDetailsPage() {
     </div>
   );
 
-  const cast = movie.credits?.cast?.slice(0, 20) || [];
+  const cast = movie.credits?.cast?.slice(0, 20) ?? [];
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen">
-      {/* Trailer Modal */}
       <AnimatePresence>
         {showTrailer && trailerKey && (
           <motion.div
@@ -93,7 +91,6 @@ export default function MovieDetailsPage() {
         )}
       </AnimatePresence>
 
-      {/* Backdrop */}
       <div className="relative h-[50vh] sm:h-[60vh]">
         <img src={imgUrl(movie.backdrop_path, "original")} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
@@ -105,10 +102,8 @@ export default function MovieDetailsPage() {
         </Link>
       </div>
 
-      {/* Details */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-40 relative z-10">
         <div className="flex flex-col sm:flex-row gap-8">
-          {/* Poster */}
           <div className="flex-shrink-0 w-48 sm:w-56 mx-auto sm:mx-0">
             <img
               src={imgUrl(movie.poster_path, "w500")}
@@ -117,7 +112,6 @@ export default function MovieDetailsPage() {
             />
           </div>
 
-          {/* Info */}
           <div className="flex-1 pt-4">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-2">
               {getTitle(movie)}
@@ -139,9 +133,9 @@ export default function MovieDetailsPage() {
               )}
             </div>
 
-            {movie.genres && (
+            {(movie.genres?.length ?? 0) > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
-                {movie.genres.map((g) => (
+                {movie.genres!.map((g) => (
                   <span key={g.id} className="px-3 py-1 bg-secondary rounded-full text-xs text-muted-foreground">
                     {g.name}
                   </span>
@@ -187,7 +181,6 @@ export default function MovieDetailsPage() {
           </div>
         </div>
 
-        {/* Cast */}
         {cast.length > 0 && (
           <section className="mt-12 mb-16">
             <h2 className="text-xl font-semibold text-foreground mb-4">Cast</h2>
