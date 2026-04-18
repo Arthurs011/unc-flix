@@ -167,6 +167,43 @@ export default function Navbar() {
             >
               <Search className="w-5 h-5" />
             </button>
+
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    aria-label="Account menu"
+                    className="ml-1 h-9 w-9 rounded-full bg-secondary text-foreground flex items-center justify-center hover:bg-secondary/70 transition"
+                  >
+                    <span className="text-sm font-semibold">
+                      {(user.user_metadata?.display_name || user.email || "U").charAt(0).toUpperCase()}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="truncate">
+                    {user.user_metadata?.display_name || user.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/watchlist" className="flex items-center gap-2">
+                      <BookmarkPlus className="w-4 h-4" /> My Watchlist
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                    <LogOut className="w-4 h-4 mr-2" /> Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link
+                to="/auth"
+                className="ml-1 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition"
+              >
+                <LogIn className="w-4 h-4" /> Sign in
+              </Link>
+            )}
           </div>
 
           {/* Mobile Nav icons */}
