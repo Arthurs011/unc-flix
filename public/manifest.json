@@ -1,11 +1,11 @@
 {
-  "name": "Uncleflix — Premium Streaming",
-  "short_name": "Uncleflix",
-  "description": "Discover and stream movies and TV shows with a premium experience.",
+  "name": "UNCFLIX — Premium Cinema",
+  "short_name": "UNCFLIX",
+  "description": "A professional movie and TV show streaming experience with advanced discovery.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d0d0d",
-  "theme_color": "#0d0d0d",
+  "background_color": "#040404",
+  "theme_color": "#040404",
   "orientation": "any",
   "scope": "/",
   "icons": [
@@ -29,5 +29,5 @@
     }
   ],
   "screenshots": [],
-  "categories": ["entertainment"]
+  "categories": ["entertainment", "video"]
 }

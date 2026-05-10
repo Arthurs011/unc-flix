@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Play, Plus, Check, ChevronLeft, ChevronRight } from "lucide-react";
-import { Movie, imgUrl, getTitle } from "@/lib/tmdb";
+import { Play, Plus, Check, ChevronLeft, ChevronRight, Star, Calendar } from "lucide-react";
+import { Movie, imgUrl, getTitle, getYear } from "@/lib/tmdb";
 import { isInWatchlist, toggleWatchlist } from "@/lib/storage";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ export default function HeroBanner({ movies }: Props) {
 
   useEffect(() => {
     if (!featured.length) return;
-    const t = setInterval(next, 7000);
+    const t = setInterval(next, 8000);
     return () => clearInterval(t);
   }, [next, featured.length]);
 
@@ -44,7 +44,7 @@ export default function HeroBanner({ movies }: Props) {
 
   return (
     <div
-      className="relative w-full h-[60vh] sm:h-[70vh] lg:h-[80vh] overflow-hidden"
+      className="relative w-full h-[85vh] sm:h-[80vh] lg:h-[90vh] overflow-hidden group/hero shadow-2xl"
       onKeyDown={handleKeyDown}
     >
       <AnimatePresence mode="wait">
@@ -53,86 +53,87 @@ export default function HeroBanner({ movies }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 1 }}
           className="absolute inset-0"
         >
-          <img
+          <motion.img
+            initial={{ scale: 1.1 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 10, ease: "linear" }}
             src={imgUrl(current.backdrop_path, "original")}
             alt={getTitle(current)}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
+          {/* Mobile-first deeper gradients */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent sm:via-background/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent hidden sm:block" />
+          <div className="absolute inset-0 bg-black/30" />
         </motion.div>
       </AnimatePresence>
 
-      <button
-        onClick={prev}
-        aria-label="Previous"
-        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-background/50 backdrop-blur-sm text-foreground opacity-0 hover:opacity-100 focus-visible:opacity-100 tv-show-always transition-opacity"
-      >
-        <ChevronLeft className="w-7 h-7" />
-      </button>
-      <button
-        onClick={next}
-        aria-label="Next"
-        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-background/50 backdrop-blur-sm text-foreground opacity-0 hover:opacity-100 focus-visible:opacity-100 tv-show-always transition-opacity"
-      >
-        <ChevronRight className="w-7 h-7" />
-      </button>
-
-      <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10 lg:p-16 z-10">
+      <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-12 lg:p-20 z-10">
         <motion.div
           key={current.id + "-content"}
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="max-w-4xl"
         >
-          {idx < 10 && (
-            <div className="inline-flex items-center gap-1.5 bg-primary/90 backdrop-blur-sm text-primary-foreground text-xs font-bold rounded-lg px-3 py-1 mb-3">
-              <span>TOP</span>
-              <span className="text-base leading-none">{idx + 1}</span>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-2 text-[10px] sm:text-sm font-black text-white/90 uppercase tracking-widest italic">
+              <span className="flex items-center gap-1 text-primary">
+                <Star className="w-4 h-4 fill-current" />
+                {current.vote_average.toFixed(1)}
+              </span>
+              <span className="w-1 h-1 rounded-full bg-white/20" />
+              <span className="flex items-center gap-1 opacity-60">
+                <Calendar className="w-4 h-4" />
+                {getYear(current)}
+              </span>
             </div>
-          )}
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-3 max-w-2xl">
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white mb-6 drop-shadow-2xl tracking-tighter italic uppercase leading-[0.9]">
             {getTitle(current)}
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-xl mb-6 line-clamp-3">
+          
+          <p className="text-sm sm:text-lg text-white/70 max-w-xl mb-10 line-clamp-3 sm:line-clamp-4 font-medium leading-relaxed italic">
             {current.overview}
           </p>
-          <div className="flex gap-3">
-            <Button asChild size="lg" className="rounded-full px-8 gap-2 text-base font-semibold">
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button asChild size="lg" className="h-16 sm:h-14 rounded-2xl px-10 gap-3 text-lg font-black uppercase italic tracking-tighter bg-primary hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/25">
               <Link to={`/watch/movie/${current.id}`}>
-                <Play className="w-5 h-5 fill-current" />
-                Play
+                <Play className="w-6 h-6 fill-current" />
+                Play Now
               </Link>
             </Button>
             <Button
-              variant="secondary"
+              variant="outline"
               size="lg"
-              className="rounded-full px-6 gap-2 text-base"
+              className="h-16 sm:h-14 rounded-2xl px-8 gap-3 text-lg font-black uppercase italic tracking-tighter bg-white/5 backdrop-blur-md border-white/10 text-white hover:bg-white/10 hover:scale-105 active:scale-95 transition-all"
               onClick={() => {
                 const added = toggleWatchlist(current);
                 setInWatchlist(added);
               }}
             >
-              {inWatchlist ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-              {inWatchlist ? "Added" : "Watchlist"}
+              {inWatchlist ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+              {inWatchlist ? "Saved" : "Watchlist"}
             </Button>
           </div>
         </motion.div>
-
-        <div className="flex gap-2 mt-6">
+...
+        {/* Indicators */}
+        <div className="flex gap-2.5 mt-10">
           {featured.map((_, i) => (
             <button
               key={i}
               onClick={() => setIdx(i)}
-              aria-label={`Slide ${i + 1}`}
-              aria-current={i === idx ? "true" : undefined}
-              className={`h-1.5 rounded-full transition-all duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 ${
+              aria-label={`Go to slide ${i + 1}`}
+              className={`h-1.5 rounded-full transition-all duration-500 ${
                 i === idx
-                  ? "w-8 bg-primary"
-                  : "w-4 bg-muted-foreground/40 hover:bg-muted-foreground/60"
+                  ? "w-10 bg-primary shadow-glow"
+                  : "w-5 bg-white/20 hover:bg-white/40"
               }`}
             />
           ))}

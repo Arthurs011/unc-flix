@@ -18,11 +18,19 @@ export interface Movie {
   overview: string;
   poster_path: string | null;
   backdrop_path: string | null;
+  still_path?: string | null;
   vote_average: number;
+  vote_count: number;
   release_date?: string;
   first_air_date?: string;
   genre_ids?: number[];
   media_type?: string;
+}
+
+export interface Episode extends Movie {
+  air_date: string;
+  episode_number: number;
+  season_number: number;
 }
 
 export interface MovieDetails extends Movie {
@@ -108,6 +116,8 @@ export const tmdb = {
     get<ReviewResponse>(`/movie/${id}/reviews`),
   tvReviews: (id: number) =>
     get<ReviewResponse>(`/tv/${id}/reviews`),
+  tvEpisode: (tvId: number, season: number, episode: number) =>
+    get<Episode>(`/tv/${tvId}/season/${season}/episode/${episode}`),
 };
 
 export function imgUrl(path: string | null, size = "w500") {
@@ -121,4 +131,10 @@ export function getTitle(item: Movie) {
 export function getYear(item: Movie) {
   const d = item.release_date || item.first_air_date;
   return d ? d.substring(0, 4) : "";
+}
+
+export function formatCount(count: number): string {
+  if (count >= 1000000) return (count / 1000000).toFixed(1) + "M";
+  if (count >= 1000) return (count / 1000).toFixed(1) + "K";
+  return count.toString();
 }

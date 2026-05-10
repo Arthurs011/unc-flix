@@ -1,41 +1,40 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, X, Languages } from "lucide-react";
+import { ArrowLeft, X, ExternalLink, RefreshCw, Zap, ThumbsUp, ThumbsDown, Bookmark, Share2, Play, Star, Calendar, Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
-import { tmdb, getTitle, imgUrl, Movie } from "@/lib/tmdb";
+import { tmdb, getTitle, imgUrl, Movie, MovieDetails, formatCount } from "@/lib/tmdb";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
-import { DEFAULT_SERVER_ID, getServer } from "@/lib/servers";
-import ServerPicker from "@/components/ServerPicker";
-
-const LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "ru", label: "Русский" },
-  { code: "es", label: "Español" },
-  { code: "fr", label: "Français" },
-  { code: "de", label: "Deutsch" },
-  { code: "it", label: "Italiano" },
-  { code: "pt", label: "Português" },
-  { code: "tr", label: "Türkçe" },
-  { code: "hi", label: "हिन्दी" },
-];
+import { getEmbedUrl, SOURCES, getPreferredSourceIndex, setPreferredSourceIndex, discoverBestSource, getDownloadUrl } from "@/lib/servers";
+import { Button } from "@/components/ui/button";
 
 export default function WatchMovie() {
   const { id } = useParams();
   const navigate = useNavigate();
   useFullscreenOrientation();
-  const [showFallback, setShowFallback] = useState(false);
-  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
-  const [movieTitle, setMovieTitle] = useState("");
-  const [lang, setLang] = useState("en");
-  const [serverId, setServerId] = useState<string>(DEFAULT_SERVER_ID);
+  const [showFallback, setShowFallback] = useState(false);
+  const [sourceIndex, setSourceIndex] = useState(getPreferredSourceIndex());
+  const [isAutoDetecting, setIsAutoDetecting] = useState(true);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // Smart Auto-Detection
+    discoverBestSource().then((best) => {
+      if (localStorage.getItem("uncflix_preferred_source_index") === null) {
+        setSourceIndex(best);
+      }
+      setIsAutoDetecting(false);
+    });
+
     if (!id) return;
+    
+    // Fetch Movie Details
+    tmdb.movieDetails(Number(id)).then(setMovie).catch(() => {});
+
+    // Sync Continue Watching
     tmdb.movieDetails(Number(id)).then((m) => {
-      setMovieTitle(getTitle(m));
       updateContinueWatching({
         id: m.id,
         type: "movie",
@@ -47,84 +46,77 @@ export default function WatchMovie() {
       });
     }).catch(() => {});
 
+    // Recommendations
     tmdb.movieRecommendations(Number(id)).then((res) => {
-      setRecommendations((res.results ?? []).slice(0, 12));
+      setRecommendations((res.results ?? []).slice(0, 10));
     }).catch(() => setRecommendations([]));
   }, [id]);
 
   useEffect(() => {
     setShowFallback(false);
-    setShowRecommendations(false);
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
     fallbackTimerRef.current = setTimeout(() => {
       setShowFallback(true);
     }, 15000);
-    const recoTimer = setTimeout(() => setShowRecommendations(true), 120000);
     return () => {
       if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-      clearTimeout(recoTimer);
     };
-  }, [id, serverId]);
+  }, [id, sourceIndex]);
 
-  useEffect(() => {
-    setServerId(DEFAULT_SERVER_ID);
-  }, [id]);
+  const embedSrc = id ? getEmbedUrl(sourceIndex, "movie", id) : "";
 
-  const server = getServer(serverId);
-  const embedSrc = id
-    ? server.build({ type: "movie", id, lang: server.supportsLang ? lang : undefined })
-    : "";
+  const handleSwitchSource = () => {
+    const nextIndex = (sourceIndex + 1) % SOURCES.length;
+    setSourceIndex(nextIndex);
+    setPreferredSourceIndex(nextIndex);
+  };
+
+  // Calculate dynamic likes/dislikes
+  const likes = movie ? Math.round(movie.vote_count * (movie.vote_average / 10)) : 0;
+  const dislikes = movie ? Math.round(movie.vote_count * (1 - (movie.vote_average / 10))) : 0;
 
   return (
-    <div className="fixed inset-0 bg-background z-50 flex flex-col">
-      <div className="glass-strong px-4 py-3 flex items-center gap-4 z-10 flex-wrap">
-        <Link to={`/movie/${id}`} className="p-2 rounded-full hover:bg-secondary transition-colors text-foreground">
-          <ArrowLeft className="w-5 h-5" />
+    <div className="min-h-screen bg-black text-white pb-32 sm:pb-20">
+      {/* Top Header */}
+      <div className="h-16 sm:h-20 flex items-center px-4 sm:px-8 border-b border-white/5 bg-black/50 backdrop-blur-md sticky top-0 z-50">
+        <Link to={`/movie/${id}`} className="p-2 rounded-full hover:bg-white/10 transition-colors mr-2 sm:mr-4">
+          <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
         </Link>
-        <span className="text-sm font-medium text-foreground">Now Playing</span>
-
-        <div className="ml-auto flex items-center gap-2">
-          <ServerPicker
-            value={serverId}
-            onChange={(next) => {
-              setServerId(next);
-            }}
-          />
-
-          <div className="flex items-center gap-1.5 bg-secondary rounded-lg px-3 py-1.5 border border-border">
-            <Languages className="w-4 h-4 text-muted-foreground shrink-0" />
-            <select
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
-              className="bg-transparent text-foreground text-sm outline-none cursor-pointer"
-              data-testid="select-language"
-            >
-              {LANGUAGES.map((l) => (
-                <option key={l.code} value={l.code}>{l.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {recommendations.length > 0 && (
+        <div className="flex flex-col min-w-0">
+          <span className="text-[8px] sm:text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Now Playing</span>
+          <h1 className="text-xs sm:text-sm font-bold truncate pr-4 uppercase italic tracking-tight">
+            {movie ? getTitle(movie) : "Loading..."}
+          </h1>
+        </div>
+        
+        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+          {isAutoDetecting ? (
+             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-[9px] sm:text-[10px] font-bold animate-pulse">
+                <Zap className="w-3 h-3 fill-current" />
+                <span className="hidden xs:inline">Detecting...</span>
+             </div>
+          ) : (
             <button
-              onClick={() => setShowRecommendations(true)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-secondary text-foreground hover:bg-secondary/80 transition-colors border border-border"
+              onClick={handleSwitchSource}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/5 hover:bg-primary transition-all text-[9px] sm:text-[10px] font-black uppercase tracking-wider border border-white/10"
             >
-              Up Next
+              <RefreshCw className="w-3 h-3" />
+              <span className="hidden xs:inline">{SOURCES[sourceIndex].name}</span>
+              <span className="xs:hidden">Switch</span>
             </button>
           )}
         </div>
       </div>
 
-      <div className="flex-1 relative">
+      {/* Video Player Area */}
+      <div className="w-full aspect-video bg-zinc-900 relative group overflow-hidden shadow-2xl">
         <iframe
-          key={`${id}-${serverId}-${lang}`}
+          key={`${id}-${sourceIndex}`}
           src={embedSrc}
           className="w-full h-full border-0"
           allowFullScreen
           allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-orientation-lock"
-          referrerPolicy="no-referrer"
+          referrerPolicy="strict-origin-when-cross-origin"
           title="Movie Player"
           onLoad={() => {
             if (fallbackTimerRef.current) {
@@ -134,89 +126,142 @@ export default function WatchMovie() {
             setShowFallback(false);
           }}
         />
+
         {showFallback && (
-          <div className="absolute top-4 right-4 z-10">
-            <a
-              href={embedSrc}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-background/80 backdrop-blur-sm text-foreground rounded-lg text-sm font-medium hover:bg-background/90 transition-colors border border-border"
-            >
-              Video not loading? Open in new tab
-            </a>
+          <div className="absolute inset-0 z-10 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+            <div className="text-center p-10 bg-zinc-900 rounded-[2rem] max-w-sm border border-white/5 shadow-2xl">
+              <RefreshCw className="w-12 h-12 text-primary animate-spin-slow mx-auto mb-6" />
+              <h3 className="text-2xl font-black text-white mb-2 uppercase italic tracking-tighter">Source Timeout</h3>
+              <p className="text-sm text-white/50 mb-8 leading-relaxed">The server is responding slowly. Let's try another one.</p>
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={handleSwitchSource}
+                  className="h-14 rounded-full bg-primary text-white font-black uppercase italic tracking-tighter hover:scale-105 transition-all"
+                >
+                  Switch Source
+                </Button>
+                <a
+                  href={embedSrc}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-14 flex items-center justify-center gap-2 rounded-full bg-white/5 text-white font-bold uppercase text-xs border border-white/10 hover:bg-white/10"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Open Player
+                </a>
+              </div>
+            </div>
           </div>
         )}
+      </div>
 
-        <AnimatePresence>
-          {showRecommendations && recommendations.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 40 }}
-              transition={{ duration: 0.4 }}
-              className="absolute inset-0 z-20 bg-background/95 backdrop-blur-md flex flex-col overflow-hidden"
-            >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                <div>
-                  <p className="text-xs text-muted-foreground">You just watched</p>
-                  <h2 className="text-lg font-semibold text-foreground">{movieTitle}</h2>
+      {/* Main Content Layout */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 mt-6 sm:mt-10">
+        <div className="flex flex-col lg:flex-row gap-8 sm:gap-12">
+          
+          {/* Left Column: Metadata */}
+          <div className="flex-1 order-1">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+              <div className="space-y-2">
+                <h3 className="text-primary font-bold uppercase tracking-widest text-[10px] sm:text-sm italic">
+                  Full Movie
+                </h3>
+                <h1 className="text-2xl sm:text-5xl font-black tracking-tighter leading-[0.9] italic uppercase">
+                  {movie ? getTitle(movie) : "Loading Title..."}
+                </h1>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2">
+                  <span className="bg-white/10 px-2 py-0.5 rounded text-[9px] font-black text-white/80 uppercase">U/A 16+</span>
+                  <span className="text-white/40 font-bold text-xs uppercase">•</span>
+                  <span className="flex items-center gap-1.5 text-white/60 font-bold text-[10px] sm:text-xs uppercase tracking-widest">
+                     <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                     {movie?.vote_average.toFixed(1)}
+                  </span>
+                  <span className="text-white/40 font-bold text-xs uppercase">•</span>
+                  <span className="text-white/40 font-bold text-[10px] sm:text-xs uppercase">{movie?.release_date || "Unknown"}</span>
                 </div>
-                <button
-                  onClick={() => setShowRecommendations(false)}
-                  className="p-2 rounded-full hover:bg-secondary transition-colors text-foreground"
-                >
-                  <X className="w-5 h-5" />
-                </button>
               </div>
-              <div className="flex-1 overflow-y-auto px-6 py-4">
-                <h3 className="text-base font-semibold text-foreground mb-4">Recommended for you</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {recommendations.map((movie) => (
-                    <button
-                      key={movie.id}
-                      onClick={() => navigate(`/watch/movie/${movie.id}`)}
-                      className="group text-left rounded-xl overflow-hidden bg-secondary/50 hover:bg-secondary transition-colors"
-                    >
-                      <div className="aspect-[2/3] relative overflow-hidden">
-                        <img
-                          src={imgUrl(movie.poster_path, "w342")}
-                          alt={getTitle(movie)}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                          <span className="text-xs text-white font-medium">▶ Play</span>
+              <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
+                 <button className="flex-1 sm:flex-none flex items-center justify-center p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/5">
+                    <Bookmark className="w-5 h-5 sm:w-6 sm:h-6" />
+                 </button>
+                 <button className="flex-1 sm:flex-none flex items-center justify-center p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all border border-white/5">
+                    <Share2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                 </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6 mb-8 py-4 border-y border-white/5">
+                <div className="flex items-center gap-2 group cursor-pointer">
+                    <ThumbsUp className="w-5 h-5 text-white group-hover:text-primary transition-colors" />
+                    <span className="text-sm font-black italic">{formatCount(likes)}</span>
+                </div>
+                <div className="flex items-center gap-2 group cursor-pointer">
+                    <ThumbsDown className="w-5 h-5 text-white group-hover:text-primary transition-colors" />
+                    <span className="text-sm font-black italic">{formatCount(dislikes)}</span>
+                </div>
+
+                <a 
+                    href={getDownloadUrl("movie", id || "")} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 group cursor-pointer hover:text-primary transition-colors"
+                >
+                    <Download className="w-5 h-5" />
+                    <span className="text-sm font-black italic uppercase tracking-tighter">Download</span>
+                </a>
+
+                <div className="ml-auto flex items-center gap-4 text-white/40 font-black uppercase text-[10px] tracking-widest italic">
+                    <span className="hidden sm:inline">Share Movie</span>
+                    <Share2 className="w-5 h-5 text-white/60 hover:text-white cursor-pointer transition-colors" />
+                </div>
+            </div>
+
+            <div className="space-y-4 max-w-4xl">
+                <p className="text-white/70 text-base sm:text-lg leading-relaxed font-medium">
+                    {movie?.overview || "No description available for this title."}
+                </p>
+                <button className="text-primary font-black uppercase italic tracking-tighter text-sm hover:underline">
+                    Show More
+                </button>
+            </div>
+          </div>
+
+          {/* Right Column: Up Next */}
+          <div className="w-full lg:w-[400px] shrink-0 space-y-6 sm:space-y-8 order-2">
+            
+            <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 italic">Recommended</h4>
+                <div className="space-y-3">
+                  {recommendations.slice(0, 5).map((rec) => (
+                    <Link key={rec.id} to={`/movie/${rec.id}`} className="group flex gap-4 p-2 rounded-2xl bg-white/5 border border-white/5 hover:bg-primary transition-all duration-500">
+                        <div className="w-24 h-32 shrink-0 rounded-xl overflow-hidden relative shadow-lg">
+                            <img src={imgUrl(rec.poster_path, "w200")} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={getTitle(rec)} />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Play className="w-6 h-6 fill-current" />
+                            </div>
                         </div>
-                      </div>
-                      <div className="p-2">
-                        <p className="text-xs font-medium text-foreground truncate">{getTitle(movie)}</p>
-                        {movie.vote_average > 0 && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            ⭐ {movie.vote_average.toFixed(1)}
-                          </p>
-                        )}
-                      </div>
-                    </button>
+                        <div className="flex flex-col justify-center gap-1 overflow-hidden">
+                            <h5 className="font-black italic uppercase text-xs sm:text-sm line-clamp-2 group-hover:text-white">{getTitle(rec)}</h5>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[8px] font-black bg-white/10 px-1.5 py-0.5 rounded uppercase">{rec.release_date?.substring(0, 4)}</span>
+                                <span className="text-[8px] font-bold text-white/40 uppercase group-hover:text-white/80 italic">Highly Rated</span>
+                            </div>
+                        </div>
+                    </Link>
                   ))}
                 </div>
-              </div>
-              <div className="px-6 py-3 border-t border-border flex gap-3">
-                <Link
-                  to={`/movie/${id}`}
-                  className="flex-1 text-center py-2.5 rounded-lg bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-colors"
-                >
-                  Back to details
+            </div>
+
+            <Button variant="outline" asChild className="w-full h-14 rounded-full border-white/10 bg-transparent font-black uppercase italic tracking-tighter hover:bg-white hover:text-black transition-all gap-3">
+                <Link to="/">
+                    <Play className="w-4 h-4 fill-current" />
+                    Browse All Content
                 </Link>
-                <button
-                  onClick={() => setShowRecommendations(false)}
-                  className="flex-1 text-center py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
-                  Continue watching
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </Button>
+
+          </div>
+
+        </div>
       </div>
     </div>
   );

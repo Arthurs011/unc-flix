@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import { Star } from "lucide-react";
-import { Movie, imgUrl, getTitle } from "@/lib/tmdb";
+import { Star, Play, Calendar } from "lucide-react";
+import { Movie, imgUrl, getTitle, getYear } from "@/lib/tmdb";
 import { motion } from "framer-motion";
 
 interface Props {
@@ -16,39 +16,36 @@ export default function MovieCard({ movie, type, rank }: Props) {
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
-      whileFocus={{ scale: 1.05 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className="flex-shrink-0 w-[160px] sm:w-[180px] group card-focus-glow"
+      whileTap={{ scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+      className="flex-shrink-0 w-[130px] sm:w-[180px] group snap-start"
     >
-      <Link to={to} className="block rounded-xl" tabIndex={0}>
-        <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-secondary">
-          <img
-            src={imgUrl(movie.poster_path)}
-            alt={getTitle(movie)}
-            loading="lazy"
-            className="w-full h-full object-cover transition-opacity duration-300"
-            onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }}
-          />
-          {/* Top 10 badge */}
-          {rank !== undefined && rank <= 10 && (
-            <div className="absolute top-2 left-2 flex items-center justify-center bg-primary text-primary-foreground text-[10px] font-bold rounded-md px-1.5 py-0.5 leading-none tracking-tight shadow-lg">
-              <span className="block">TOP</span>
-              <span className="block text-sm ml-0.5">{rank}</span>
-            </div>
-          )}
-          {/* Rating badge */}
-          {movie.vote_average > 0 && (
-            <div className="absolute top-2 right-2 flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded-md px-1.5 py-0.5 text-xs font-semibold">
-              <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-              {movie.vote_average.toFixed(1)}
-            </div>
-          )}
-          {/* Overlay — visible on hover AND keyboard focus */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300 flex items-end p-3">
-            <p className="text-sm font-medium text-foreground line-clamp-2">
-              {getTitle(movie)}
-            </p>
+      <Link to={to} className="block relative aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-900 border border-white/5 active:border-primary/50 transition-colors shadow-xl">
+        <img
+          src={imgUrl(movie.poster_path)}
+          alt={getTitle(movie)}
+          loading="lazy"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+        
+        {/* Simplified Mobile Badge */}
+        {rank !== undefined && rank <= 10 && (
+          <div className="absolute top-0 left-0 bg-primary text-[8px] font-black px-2 py-1 rounded-br-xl uppercase italic tracking-tighter">
+            #{rank}
           </div>
+        )}
+
+        {/* Rating */}
+        <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-lg px-1.5 py-0.5 text-[8px] font-black border border-white/10">
+          <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
+          {movie.vote_average.toFixed(1)}
+        </div>
+
+        {/* Info Overlay */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-6 opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          <p className="text-[10px] font-black uppercase italic tracking-tighter text-white line-clamp-1">
+            {getTitle(movie)}
+          </p>
         </div>
       </Link>
     </motion.div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Play, Plus, Check, Star, ArrowLeft, X, Film } from "lucide-react";
+import { Play, Plus, Check, Star, ArrowLeft, X, Film, Clock } from "lucide-react";
 import { tmdb, Movie, Review, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
 import { isInWatchlist, toggleWatchlist, addRecentlyViewed } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
@@ -44,25 +44,25 @@ export default function TvDetailsPage() {
 
   if (loading) return <DetailSkeleton />;
   if (!show) return (
-    <div className="min-h-screen flex items-center justify-center pt-[120px] md:pt-16">
+    <div className="min-h-screen flex items-center justify-center pt-20">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-foreground mb-2">Show not found</h2>
-        <Link to="/" className="text-primary hover:underline">Go Home</Link>
+        <Link to="/" className="text-primary hover:underline font-black uppercase italic tracking-tighter">Go Home</Link>
       </div>
     </div>
   );
 
-  const cast = show.credits?.cast?.slice(0, 20) ?? [];
+  const cast = show.credits?.cast?.slice(0, 15) ?? [];
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen pb-32">
       <AnimatePresence>
         {showTrailer && trailerKey && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/90 backdrop-blur-md p-4"
             onClick={() => setShowTrailer(false)}
           >
             <motion.div
@@ -91,103 +91,119 @@ export default function TvDetailsPage() {
         )}
       </AnimatePresence>
 
-      <div className="relative h-[50vh] sm:h-[60vh]">
+      <div className="relative h-[50vh] sm:h-[60vh] lg:h-[70vh]">
         <img src={imgUrl(show.backdrop_path, "original")} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         <Link to="/" className="absolute top-20 left-4 sm:left-8 p-2 rounded-full glass text-foreground hover:bg-secondary transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-40 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 sm:-mt-48 relative z-10">
         <div className="flex flex-col sm:flex-row gap-8">
-          <div className="flex-shrink-0 w-48 sm:w-56 mx-auto sm:mx-0">
-            <img src={imgUrl(show.poster_path, "w500")} alt={getTitle(show)} className="w-full rounded-2xl shadow-2xl" />
+          <div className="flex-shrink-0 w-44 sm:w-64 mx-auto sm:mx-0">
+            <img src={imgUrl(show.poster_path, "w500")} alt={getTitle(show)} className="w-full rounded-3xl shadow-2xl border border-white/5" />
           </div>
 
-          <div className="flex-1 pt-4">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-2">{getTitle(show)}</h1>
-            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-4">
+          <div className="flex-1 pt-4 text-center sm:text-left">
+            <div className="mb-2">
+                <span className="text-primary font-black uppercase tracking-[0.3em] text-[10px] italic">Series Hub</span>
+            </div>
+            <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black text-white italic uppercase tracking-tighter leading-none mb-4">{getTitle(show)}</h1>
+            
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs font-black uppercase tracking-widest text-white/40 mb-6">
               {show.vote_average > 0 && (
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5 text-white">
                   <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                   {show.vote_average.toFixed(1)}
                 </span>
               )}
+              <span className="w-1 h-1 rounded-full bg-white/20" />
               {getYear(show) && <span>{getYear(show)}</span>}
-              {show.number_of_seasons && <span>{show.number_of_seasons} Season{show.number_of_seasons > 1 ? "s" : ""}</span>}
+              <span className="w-1 h-1 rounded-full bg-white/20" />
+              {show.number_of_seasons && (
+                <span>{show.number_of_seasons} Season{show.number_of_seasons > 1 ? "s" : ""}</span>
+              )}
             </div>
 
             {(show.genres?.length ?? 0) > 0 && (
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap justify-center sm:justify-start gap-2 mb-8">
                 {show.genres!.map((g) => (
-                  <span key={g.id} className="px-3 py-1 bg-secondary rounded-full text-xs text-muted-foreground">{g.name}</span>
+                  <span key={g.id} className="px-4 py-1.5 bg-white/5 border border-white/5 rounded-full text-[10px] font-black uppercase tracking-widest text-white/60">{g.name}</span>
                 ))}
               </div>
             )}
 
-            <p className="text-muted-foreground leading-relaxed mb-6 max-w-2xl">{show.overview}</p>
+            <p className="text-white/70 leading-relaxed mb-10 max-w-2xl text-base sm:text-lg font-medium italic">{show.overview}</p>
 
-            <div className="flex flex-wrap gap-3">
-              <Button asChild size="lg" className="rounded-full px-8 gap-2 text-base font-semibold">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button asChild size="lg" className="h-16 sm:h-14 rounded-2xl px-10 gap-3 text-lg font-black uppercase italic tracking-tighter bg-primary hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/25">
                 <Link to={`/watch/tv/${show.id}/1/1`}>
-                  <Play className="w-5 h-5 fill-current" />
+                  <Play className="w-6 h-6 fill-current" />
                   Play S1E1
                 </Link>
               </Button>
-              {trailerKey && (
+              <div className="flex gap-3">
+                {trailerKey && (
+                    <Button
+                    variant="outline"
+                    size="lg"
+                    className="flex-1 sm:flex-none h-16 sm:h-14 rounded-2xl px-8 gap-3 text-lg font-black uppercase italic tracking-tighter bg-white/5 backdrop-blur-md border-white/10 text-white hover:bg-white/10 transition-all"
+                    onClick={() => setShowTrailer(true)}
+                    >
+                    <Film className="w-5 h-5" />
+                    Trailer
+                    </Button>
+                )}
                 <Button
-                  variant="outline"
-                  size="lg"
-                  className="rounded-full px-6 gap-2"
-                  onClick={() => setShowTrailer(true)}
+                    variant="outline"
+                    size="lg"
+                    className="flex-1 sm:flex-none h-16 sm:h-14 rounded-2xl px-6 bg-white/5 backdrop-blur-md border-white/10 text-white hover:bg-white/10 transition-all"
+                    onClick={() => { const added = toggleWatchlist(show); setInWL(added); }}
                 >
-                  <Film className="w-5 h-5" />
-                  Trailer
+                    {inWL ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
                 </Button>
-              )}
-              <Button
-                variant="secondary" size="lg" className="rounded-full px-6 gap-2"
-                onClick={() => { const added = toggleWatchlist(show); setInWL(added); }}
-              >
-                {inWL ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                {inWL ? "In Watchlist" : "Watchlist"}
-              </Button>
+              </div>
             </div>
 
-            {(show.seasons?.length ?? 0) > 0 && (
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold text-foreground mb-3">Seasons</h3>
-                <div className="flex flex-wrap gap-2">
-                  {show.seasons!
-                    .filter((s) => s.season_number > 0)
-                    .map((s) => (
-                      <Link
-                        key={s.season_number}
-                        to={`/watch/tv/${show.id}/${s.season_number}/1`}
-                        className="px-4 py-2 bg-secondary hover:bg-accent rounded-lg text-sm text-foreground transition-colors"
-                      >
-                        {s.name} ({s.episode_count} ep)
-                      </Link>
-                    ))}
+            {show.seasons && show.seasons.length > 0 && (
+                <div className="mt-12 text-left">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="h-1 w-8 bg-primary rounded-full" />
+                        <h3 className="text-lg font-black uppercase italic tracking-widest text-white/40">Seasons</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {show.seasons.filter(s => s.season_number > 0).map((s) => (
+                            <Link 
+                                key={s.season_number} 
+                                to={`/watch/tv/${show.id}/${s.season_number}/1`}
+                                className="px-5 py-3 bg-white/5 border border-white/5 hover:border-primary/50 rounded-xl text-xs font-black uppercase italic tracking-tighter transition-all"
+                            >
+                                {s.name} <span className="text-white/20 ml-2">{s.episode_count} EP</span>
+                            </Link>
+                        ))}
+                    </div>
                 </div>
-              </div>
             )}
           </div>
         </div>
 
+        {/* Cast */}
         {cast.length > 0 && (
-          <section className="mt-12 mb-16">
-            <h2 className="text-xl font-semibold text-foreground mb-4">Cast</h2>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+          <section className="mt-20 mb-20">
+             <div className="flex items-center gap-3 mb-8">
+                <div className="h-1.5 w-12 bg-primary rounded-full shadow-glow" />
+                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white">Top Cast</h2>
+            </div>
+            <div className="flex gap-6 overflow-x-auto scrollbar-hide pb-4">
               {cast.map((c) => (
-                <div key={c.id} className="flex-shrink-0 w-24 text-center">
-                  <div className="w-20 h-20 mx-auto rounded-full overflow-hidden bg-secondary mb-2">
-                    <img src={imgUrl(c.profile_path, "w185")} alt={c.name} loading="lazy" className="w-full h-full object-cover"
+                <div key={c.id} className="flex-shrink-0 w-28 text-center group">
+                  <div className="w-24 h-24 mx-auto rounded-2xl overflow-hidden bg-secondary mb-3 border-2 border-transparent group-hover:border-primary transition-all duration-300 shadow-lg">
+                    <img src={imgUrl(c.profile_path, "w185")} alt={c.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                   </div>
-                  <p className="text-xs font-medium text-foreground truncate">{c.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{c.character}</p>
+                  <p className="text-[10px] font-black uppercase tracking-tight text-white line-clamp-1">{c.name}</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 line-clamp-1">{c.character}</p>
                 </div>
               ))}
             </div>
@@ -197,8 +213,8 @@ export default function TvDetailsPage() {
         <ReviewsSection reviews={reviews} />
 
         {similar.length > 0 && (
-          <section className="mb-16">
-            <ContentRow title="Similar Shows" movies={similar} type="tv" />
+          <section className="mb-20">
+            <ContentRow title="Similar Series" movies={similar} type="tv" />
           </section>
         )}
       </div>

@@ -1,4 +1,0 @@
-project_id = "ygtoxtbtiwedxpldfmon"
-
-[functions.notify-signup]
-verify_jwt = false

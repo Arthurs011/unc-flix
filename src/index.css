@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,15 +33,6 @@
     --ring: 211 100% 50%;
 
     --radius: 0.75rem;
-
-    --sidebar-background: 0 0% 6%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 211 100% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 12%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 211 100% 50%;
   }
 }
 
@@ -57,39 +46,24 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: hsl(0 0% 30%);
-    border-radius: 3px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(0 0% 40%);
-  }
-
-  /* =============================================
-     Android TV / D-pad Focus Styles
-     ============================================= */
-
-  /* High-contrast focus ring for D-pad/keyboard navigation */
-  :focus-visible {
-    outline: 3px solid hsl(var(--primary));
-    outline-offset: 4px;
-    border-radius: 10px;
-  }
-
-  /* Remove default outline (we use focus-visible instead) */
-  :focus:not(:focus-visible) {
-    outline: none;
+  /* UNCFLIX CSS Sinkhole: Hides common ad elements */
+  [id*="ad-"], [class*="ad-"], [class*="ads-"],
+  [id*="google_ads"], [class*="google_ads"],
+  [id*="popads"], [id*="propeller"],
+  .ad-container, .ads-wrapper, .ad-slot, .ad-unit,
+  .banner-ads, .fixed-ads, .bottom-ads,
+  iframe[src*="doubleclick.net"],
+  iframe[src*="adservice.google"],
+  iframe[src*="googlesyndication"],
+  iframe[src*="popads.net"],
+  iframe[src*="propellerads"],
+  .trc_rbox_container, .outbrain, .taboola-container {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
   }
 }
 
@@ -102,10 +76,6 @@
     @apply bg-background/80 backdrop-blur-2xl border border-border/30;
   }
 
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-foreground to-muted-foreground;
-  }
-
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -114,24 +84,17 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-
-  /* TV safe zone — keeps content away from the overscan edges */
-  .tv-safe {
-    padding-left: clamp(16px, 4vw, 72px);
-    padding-right: clamp(16px, 4vw, 72px);
+  
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
   }
 
-  /* Card focus glow used by MovieCard */
-  .card-focus-glow:focus-within {
-    box-shadow: 0 0 0 3px hsl(var(--primary)), 0 0 24px hsl(var(--primary) / 0.4);
-    border-radius: 0.75rem;
-  }
-
-  /* On non-hover devices (TV/touch) show elements that are hover-only on desktop */
-  @media (hover: none) {
-    .tv-show-always {
-      opacity: 1 !important;
-      visibility: visible !important;
+  @keyframes shimmer {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
     }
   }
 }
