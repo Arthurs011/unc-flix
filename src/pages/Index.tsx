@@ -1,11 +1,22 @@
-import { useEffect, useState } from "react";
-import { Movie, tmdb } from "@/lib/tmdb";
-import { getRecentlyViewed, getContinueWatching } from "@/lib/storage";
+import { useEffect, useState, useCallback } from "react";
+import { Movie, tmdb, Genre } from "@/lib/tmdb";
+import { getRecentlyViewed, getContinueWatching, ContinueItem } from "@/lib/storage";
 import HeroBanner from "@/components/HeroBanner";
 import ContentRow from "@/components/ContentRow";
 import ContinueRow from "@/components/ContinueRow";
 import { HeroSkeleton, RowSkeleton } from "@/components/LoadingSkeleton";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
+import { cn } from "@/lib/utils";
+
+const MOOD_PILLS = [
+  { id: 28, name: "Action" },
+  { id: 16, name: "Anime" },
+  { id: 35, name: "Comedy" },
+  { id: 27, name: "Horror" },
+  { id: 10749, name: "Romance" },
+  { id: 878, name: "Sci-Fi" },
+  { id: 53, name: "Thriller" },
+];
 
 export default function Index() {
   const [trending, setTrending] = useState<Movie[]>([]);
@@ -14,8 +25,13 @@ export default function Index() {
   const [tvShows, setTvShows] = useState<Movie[]>([]);
   const [upcoming, setUpcoming] = useState<Movie[]>([]);
   const [recent, setRecent] = useState<Movie[]>([]);
-  const [continueList, setContinueList] = useState<any[]>([]);
+  const [continueList, setContinueList] = useState<ContinueItem[]>([]);
+  
+  const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
+  const [genreResults, setGenreResults] = useState<Movie[]>([]);
+  
   const [loading, setLoading] = useState(true);
+  const [loadingGenre, setLoadingGenre] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -41,6 +57,18 @@ export default function Index() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (selectedGenre === null) {
+        setGenreResults([]);
+        return;
+    }
+    setLoadingGenre(true);
+    tmdb.popular(1, selectedGenre)
+        .then(res => setGenreResults(res.results ?? []))
+        .catch(() => setGenreResults([]))
+        .finally(() => setLoadingGenre(false));
+  }, [selectedGenre]);
 
   if (error) {
     return (
@@ -81,16 +109,76 @@ export default function Index() {
     >
       <HeroBanner movies={trending} />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 pb-32 sm:pb-24 space-y-12">
-        {continueList.length > 0 && <ContinueRow />}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 sm:-mt-12 relative z-30 pb-32 sm:pb-24">
         
-        <ContentRow title="Trending Movies" movies={trending} showRank />
-        <ContentRow title="Popular Movies" movies={popular} />
-        <ContentRow title="Top Rated Movies" movies={topRated} />
-        <ContentRow title="Popular TV Shows" movies={tvShows} type="tv" />
-        <ContentRow title="Upcoming Movies" movies={upcoming} />
+        {/* Genre Quick-Filters (Mood Pills) */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide py-4 mb-8">
+            <button
+                onClick={() => setSelectedGenre(null)}
+                className={cn(
+                    "px-6 py-2.5 rounded-full text-[10px] font-black uppercase italic tracking-widest transition-all shrink-0 border",
+                    selectedGenre === null 
+                        ? "bg-primary text-white border-primary shadow-glow" 
+                        : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10 hover:text-white"
+                )}
+            >
+                Everything
+            </button>
+            {MOOD_PILLS.map((g) => (
+                <button
+                    key={g.id}
+                    onClick={() => setSelectedGenre(g.id)}
+                    className={cn(
+                        "px-6 py-2.5 rounded-full text-[10px] font-black uppercase italic tracking-widest transition-all shrink-0 border",
+                        selectedGenre === g.id 
+                            ? "bg-primary text-white border-primary shadow-glow" 
+                            : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10 hover:text-white"
+                    )}
+                >
+                    {g.name}
+                </button>
+            ))}
+        </div>
+
+        <AnimatePresence mode="wait">
+            {selectedGenre !== null ? (
+                <motion.div
+                    key="genre-results"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.4 }}
+                >
+                    {loadingGenre ? (
+                        <RowSkeleton />
+                    ) : (
+                        <ContentRow 
+                            title={`${MOOD_PILLS.find(p => p.id === selectedGenre)?.name} Spotlight`} 
+                            movies={genreResults} 
+                        />
+                    )}
+                </motion.div>
+            ) : (
+                <motion.div
+                    key="standard-home"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-12"
+                >
+                    {continueList.length > 0 && <ContinueRow />}
+                    
+                    <ContentRow title="Trending Movies" movies={trending} showRank />
+                    <ContentRow title="Popular Movies" movies={popular} />
+                    <ContentRow title="Top Rated Movies" movies={topRated} />
+                    <ContentRow title="Popular TV Shows" movies={tvShows} type="tv" />
+                    <ContentRow title="Upcoming Movies" movies={upcoming} />
+                    
+                    {recent.length > 0 && <ContentRow title="Recently Viewed" movies={recent} />}
+                </motion.div>
+            )}
+        </AnimatePresence>
         
-        {recent.length > 0 && <ContentRow title="Recently Viewed" movies={recent} />}
       </div>
     </motion.div>
   );

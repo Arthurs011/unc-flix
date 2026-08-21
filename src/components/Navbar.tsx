@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, Film, Tv, BookmarkPlus, Home, Clapperboard, X, LayoutGrid, ChevronDown, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import SearchDropdown from "@/components/SearchDropdown";
 import {
   DropdownMenu,

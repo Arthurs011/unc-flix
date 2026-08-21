@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Search, Film, Tv } from "lucide-react";
 import { Movie, tmdb } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();

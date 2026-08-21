@@ -9,80 +9,17 @@ export interface StreamSource {
 
 /**
  * EXCLUSIVE SOURCE LIST
- * Only using domains explicitly provided by the user.
+ * Using VidKing with specific brand configuration.
  */
 export const SOURCES: StreamSource[] = [
   {
-    id: "vsembed-su",
-    name: "VsEmbed (.su)",
-    baseUrl: "https://vsembed.su",
+    id: "vidking",
+    name: "VidKing",
+    baseUrl: "https://www.vidking.net",
     build: (type, id, s, e) => 
       type === "movie"
-        ? `https://vsembed.su/embed/movie/${id}`
-        : `https://vsembed.su/embed/tv/${id}/${s ?? 1}/${e ?? 1}`
-  },
-  {
-    id: "vidsrcme-ru",
-    name: "VidsrcME (.ru)",
-    baseUrl: "https://vidsrcme.ru",
-    build: (type, id, s, e) => 
-      type === "movie"
-        ? `https://vidsrcme.ru/embed/movie/${id}`
-        : `https://vidsrcme.ru/embed/tv/${id}/${s ?? 1}/${e ?? 1}`
-  },
-  {
-    id: "vidsrcme-su",
-    name: "VidsrcME (.su)",
-    baseUrl: "https://vidsrcme.su",
-    build: (type, id, s, e) => 
-      type === "movie"
-        ? `https://vidsrcme.su/embed/movie/${id}`
-        : `https://vidsrcme.su/embed/tv/${id}/${s ?? 1}/${e ?? 1}`
-  },
-  {
-    id: "vidsrc-me-ru",
-    name: "Vidsrc-ME (.ru)",
-    baseUrl: "https://vidsrc-me.ru",
-    build: (type, id, s, e) => 
-      type === "movie"
-        ? `https://vidsrc-me.ru/embed/movie/${id}`
-        : `https://vidsrc-me.ru/embed/tv/${id}/${s ?? 1}/${e ?? 1}`
-  },
-  {
-    id: "vidsrc-me-su",
-    name: "Vidsrc-ME (.su)",
-    baseUrl: "https://vidsrc-me.su",
-    build: (type, id, s, e) => 
-      type === "movie"
-        ? `https://vidsrc-me.su/embed/movie/${id}`
-        : `https://vidsrc-me.su/embed/tv/${id}/${s ?? 1}/${e ?? 1}`
-  },
-  {
-    id: "vidsrc-embed-ru",
-    name: "Vidsrc-Embed (.ru)",
-    baseUrl: "https://vidsrc-embed.ru",
-    build: (type, id, s, e) => 
-      type === "movie"
-        ? `https://vidsrc-embed.ru/embed/movie/${id}`
-        : `https://vidsrc-embed.ru/embed/tv/${id}/${s ?? 1}/${e ?? 1}`
-  },
-  {
-    id: "vidsrc-embed-su",
-    name: "Vidsrc-Embed (.su)",
-    baseUrl: "https://vidsrc-embed.su",
-    build: (type, id, s, e) => 
-      type === "movie"
-        ? `https://vidsrc-embed.su/embed/movie/${id}`
-        : `https://vidsrc-embed.su/embed/tv/${id}/${s ?? 1}/${e ?? 1}`
-  },
-  {
-    id: "vsrc-su",
-    name: "Vsrc (.su)",
-    baseUrl: "https://vsrc.su",
-    build: (type, id, s, e) => 
-      type === "movie"
-        ? `https://vsrc.su/embed/movie/${id}`
-        : `https://vsrc.su/embed/tv/${id}/${s ?? 1}/${e ?? 1}`
+        ? `https://www.vidking.net/embed/movie/${id}?color=5865f2&autoplay=1&next_button=1&episode_selector=1`
+        : `https://www.vidking.net/embed/tv/${id}/${s ?? 1}/${e ?? 1}?color=5865f2&autoplay=1&next_button=1&episode_selector=1`
   }
 ];
 
@@ -95,10 +32,7 @@ export function getEmbedUrl(sourceIndex: number, type: MediaType, id: string | n
  * Builds a high-speed download link for the given title.
  */
 export function getDownloadUrl(type: MediaType, id: string | number, season?: number, episode?: number) {
-  if (type === "movie") {
-    return `https://vidsrc.me/download/movie?tmdb=${id}`;
-  }
-  return `https://vidsrc.me/download/tv?tmdb=${id}&season=${season ?? 1}&episode=${episode ?? 1}`;
+  return "#"; 
 }
 
 const SOURCE_KEY = "uncflix_preferred_source_index";
@@ -117,11 +51,13 @@ export function setPreferredSourceIndex(index: number) {
 }
 
 export async function discoverBestSource(): Promise<number> {
+  if (SOURCES.length <= 1) return 0;
+  
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-  // Probe the top sources from the new list
-  const probes = [0, 1, 2].map(async (index) => {
+  // Probe the top sources
+  const probes = SOURCES.slice(0, 3).map(async (_, index) => {
     try {
       await fetch(SOURCES[index].baseUrl, { mode: 'no-cors', signal: controller.signal });
       return { index, success: true };

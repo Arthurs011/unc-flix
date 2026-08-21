@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DetailSkeleton } from "@/components/LoadingSkeleton";
 import ContentRow from "@/components/ContentRow";
 import ReviewsSection from "@/components/ReviewsSection";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function MovieDetailsPage() {
   const { id } = useParams();

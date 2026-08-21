@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { getWatchlist, removeFromWatchlist } from "@/lib/storage";
 import { Movie, getTitle, imgUrl } from "@/lib/tmdb";
 import { X, Bookmark, Film, Tv, Play } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function Watchlist() {
   const [list, setList] = useState<Movie[]>([]);

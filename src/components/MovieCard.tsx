@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Star, Play, Calendar } from "lucide-react";
 import { Movie, imgUrl, getTitle, getYear } from "@/lib/tmdb";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 interface Props {
   movie: Movie;

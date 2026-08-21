@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Star, ChevronDown, ChevronUp, User } from "lucide-react";
 import { Review, imgUrl } from "@/lib/tmdb";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 interface Props {
   reviews: Review[] | undefined;

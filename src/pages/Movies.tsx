@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Movie, Genre, tmdb } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { Filter, SlidersHorizontal, Check } from "lucide-react";
 
@@ -45,7 +45,6 @@ export default function MoviesPage() {
       
       setMovies((prev) => reset ? (res.results ?? []) : [...prev, ...(res.results ?? [])]);
       setTotalPages(res.total_pages ?? 1);
-      setPage(p);
     } catch (err) {
       console.error(err);
     } finally {
@@ -54,25 +53,33 @@ export default function MoviesPage() {
     }
   }, [selectedGenre]);
 
+  // Initial fetch on genre change
   useEffect(() => {
+    setPage(1);
     fetchMovies(1, true);
-  }, [selectedGenre]);
+  }, [selectedGenre, fetchMovies]);
 
-  const loadMore = useCallback(() => {
-    if (loadingMore || page >= totalPages) return;
-    fetchMovies(page + 1);
-  }, [page, totalPages, loadingMore, fetchMovies]);
+  // Fetch more when page changes
+  useEffect(() => {
+    if (page > 1) {
+      fetchMovies(page, false);
+    }
+  }, [page, fetchMovies]);
 
   useEffect(() => {
     const el = observerRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) loadMore(); },
-      { rootMargin: "400px" }
+      (entries) => {
+        if (entries[0].isIntersecting && !loading && !loadingMore && page < totalPages) {
+          setPage((p) => p + 1);
+        }
+      },
+      { rootMargin: "800px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [loadMore]);
+  }, [loading, loadingMore, page, totalPages]);
 
   return (
     <div className="min-h-screen bg-background pt-[100px] pb-24 px-4 sm:px-6 lg:px-8">

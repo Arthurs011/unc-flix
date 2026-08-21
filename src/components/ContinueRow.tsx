@@ -4,7 +4,7 @@ import { getContinueWatching, removeContinueWatching, ContinueItem } from "@/lib
 import { imgUrl } from "@/lib/tmdb";
 import { useRef, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 export default function ContinueRow() {
   const [items, setItems] = useState<ContinueItem[]>([]);
