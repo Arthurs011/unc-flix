@@ -31,6 +31,15 @@ export interface Episode extends Movie {
   air_date: string;
   episode_number: number;
   season_number: number;
+  runtime?: number | null;
+}
+
+export interface SeasonDetails {
+  id: number;
+  name: string;
+  overview: string;
+  season_number: number;
+  episodes: Episode[];
 }
 
 export interface MovieDetails extends Movie {
@@ -118,6 +127,8 @@ export const tmdb = {
     get<ReviewResponse>(`/tv/${id}/reviews`),
   tvEpisode: (tvId: number, season: number, episode: number) =>
     get<Episode>(`/tv/${tvId}/season/${season}/episode/${episode}`),
+  tvSeason: (tvId: number, season: number) =>
+    get<SeasonDetails>(`/tv/${tvId}/season/${season}`),
 };
 
 export function imgUrl(path: string | null, size = "w500") {

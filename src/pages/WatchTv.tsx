@@ -2,7 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Play, Star, Download, ThumbsUp, ThumbsDown, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
-import { tmdb, getTitle, MovieDetails, Episode, imgUrl, formatCount } from "@/lib/tmdb";
+import { tmdb, getTitle, MovieDetails, Episode, SeasonDetails, imgUrl, formatCount } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { SOURCES } from "@/lib/servers";
 
@@ -12,12 +12,14 @@ export default function WatchTv() {
   const [show, setShow] = useState<MovieDetails | null>(null);
   const [currentEp, setCurrentEp] = useState<Episode | null>(null);
   const [nextEp, setNextEp] = useState<Episode | null>(null);
+  const [seasonData, setSeasonData] = useState<SeasonDetails | null>(null);
 
   const s = Number(season) || 1;
   const e = Number(episode) || 1;
 
   useEffect(() => {
     if (!id) return;
+    window.scrollTo({ top: 0 });
 
     tmdb.tvDetails(Number(id)).then((d) => {
       setShow(d);
@@ -35,6 +37,10 @@ export default function WatchTv() {
     }).catch(() => {});
 
     tmdb.tvEpisode(Number(id), s, e).then(setCurrentEp).catch(() => {});
+
+    tmdb.tvSeason(Number(id), s)
+      .then(setSeasonData)
+      .catch(() => setSeasonData(null));
 
     tmdb.tvEpisode(Number(id), s, e + 1).then(setNextEp).catch(() => {
        tmdb.tvEpisode(Number(id), s + 1, 1).then(setNextEp).catch(() => setNextEp(null));
@@ -116,6 +122,74 @@ export default function WatchTv() {
             <p className="text-lg sm:text-xl text-white/70 leading-relaxed max-w-4xl font-medium">
               {currentEp?.overview || "No description available for this episode."}
             </p>
+
+            {/* Episodes */}
+            {seasonData && seasonData.episodes.length > 0 && (
+              <section className="mt-12">
+                <div className="flex items-center justify-between gap-4 mb-6">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic shrink-0">
+                    Episodes <span className="text-white/40">{seasonData.episodes.length}</span>
+                  </h3>
+                  <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                    {show?.seasons?.filter((se) => se.season_number > 0).map((se) => (
+                      <Link
+                        key={se.season_number}
+                        to={`/watch/tv/${id}/${se.season_number}/1`}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase italic tracking-tighter border transition-all whitespace-nowrap ${
+                          se.season_number === s
+                            ? "bg-primary border-primary text-white"
+                            : "bg-white/5 border-white/5 text-white/60 hover:border-primary/50 hover:text-white"
+                        }`}
+                      >
+                        S{se.season_number}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {seasonData.episodes.map((ep) => {
+                    const active = ep.episode_number === e;
+                    return (
+                      <Link
+                        key={ep.id}
+                        to={`/watch/tv/${id}/${s}/${ep.episode_number}`}
+                        className={`flex gap-4 p-3 rounded-2xl border transition-all group ${
+                          active
+                            ? "bg-primary/10 border-primary/40"
+                            : "bg-white/5 border-white/5 hover:border-white/20"
+                        }`}
+                      >
+                        <div className="relative w-32 sm:w-44 aspect-video rounded-xl overflow-hidden shrink-0 bg-zinc-900">
+                          <img
+                            src={imgUrl(ep.still_path ?? null, "w300")}
+                            alt={ep.name}
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          {active && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                              <span className="text-[9px] font-black uppercase italic tracking-widest text-primary">Now Playing</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col justify-center min-w-0 py-1">
+                          <p className={`text-xs font-black uppercase italic tracking-tighter line-clamp-1 ${active ? "text-primary" : "text-white group-hover:text-primary transition-colors"}`}>
+                            E{ep.episode_number} • {ep.name || "Episode"}
+                          </p>
+                          <div className="flex items-center gap-3 mt-1 text-[10px] font-bold uppercase tracking-widest text-white/40">
+                            <span>{ep.air_date || "TBA"}</span>
+                            {ep.runtime ? <span>{ep.runtime} Min</span> : null}
+                          </div>
+                          {ep.overview && (
+                            <p className="text-xs text-white/50 leading-relaxed line-clamp-2 mt-2 hidden sm:block">{ep.overview}</p>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </div>
 
           <div className="w-full lg:w-80 shrink-0 space-y-8">
