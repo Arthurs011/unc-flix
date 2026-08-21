@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Navbar from "@/components/Navbar";
+import BackToTop from "@/components/BackToTop";
 
 import Index from "./pages/Index";
 import MovieDetails from "./pages/MovieDetails";
@@ -71,19 +72,22 @@ const AnimatedRoutes = () => {
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuroraBackdrop />
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <ErrorBoundaryWithReset>
-            <Navbar />
-            <AnimatedRoutes />
-          </ErrorBoundaryWithReset>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AuroraBackdrop />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <ErrorBoundaryWithReset>
+              <Navbar />
+              <AnimatedRoutes />
+              <BackToTop />
+            </ErrorBoundaryWithReset>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </MotionConfig>
   );
 };
 

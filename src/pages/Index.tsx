@@ -5,6 +5,7 @@ import HeroBanner from "@/components/HeroBanner";
 import ContentRow from "@/components/ContentRow";
 import ContinueRow from "@/components/ContinueRow";
 import PageShell from "@/components/PageShell";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { HeroSkeleton, RowSkeleton } from "@/components/LoadingSkeleton";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ const MOOD_PILLS = [
 ];
 
 export default function Index() {
+  usePageTitle();
   const [trending, setTrending] = useState<Movie[]>([]);
   const [popular, setPopular] = useState<Movie[]>([]);
   const [topRated, setTopRated] = useState<Movie[]>([]);

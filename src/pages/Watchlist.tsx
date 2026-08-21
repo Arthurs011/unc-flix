@@ -4,10 +4,12 @@ import { getWatchlist, removeFromWatchlist } from "@/lib/storage";
 import { Movie, getTitle, imgUrl } from "@/lib/tmdb";
 import { X, Bookmark, Film, Tv, Play } from "lucide-react";
 import PageShell from "@/components/PageShell";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { motion, AnimatePresence } from "motion/react";
 import { fadeUp, staggerFast, springSnappy } from "@/lib/motion";
 
 export default function Watchlist() {
+  usePageTitle("My List");
   const [list, setList] = useState<Movie[]>([]);
 
   useEffect(() => {

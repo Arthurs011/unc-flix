@@ -35,6 +35,31 @@ const appBase = plugin(({ addBase, addUtilities }) => {
       fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
       "-webkit-font-smoothing": "antialiased",
       "-moz-osx-font-smoothing": "grayscale",
+      "-webkit-tap-highlight-color": "transparent",
+      overscrollBehaviorY: "none",
+    },
+    "::selection": {
+      backgroundColor: "hsl(211 100% 50% / 0.35)",
+      color: "#fff",
+    },
+    "::-webkit-scrollbar": {
+      width: "10px",
+      height: "10px",
+    },
+    "::-webkit-scrollbar-track": {
+      background: "transparent",
+    },
+    "::-webkit-scrollbar-thumb": {
+      background: "hsl(var(--muted))",
+      borderRadius: "8px",
+      border: "2px solid hsl(var(--background))",
+    },
+    "::-webkit-scrollbar-thumb:hover": {
+      background: "hsl(var(--muted-foreground) / 0.5)",
+    },
+    img: {
+      "-webkit-user-drag": "none",
+      userSelect: "none",
     },
     // UNCFLIX sinkhole: hides common injected ad elements
     '[id*="ad-"], [class*="ad-"], [class*="ads-"], [id*="google_ads"], [class*="google_ads"], [id*="popads"], [id*="propeller"], .ad-container, .ads-wrapper, .ad-slot, .ad-unit, .banner-ads, .fixed-ads, .bottom-ads, iframe[src*="doubleclick.net"], iframe[src*="adservice.google"], iframe[src*="googlesyndication"], iframe[src*="popads.net"], iframe[src*="propellerads"], .trc_rbox_container, .outbrain, .taboola-container':

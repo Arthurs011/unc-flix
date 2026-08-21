@@ -102,7 +102,7 @@ export default function TvDetailsPage() {
       {/* Backdrop */}
       <div ref={backdropRef} className="relative h-[52vh] sm:h-[62vh] overflow-hidden">
         <motion.div style={{ y: bgY }} className="absolute inset-0 scale-110">
-          <img src={imgUrl(show.backdrop_path, "original")} alt="" className="w-full h-full object-cover" />
+          <img src={imgUrl(show.backdrop_path, "w1280")} alt="" className="w-full h-full object-cover" />
         </motion.div>
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-transparent" />
         <Link

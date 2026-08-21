@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Movie, Genre, tmdb } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
 import PageShell from "@/components/PageShell";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { GridSkeleton } from "@/components/LoadingSkeleton";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -10,6 +11,7 @@ import { fadeUp, staggerFast, scaleIn } from "@/lib/motion";
 import { SlidersHorizontal, Check, Clapperboard, Loader2 } from "lucide-react";
 
 export default function MoviesPage() {
+  usePageTitle("Movies");
   const [searchParams] = useSearchParams();
   const genreIdParam = searchParams.get("genre");
 

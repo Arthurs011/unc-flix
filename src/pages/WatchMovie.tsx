@@ -49,7 +49,7 @@ export default function WatchMovie() {
       <div className="fixed inset-0 -z-10">
         {movie?.backdrop_path && (
           <img
-            src={imgUrl(movie.backdrop_path, "original")}
+            src={imgUrl(movie.backdrop_path, "w1280")}
             alt=""
             className="w-full h-full object-cover opacity-20 scale-110 blur-2xl"
           />

@@ -135,6 +135,12 @@ export function imgUrl(path: string | null, size = "w500") {
   return path ? `${IMG}/${size}${path}` : "/placeholder.svg";
 }
 
+export function posterFallback(name?: string | null): string {
+  const letter = (name?.trim()?.[0] ?? "?").toUpperCase();
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='342' height='513'><rect width='100%' height='100%' fill='#12141d'/><rect x='1' y='1' width='340' height='511' rx='16' fill='none' stroke='#ffffff14'/><text x='50%' y='50%' fill='#3b82f6' font-family='Arial,sans-serif' font-size='128' font-weight='800' text-anchor='middle' dominant-baseline='central'>${letter}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 export function getTitle(item: Movie) {
   return item.title || item.name || "Untitled";
 }

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Star, Play } from "lucide-react";
-import { Movie, imgUrl, getTitle, getYear } from "@/lib/tmdb";
+import { Movie, imgUrl, posterFallback, getTitle, getYear } from "@/lib/tmdb";
 import { motion } from "motion/react";
 import { springSoft } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -28,9 +28,13 @@ export default function MovieCard({ movie, type, rank, className }: Props) {
         className="block relative aspect-[2/3] rounded-2xl overflow-hidden bg-card ring-1 ring-white/[0.08] shadow-card group-hover:ring-primary/40 transition-[box-shadow,border-color] duration-300"
       >
         <img
-          src={imgUrl(movie.poster_path)}
+          src={imgUrl(movie.poster_path, "w342")}
           alt={getTitle(movie)}
           loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = posterFallback(getTitle(movie));
+          }}
           className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
         />
 

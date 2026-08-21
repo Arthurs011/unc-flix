@@ -69,6 +69,21 @@ export default function Navbar() {
     setBrowseOpen(false);
   }, [location.pathname]);
 
+  const [navHidden, setNavHidden] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - lastScrollY.current) < 8) return;
+      const goingDown = y > lastScrollY.current && y > 140;
+      setNavHidden(goingDown);
+      lastScrollY.current = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const submit = (e: React.FormEvent, q: string) => {
     e.preventDefault();
     if (q.trim()) {
@@ -85,8 +100,8 @@ export default function Navbar() {
       {/* ===== Desktop floating pill nav ===== */}
       <motion.nav
         initial={{ y: -72, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        animate={{ y: navHidden ? -96 : 0, opacity: 1 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
         className="fixed top-4 left-0 right-0 z-50 hidden md:flex justify-center pointer-events-none"
         aria-label="Desktop navigation"
       >

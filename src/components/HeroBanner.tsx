@@ -72,8 +72,10 @@ export default function HeroBanner({ movies }: Props) {
               initial={{ scale: 1.12 }}
               animate={{ scale: 1.02 }}
               transition={{ duration: 9, ease: "linear" }}
-              src={imgUrl(current.backdrop_path, "original")}
+              src={imgUrl(current.backdrop_path, "w1280")}
               alt={getTitle(current)}
+              loading="eager"
+              decoding="async"
               className="w-full h-full object-cover"
             />
           </motion.div>

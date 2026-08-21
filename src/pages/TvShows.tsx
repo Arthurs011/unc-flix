@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Movie, tmdb } from "@/lib/tmdb";
+import { Movie, tmdb, imgUrl } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
 import PageShell from "@/components/PageShell";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { GridSkeleton } from "@/components/LoadingSkeleton";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ const MOOD_PILLS = [
 ];
 
 export default function TvShowsPage() {
+  usePageTitle("Series");
   const [searchParams, setSearchParams] = useSearchParams();
   const genreIdParam = searchParams.get("genre");
 
@@ -110,7 +112,7 @@ export default function TvShowsPage() {
               initial={{ scale: 1.08 }}
               animate={{ scale: 1 }}
               transition={{ duration: 8, ease: "linear" }}
-              src={tmdb.imgUrl(heroShow.backdrop_path, "original")}
+              src={imgUrl(heroShow.backdrop_path, "w1280")}
               className="absolute inset-0 w-full h-full object-cover"
               alt=""
             />

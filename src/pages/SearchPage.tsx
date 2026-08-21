@@ -4,11 +4,13 @@ import { Search, Film, Loader2 } from "lucide-react";
 import { Movie, tmdb } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
 import PageShell from "@/components/PageShell";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { GridSkeleton } from "@/components/LoadingSkeleton";
 import { motion } from "motion/react";
 import { fadeUp, staggerFast } from "@/lib/motion";
 
 export default function SearchPage() {
+  usePageTitle("Search");
   const [searchParams] = useSearchParams();
   const query = searchParams.get("q") || "";
   const [results, setResults] = useState<Movie[]>([]);
