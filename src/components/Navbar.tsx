@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { springSnappy } from "@/lib/motion";
 import SearchDropdown from "@/components/SearchDropdown";
+import { useAutoHideNav } from "@/hooks/useAutoHideNav";
 
 const QUICK_GENRES = [
   { id: 28, name: "Action" },
@@ -69,20 +70,7 @@ export default function Navbar() {
     setBrowseOpen(false);
   }, [location.pathname]);
 
-  const [navHidden, setNavHidden] = useState(false);
-  const lastScrollY = useRef(0);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      if (Math.abs(y - lastScrollY.current) < 8) return;
-      const goingDown = y > lastScrollY.current && y > 140;
-      setNavHidden(goingDown);
-      lastScrollY.current = y;
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  const navHidden = useAutoHideNav();
 
   const submit = (e: React.FormEvent, q: string) => {
     e.preventDefault();
@@ -94,6 +82,8 @@ export default function Navbar() {
       setMobileSearchVisible(false);
     }
   };
+
+  if (location.pathname.startsWith("/watch")) return null;
 
   return (
     <>

@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Star, ThumbsUp, ThumbsDown, Share2 } from "lucide-react";
+import { Star, ThumbsUp, ThumbsDown, Share2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { updateContinueWatching } from "@/lib/storage";
@@ -7,6 +7,7 @@ import { tmdb, getTitle, imgUrl, Movie, MovieDetails, formatCount, getYear } fro
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { SOURCES } from "@/lib/servers";
 import PageShell from "@/components/PageShell";
+import WatchHeader from "@/components/WatchHeader";
 import { EASE, springSnappy } from "@/lib/motion";
 
 export default function WatchMovie() {
@@ -57,29 +58,19 @@ export default function WatchMovie() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/85 to-black" />
       </div>
 
-      {/* Top bar */}
-      <header className="h-16 flex items-center gap-3 px-4 sm:px-6 sticky top-0 z-50 glass-strong ring-1 ring-white/[0.06]">
-        <Link
-          to={`/movie/${id}`}
-          aria-label="Back to details"
-          className="p-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary leading-none mb-1">Feature Film</p>
-          <h1 className="text-sm font-semibold truncate tracking-tight text-white/90 leading-none">
-            {movie ? getTitle(movie) : "Loading..."}
-          </h1>
-        </div>
-      </header>
+      {/* Floating pill header */}
+      <WatchHeader
+        to={`/movie/${id}`}
+        label="Feature Film"
+        title={movie ? getTitle(movie) : "Loading..."}
+      />
 
       {/* Cinema stage */}
       <motion.section
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: EASE }}
-        className="w-full max-w-[1500px] mx-auto mt-5 sm:mt-7 px-0 sm:px-6"
+        className="w-full max-w-[1500px] mx-auto mt-5 sm:mt-7 px-0 sm:px-6 pt-16 md:pt-24"
       >
         <div className="relative group/stage">
           <div className="absolute -inset-1 rounded-none sm:rounded-[2rem] bg-gradient-to-r from-sky-500/25 via-indigo-500/15 to-transparent blur-xl opacity-60" />
