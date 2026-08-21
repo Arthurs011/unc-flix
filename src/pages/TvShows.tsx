@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Movie, Genre, tmdb } from "@/lib/tmdb";
+import { useSearchParams, Link } from "react-router-dom";
+import { Movie, tmdb } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
-import { HeroSkeleton, RowSkeleton } from "@/components/LoadingSkeleton";
+import PageShell from "@/components/PageShell";
+import { GridSkeleton } from "@/components/LoadingSkeleton";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { SlidersHorizontal, Check, Tv, Star, Play, Plus, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { fadeUp, staggerFast } from "@/lib/motion";
+import { Star, Play, Tv, Loader2 } from "lucide-react";
 
 const MOOD_PILLS = [
   { id: 10759, name: "Action & Adventure" },
@@ -33,13 +33,8 @@ export default function TvShowsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const observerRef = useRef<HTMLDivElement>(null);
 
-  // Sync state with URL
   useEffect(() => {
-    if (genreIdParam) {
-      setSelectedGenre(Number(genreIdParam));
-    } else {
-        setSelectedGenre(null);
-    }
+    setSelectedGenre(genreIdParam ? Number(genreIdParam) : null);
   }, [genreIdParam]);
 
   const fetchShows = useCallback(async (p: number, reset = false) => {
@@ -48,12 +43,12 @@ export default function TvShowsPage() {
       else setLoadingMore(true);
 
       const res = await tmdb.tvPopular(p, selectedGenre ?? undefined);
-      
+
       if (reset && res.results?.length) {
-          setHeroShow(res.results[0]);
+        setHeroShow(res.results[0]);
       }
-      
-      setShows((prev) => reset ? (res.results ?? []) : [...prev, ...(res.results ?? [])]);
+
+      setShows((prev) => (reset ? res.results ?? [] : [...prev, ...(res.results ?? [])]));
       setTotalPages(res.total_pages ?? 1);
     } catch (err) {
       console.error(err);
@@ -63,13 +58,11 @@ export default function TvShowsPage() {
     }
   }, [selectedGenre]);
 
-  // Initial fetch on genre change
   useEffect(() => {
     setPage(1);
     fetchShows(1, true);
   }, [selectedGenre, fetchShows]);
 
-  // Fetch more when page changes
   useEffect(() => {
     if (page > 1) {
       fetchShows(page, false);
@@ -92,140 +85,155 @@ export default function TvShowsPage() {
   }, [loading, loadingMore, page, totalPages]);
 
   const handleGenreSelect = (id: number | null) => {
-      if (id === null) {
-          searchParams.delete("genre");
-      } else {
-          searchParams.set("genre", id.toString());
-      }
-      setSearchParams(searchParams);
+    if (id === null) {
+      searchParams.delete("genre");
+    } else {
+      searchParams.set("genre", id.toString());
+    }
+    setSearchParams(searchParams);
   };
 
   return (
-    <div className="min-h-screen bg-background pb-32">
-      
-      {/* Dynamic Hero Spotlight */}
+    <PageShell className="min-h-screen bg-background pb-32">
+      {/* Hero spotlight */}
       <AnimatePresence mode="wait">
-          {heroShow && !genreIdParam && (
-              <motion.section 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="relative w-full h-[60vh] sm:h-[70vh] overflow-hidden"
+        {heroShow && !genreIdParam && (
+          <motion.section
+            key={heroShow.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+            className="relative w-full h-[62vh] sm:h-[70vh] overflow-hidden"
+          >
+            <motion.img
+              initial={{ scale: 1.08 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 8, ease: "linear" }}
+              src={tmdb.imgUrl(heroShow.backdrop_path, "original")}
+              className="absolute inset-0 w-full h-full object-cover"
+              alt=""
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent hidden sm:block" />
+
+            <motion.div
+              initial="hidden"
+              animate="show"
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08, delayChildren: 0.2 } } }}
+              className="absolute bottom-0 left-0 right-0 p-6 sm:p-12 lg:p-20 z-10 max-w-7xl mx-auto"
+            >
+              <motion.div
+                variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
+                className="flex items-center gap-3 mb-4"
               >
-                  <img 
-                    src={tmdb.imgUrl(heroShow.backdrop_path, "original")} 
-                    className="w-full h-full object-cover" 
-                    alt="" 
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent hidden sm:block" />
-                  
-                  <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-12 lg:p-20 z-10">
-                      <div className="flex items-center gap-3 mb-4">
-                          <div className="bg-primary px-3 py-1 rounded text-[10px] font-black uppercase italic tracking-widest text-white shadow-glow">Trending Series</div>
-                          <span className="flex items-center gap-1.5 text-xs font-black text-white/60">
-                              <Star className="w-3.5 h-3.5 text-yellow-500 fill-current" />
-                              {heroShow.vote_average.toFixed(1)}
-                          </span>
-                      </div>
-                      <h2 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white italic uppercase tracking-tighter leading-none mb-6 max-w-4xl">
-                          {heroShow.name}
-                      </h2>
-                      <div className="flex gap-4">
-                        <Button asChild size="lg" className="h-14 rounded-2xl px-8 gap-3 text-sm font-black uppercase italic tracking-widest bg-primary hover:bg-primary/90">
-                            <Link to={`/tv/${heroShow.id}`}>
-                                <Play className="w-5 h-5 fill-current" />
-                                Start Series
-                            </Link>
-                        </Button>
-                      </div>
-                  </div>
-              </motion.section>
-          )}
+                <span className="rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-glow-sm">
+                  Trending Series
+                </span>
+                <span className="flex items-center gap-1.5 text-xs font-bold text-white/80">
+                  <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                  {heroShow.vote_average.toFixed(1)}
+                </span>
+              </motion.div>
+
+              <motion.h2
+                variants={{ hidden: { opacity: 0, y: 26 }, show: { opacity: 1, y: 0 } }}
+                className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tighter leading-[0.95] mb-7 max-w-3xl"
+              >
+                {heroShow.name}
+              </motion.h2>
+
+              <motion.div variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}>
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="flex items-center gap-2.5 h-13 pl-7 pr-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow-lg"
+                >
+                  <Link to={`/tv/${heroShow.id}`} className="flex items-center gap-2.5">
+                    <Play className="w-5 h-5 fill-current" />
+                    Start Series
+                  </Link>
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          </motion.section>
+        )}
       </AnimatePresence>
 
-      <div className={cn("max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8", !genreIdParam ? "mt-12" : "pt-[100px]")}>
-        
-        {/* Header & Filter System */}
-        <header className="mb-10">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-            <div>
-                <div className="flex items-center gap-3 mb-2">
-                    <Tv className="w-6 h-6 text-primary" />
-                    <h1 className="text-sm font-black uppercase tracking-[0.3em] text-white/40 italic">Series Hub</h1>
-                </div>
-                <h2 className="text-4xl sm:text-6xl font-black text-white italic uppercase tracking-tighter">
-                    {selectedGenre ? MOOD_PILLS.find(p => p.id === selectedGenre)?.name : "Prime Selection"}
-                </h2>
-            </div>
-          </div>
+      <div className={cn("max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8", genreIdParam ? "pt-28 md:pt-32" : "-mt-4 relative z-10")}>
+        <motion.header
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          className="mb-8"
+        >
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-2">
+            <Tv className="w-3.5 h-3.5" />
+            Series Hub
+          </p>
+          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter leading-none mb-8">
+            {selectedGenre ? MOOD_PILLS.find((p) => p.id === selectedGenre)?.name ?? "Series" : "TV Shows"}
+          </h1>
 
-          {/* Quick-Filter Pills */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide py-2">
-            <button
-                onClick={() => handleGenreSelect(null)}
+          {/* Genre pills */}
+          <motion.div
+            variants={staggerFast}
+            initial="hidden"
+            animate="show"
+            className="flex gap-2 overflow-x-auto scrollbar-hide py-1"
+          >
+            {[{ id: null as number | null, name: "All Series" }, ...MOOD_PILLS].map((g) => (
+              <motion.button
+                key={g.name}
+                variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleGenreSelect(g.id)}
                 className={cn(
-                    "px-6 py-2.5 rounded-full text-[10px] font-black uppercase italic tracking-widest transition-all shrink-0 border",
-                    selectedGenre === null 
-                        ? "bg-primary text-white border-primary shadow-glow" 
-                        : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10"
+                  "px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all shrink-0 ring-1",
+                  selectedGenre === g.id
+                    ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white ring-transparent shadow-glow"
+                    : "bg-white/[0.04] text-white/45 ring-white/[0.08] hover:bg-white/[0.08] hover:text-white"
                 )}
-            >
-                All Series
-            </button>
-            {MOOD_PILLS.map((g) => (
-                <button
-                    key={g.id}
-                    onClick={() => handleGenreSelect(g.id)}
-                    className={cn(
-                        "px-6 py-2.5 rounded-full text-[10px] font-black uppercase italic tracking-widest transition-all shrink-0 border",
-                        selectedGenre === g.id 
-                            ? "bg-primary text-white border-primary shadow-glow" 
-                            : "bg-white/5 text-white/40 border-white/5 hover:bg-white/10"
-                    )}
-                >
-                    {g.name}
-                </button>
+              >
+                {g.name}
+              </motion.button>
             ))}
-          </div>
-        </header>
+          </motion.div>
+        </motion.header>
 
-        {/* Main Series Grid */}
         <main>
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8">
-              {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="aspect-[2/3] rounded-2xl bg-white/5 animate-shimmer relative overflow-hidden" />
-              ))}
-            </div>
+            <GridSkeleton count={12} />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8">
+            <motion.div
+              key={selectedGenre ?? "all"}
+              variants={staggerFast}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6"
+            >
               {shows.map((m) => (
-                <MovieCard key={m.id} movie={m} type="tv" />
+                <motion.div key={m.id} variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}>
+                  <MovieCard movie={m} type="tv" />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
 
-          {/* Load More Trigger */}
-          <div ref={observerRef} className="py-20 flex flex-col items-center justify-center gap-4">
+          <div ref={observerRef} className="py-16 flex flex-col items-center justify-center gap-3">
             {loadingMore && (
               <>
-                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin shadow-glow" />
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30 italic">Syncing Next Wave</span>
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/25">Loading more</span>
               </>
             )}
             {!loading && page >= totalPages && (
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic">End of Library</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/20">End of library</span>
             )}
           </div>
         </main>
-
       </div>
-    </div>
+    </PageShell>
   );
-}
-
-function formatNumber(n: number) {
-    if (n >= 1000) return (n/1000).toFixed(1) + 'K';
-    return n;
 }

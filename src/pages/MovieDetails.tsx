@@ -1,17 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Play, Plus, Check, Star, Clock, ArrowLeft, X, Film, Bookmark } from "lucide-react";
+import { Play, Plus, Check, Star, ArrowLeft, X, Film, Clock } from "lucide-react";
 import { tmdb, Movie, Review, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
 import { isInWatchlist, toggleWatchlist, addRecentlyViewed } from "@/lib/storage";
-import { Button } from "@/components/ui/button";
+import PageShell from "@/components/PageShell";
 import { DetailSkeleton } from "@/components/LoadingSkeleton";
 import ContentRow from "@/components/ContentRow";
 import ReviewsSection from "@/components/ReviewsSection";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
+import { EASE, springSnappy, fadeUp, viewportOnce } from "@/lib/motion";
 
 export default function MovieDetailsPage() {
   const { id } = useParams();
-  const [movie, setMovie] = useState<MD | null>(null);
+  const [show, setShow] = useState<MD | null>(null);
   const [similar, setSimilar] = useState<Movie[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,12 +20,16 @@ export default function MovieDetailsPage() {
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
 
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: backdropRef, offset: ["start start", "end start"] });
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
+
   useEffect(() => {
     if (!id) return;
     setLoading(true);
     tmdb.movieDetails(Number(id))
       .then((d) => {
-        setMovie(d);
+        setShow(d);
         setInWL(isInWatchlist(d.id));
         addRecentlyViewed({ ...d, media_type: "movie" });
         const videos = d.videos?.results ?? [];
@@ -32,7 +37,7 @@ export default function MovieDetailsPage() {
           ?? videos.find((v) => v.site === "YouTube");
         setTrailerKey(trailer?.key ?? null);
       })
-      .catch(() => setMovie(null))
+      .catch(() => setShow(null))
       .finally(() => setLoading(false));
     tmdb.movieRecommendations(Number(id))
       .then((d) => setSimilar((d.results ?? []).filter((m) => m.poster_path)))
@@ -43,32 +48,35 @@ export default function MovieDetailsPage() {
   }, [id]);
 
   if (loading) return <DetailSkeleton />;
-  if (!movie) return (
+  if (!show) return (
     <div className="min-h-screen flex items-center justify-center pt-20">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-foreground mb-2">Movie not found</h2>
-        <Link to="/" className="text-primary hover:underline font-black uppercase italic tracking-tighter">Go Home</Link>
+        <h2 className="text-2xl font-extrabold tracking-tight text-white mb-3">Movie not found</h2>
+        <Link to="/" className="text-primary font-bold uppercase tracking-widest text-xs hover:underline">Go Home</Link>
       </div>
     </div>
   );
 
+  const cast = show.credits?.cast?.slice(0, 15) ?? [];
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen pb-32">
+    <PageShell className="min-h-screen pb-32">
+      {/* Trailer modal */}
       <AnimatePresence>
         {showTrailer && trailerKey && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/90 backdrop-blur-md p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4"
             onClick={() => setShowTrailer(false)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="relative w-full max-w-4xl aspect-video rounded-2xl overflow-hidden shadow-2xl"
+              exit={{ scale: 0.94, opacity: 0 }}
+              transition={springSnappy}
+              className="relative w-full max-w-4xl aspect-video rounded-3xl overflow-hidden ring-1 ring-white/15 shadow-card-lg"
               onClick={(e) => e.stopPropagation()}
             >
               <iframe
@@ -80,7 +88,8 @@ export default function MovieDetailsPage() {
               />
               <button
                 onClick={() => setShowTrailer(false)}
-                className="absolute top-3 right-3 p-2 rounded-full bg-background/80 backdrop-blur-sm text-foreground hover:bg-secondary transition-colors"
+                aria-label="Close trailer"
+                className="absolute -top-12 right-0 p-2 rounded-full glass text-white/70 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -89,116 +98,177 @@ export default function MovieDetailsPage() {
         )}
       </AnimatePresence>
 
-      <div className="relative h-[50vh] sm:h-[60vh] lg:h-[70vh]">
-        <img src={imgUrl(movie.backdrop_path, "original")} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-        <Link to="/" className="absolute top-20 left-4 sm:left-8 p-2 rounded-full glass text-foreground hover:bg-secondary transition-colors">
+      {/* Backdrop */}
+      <div ref={backdropRef} className="relative h-[52vh] sm:h-[62vh] overflow-hidden">
+        <motion.div style={{ y: bgY }} className="absolute inset-0 scale-110">
+          <img src={imgUrl(show.backdrop_path, "original")} alt="" className="w-full h-full object-cover" />
+        </motion.div>
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-transparent" />
+        <Link
+          to="/"
+          aria-label="Back to home"
+          className="absolute top-20 left-4 sm:left-8 p-3 rounded-full glass ring-1 ring-white/10 text-white hover:bg-white/10 transition-colors z-10"
+        >
           <ArrowLeft className="w-5 h-5" />
         </Link>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 sm:-mt-48 relative z-10">
-        <div className="flex flex-col sm:flex-row gap-8">
-          <div className="flex-shrink-0 w-44 sm:w-64 mx-auto sm:mx-0">
-            <img src={imgUrl(movie.poster_path, "w500")} alt={getTitle(movie)} className="w-full rounded-3xl shadow-2xl border border-white/5" />
-          </div>
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 -mt-36 sm:-mt-44 relative z-10">
+        <div className="flex flex-col sm:flex-row gap-8 sm:gap-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: EASE }}
+            className="flex-shrink-0 w-44 sm:w-60 mx-auto sm:mx-0"
+          >
+            <img
+              src={imgUrl(show.poster_path, "w500")}
+              alt={getTitle(show)}
+              className="w-full rounded-3xl shadow-card-lg ring-1 ring-white/10"
+            />
+          </motion.div>
 
-          <div className="flex-1 pt-4 text-center sm:text-left">
-            <div className="mb-2">
-                <span className="text-primary font-black uppercase tracking-[0.3em] text-[10px] italic">Feature Film</span>
-            </div>
-            <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black text-white italic uppercase tracking-tighter leading-none mb-4">{getTitle(movie)}</h1>
-            
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs font-black uppercase tracking-widest text-white/40 mb-6">
-              {movie.vote_average > 0 && (
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } } }}
+            className="flex-1 pt-2 text-center sm:text-left"
+          >
+            <motion.p
+              variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}
+              className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-2"
+            >
+              Feature Film
+            </motion.p>
+
+            <motion.h1
+              variants={{ hidden: { opacity: 0, y: 22 }, show: { opacity: 1, y: 0 } }}
+              className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-[0.95] mb-5"
+            >
+              {getTitle(show)}
+            </motion.h1>
+
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
+              className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-2 text-xs font-semibold text-white/45 mb-6"
+            >
+              {show.vote_average > 0 && (
                 <span className="flex items-center gap-1.5 text-white">
                   <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                  {movie.vote_average.toFixed(1)}
+                  {show.vote_average.toFixed(1)}
                 </span>
               )}
-              <span className="w-1 h-1 rounded-full bg-white/20" />
-              {getYear(movie) && <span>{getYear(movie)}</span>}
-              <span className="w-1 h-1 rounded-full bg-white/20" />
-              {movie.runtime && (
-                <span className="flex items-center gap-1.5">
-                  <Clock className="w-4 h-4" />
-                  {movie.runtime} min
-                </span>
+              {getYear(show) && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-white/20" />
+                  <span>{getYear(show)}</span>
+                </>
               )}
-            </div>
+              {show.runtime ? (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-white/20" />
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    {Math.floor(show.runtime / 60)}h {show.runtime % 60}m
+                  </span>
+                </>
+              ) : null}
+              {show.genres?.slice(0, 3).map((g) => (
+                <span key={g.id} className="rounded-full bg-white/[0.06] ring-1 ring-white/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/55">
+                  {g.name}
+                </span>
+              ))}
+            </motion.div>
 
-            {(movie.genres?.length ?? 0) > 0 && (
-              <div className="flex flex-wrap justify-center sm:justify-start gap-2 mb-8">
-                {movie.genres!.map((g) => (
-                  <span key={g.id} className="px-4 py-1.5 bg-white/5 border border-white/5 rounded-full text-[10px] font-black uppercase tracking-widest text-white/60">{g.name}</span>
-                ))}
-              </div>
-            )}
+            <motion.p
+              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
+              className="text-white/60 leading-relaxed mb-8 max-w-2xl text-sm sm:text-base mx-auto sm:mx-0"
+            >
+              {show.overview}
+            </motion.p>
 
-            <p className="text-white/70 leading-relaxed mb-10 max-w-2xl text-base sm:text-lg font-medium italic">{movie.overview}</p>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button asChild size="lg" className="h-16 sm:h-14 rounded-2xl px-10 gap-3 text-lg font-black uppercase italic tracking-tighter bg-primary hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/25">
-                <Link to={`/watch/movie/${movie.id}`}>
-                  <Play className="w-6 h-6 fill-current" />
+            <motion.div
+              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
+              className="flex flex-wrap justify-center sm:justify-start items-center gap-3"
+            >
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                transition={springSnappy}
+                className="flex items-center gap-2.5 h-13 pl-7 pr-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow-lg"
+              >
+                <Link to={`/watch/movie/${show.id}`} className="flex items-center gap-2.5">
+                  <Play className="w-5 h-5 fill-current" />
                   Play Now
                 </Link>
-              </Button>
-              <div className="flex gap-3">
-                {trailerKey && (
-                    <Button
-                    variant="outline"
-                    size="lg"
-                    className="flex-1 sm:flex-none h-16 sm:h-14 rounded-2xl px-8 gap-3 text-lg font-black uppercase italic tracking-tighter bg-white/5 backdrop-blur-md border-white/10 text-white hover:bg-white/10 transition-all"
-                    onClick={() => setShowTrailer(true)}
-                    >
-                    <Film className="w-5 h-5" />
-                    Trailer
-                    </Button>
-                )}
-                <Button
-                    variant="outline"
-                    size="lg"
-                    className="flex-1 sm:flex-none h-16 sm:h-14 rounded-2xl px-6 bg-white/5 backdrop-blur-md border-white/10 text-white hover:bg-white/10 transition-all"
-                    onClick={() => { const added = toggleWatchlist(movie); setInWL(added); }}
+              </motion.button>
+
+              {trailerKey && (
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  transition={springSnappy}
+                  onClick={() => setShowTrailer(true)}
+                  className="flex items-center gap-2.5 h-13 px-7 rounded-full glass ring-1 ring-white/15 text-white font-bold text-sm hover:bg-white/10 transition-colors"
                 >
-                    {inWL ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-                </Button>
-              </div>
-            </div>
-          </div>
+                  <Film className="w-5 h-5" />
+                  Trailer
+                </motion.button>
+              )}
+
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                transition={springSnappy}
+                onClick={() => setInWL(toggleWatchlist(show))}
+                aria-label={inWL ? "Remove from watchlist" : "Add to watchlist"}
+                className="w-13 h-13 rounded-full glass ring-1 ring-white/15 flex items-center justify-center text-white hover:bg-white/10 transition-colors"
+              >
+                {inWL ? <Check className="w-5 h-5 text-emerald-400" /> : <Plus className="w-5 h-5" />}
+              </motion.button>
+            </motion.div>
+          </motion.div>
         </div>
 
         {/* Cast */}
-        {movie.credits?.cast && movie.credits.cast.length > 0 && (
-          <section className="mt-20 mb-20">
-             <div className="flex items-center gap-3 mb-8">
-                <div className="h-1.5 w-12 bg-primary rounded-full shadow-glow" />
-                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-white">Top Cast</h2>
-            </div>
-            <div className="flex gap-6 overflow-x-auto scrollbar-hide pb-4">
-              {movie.credits.cast.slice(0, 15).map((c) => (
-                <div key={c.id} className="flex-shrink-0 w-28 text-center group">
-                  <div className="w-24 h-24 mx-auto rounded-2xl overflow-hidden bg-secondary mb-3 border-2 border-transparent group-hover:border-primary transition-all duration-300 shadow-lg">
-                    <img src={imgUrl(c.profile_path, "w185")} alt={c.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+        {cast.length > 0 && (
+          <motion.section
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="show"
+            viewport={viewportOnce}
+            className="mt-16 mb-8"
+          >
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-1.5">Starring</p>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-6">Top Cast</h2>
+            <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-3">
+              {cast.map((c) => (
+                <div key={c.id} className="flex-shrink-0 w-24 text-center group">
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden bg-card mb-3 ring-1 ring-white/[0.08] group-hover:ring-primary/50 transition-all duration-300">
+                    <img
+                      src={imgUrl(c.profile_path, "w185")}
+                      alt={c.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
                   </div>
-                  <p className="text-[10px] font-black uppercase tracking-tight text-white line-clamp-1">{c.name}</p>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/40 line-clamp-1">{c.character}</p>
+                  <p className="text-[11px] font-bold text-white line-clamp-1">{c.name}</p>
+                  <p className="text-[9px] font-medium uppercase tracking-wider text-white/35 line-clamp-1 mt-0.5">{c.character}</p>
                 </div>
               ))}
             </div>
-          </section>
+          </motion.section>
         )}
 
         <ReviewsSection reviews={reviews} />
 
         {similar.length > 0 && (
-          <section className="mb-20">
-            <ContentRow title="Similar Cinema" movies={similar} type="movie" />
+          <section className="mb-8">
+            <ContentRow title="More Like This" kicker="If you liked this" movies={similar} />
           </section>
         )}
       </div>
-    </motion.div>
+    </PageShell>
   );
 }

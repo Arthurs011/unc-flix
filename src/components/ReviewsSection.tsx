@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Star, ChevronDown, ChevronUp, User } from "lucide-react";
+import { Star, ChevronDown, User } from "lucide-react";
 import { Review, imgUrl } from "@/lib/tmdb";
 import { motion, AnimatePresence } from "motion/react";
+import { fadeUp, stagger, viewportOnce } from "@/lib/motion";
 
 interface Props {
   reviews: Review[] | undefined;
@@ -14,11 +15,21 @@ export default function ReviewsSection({ reviews }: Props) {
   if (!safeReviews.length) return null;
 
   return (
-    <section className="mt-12 mb-16">
-      <h2 className="text-xl font-semibold text-foreground mb-6">
-        Reviews ({safeReviews.length})
+    <motion.section
+      variants={fadeUp}
+      initial="hidden"
+      whileInView="show"
+      viewport={viewportOnce}
+      className="mt-16 mb-16"
+    >
+      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-1.5">
+        Community
+      </p>
+      <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-6">
+        Reviews <span className="text-white/30 font-bold">({safeReviews.length})</span>
       </h2>
-      <div className="space-y-4">
+
+      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
         {safeReviews.slice(0, 10).map((review) => {
           const isExpanded = expandedId === review.id;
           const isLong = review.content.length > 300;
@@ -31,13 +42,14 @@ export default function ReviewsSection({ reviews }: Props) {
           return (
             <motion.div
               key={review.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-secondary/50 backdrop-blur-sm rounded-xl p-5"
+              variants={{
+                hidden: { opacity: 0, y: 14 },
+                show: { opacity: 1, y: 0 },
+              }}
+              className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-5 hover:ring-white/[0.12] transition-all"
             >
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex items-center justify-center flex-shrink-0">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-white/[0.06] ring-1 ring-white/10 flex items-center justify-center flex-shrink-0">
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
@@ -46,14 +58,12 @@ export default function ReviewsSection({ reviews }: Props) {
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                     />
                   ) : (
-                    <User className="w-5 h-5 text-muted-foreground" />
+                    <User className="w-5 h-5 text-white/30" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">
-                    {review.author}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm font-semibold text-white truncate">{review.author}</p>
+                  <p className="text-xs text-white/35 mt-0.5">
                     {new Date(review.created_at).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "short",
@@ -62,51 +72,41 @@ export default function ReviewsSection({ reviews }: Props) {
                   </p>
                 </div>
                 {review.author_details.rating && (
-                  <div className="flex items-center gap-1 bg-background/60 rounded-md px-2 py-1">
-                    <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                    <span className="text-xs font-semibold text-foreground">
+                  <div className="flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1 ring-1 ring-white/10">
+                    <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                    <span className="text-xs font-bold text-white">
                       {review.author_details.rating}/10
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* Content */}
-              <div className="text-sm text-muted-foreground leading-relaxed">
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={isExpanded ? "full" : "short"}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="whitespace-pre-line"
-                  >
-                    {isExpanded || !isLong
-                      ? review.content
-                      : review.content.slice(0, 300) + "…"}
-                  </motion.p>
-                </AnimatePresence>
-              </div>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.p
+                  key={isExpanded ? "full" : "short"}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-sm text-white/60 leading-relaxed whitespace-pre-line"
+                >
+                  {isExpanded || !isLong ? review.content : review.content.slice(0, 300) + "…"}
+                </motion.p>
+              </AnimatePresence>
 
               {isLong && (
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : review.id)}
-                  className="flex items-center gap-1 mt-3 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                  className="flex items-center gap-1 mt-3 text-xs font-semibold text-primary hover:text-sky-300 transition-colors"
                 >
-                  {isExpanded ? (
-                    <>
-                      Show less <ChevronUp className="w-3.5 h-3.5" />
-                    </>
-                  ) : (
-                    <>
-                      Read more <ChevronDown className="w-3.5 h-3.5" />
-                    </>
-                  )}
+                  {isExpanded ? "Show less" : "Read more"}
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} />
                 </button>
               )}
             </motion.div>
           );
         })}
-      </div>
-    </section>
+      </motion.div>
+    </motion.section>
   );
 }

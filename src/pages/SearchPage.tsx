@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, Film, Tv } from "lucide-react";
+import { Search, Film, Loader2 } from "lucide-react";
 import { Movie, tmdb } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
+import PageShell from "@/components/PageShell";
+import { GridSkeleton } from "@/components/LoadingSkeleton";
 import { motion } from "motion/react";
+import { fadeUp, staggerFast } from "@/lib/motion";
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
@@ -30,49 +33,48 @@ export default function SearchPage() {
   }, [query]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-background pt-[100px] pb-32 px-4 sm:px-6 lg:px-8"
-    >
-      <div className="max-w-7xl mx-auto mb-10">
-        <div className="flex items-center gap-3 mb-2">
-            <Search className="w-5 h-5 text-primary" />
-            <h1 className="text-sm font-black uppercase tracking-widest text-white/40 italic">Search Results</h1>
-        </div>
-        <h2 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter">
+    <PageShell className="min-h-screen bg-background pt-28 md:pt-32 pb-32 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1600px] mx-auto">
+        <motion.header variants={fadeUp} initial="hidden" animate="show" className="mb-10">
+          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-2">
+            <Search className="w-3.5 h-3.5" />
+            Search Results
+          </p>
+          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tighter leading-none truncate">
             {query ? `"${query}"` : "Discover Content"}
-        </h2>
-      </div>
+          </h1>
+        </motion.header>
 
-      {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={i}
-              className="aspect-[2/3] bg-secondary rounded-2xl animate-pulse"
-            />
-          ))}
-        </div>
-      ) : results.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8">
-          {results.map((m) => (
-            <MovieCard key={m.id} movie={m} />
-          ))}
-        </div>
-      ) : query ? (
-        <div className="text-center py-32 bg-white/5 rounded-[3rem] border border-dashed border-white/10">
-          <Film className="w-16 h-16 text-white/20 mx-auto mb-6" />
-          <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white/40">No matches found</h3>
-          <p className="text-white/20 uppercase tracking-widest text-[10px] font-bold mt-2">Try searching for something else</p>
-        </div>
-      ) : (
-        <div className="text-center py-32 opacity-20">
-          <Search className="w-16 h-16 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-foreground mb-2 font-black uppercase italic tracking-tighter">Start your search</h3>
-          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Find your favorite movies and shows</p>
-        </div>
-      )}
-    </motion.div>
+        {loading ? (
+          <GridSkeleton count={12} />
+        ) : results.length > 0 ? (
+          <motion.div
+            key={query}
+            variants={staggerFast}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6"
+          >
+            {results.map((m) => (
+              <motion.div key={m.id} variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}>
+                <MovieCard movie={m} />
+              </motion.div>
+            ))}
+          </motion.div>
+        ) : query ? (
+          <div className="text-center py-28 rounded-3xl bg-white/[0.03] ring-1 ring-dashed ring-white/10">
+            <Film className="w-14 h-14 text-white/15 mx-auto mb-5" />
+            <h3 className="text-xl font-extrabold tracking-tight text-white/40 mb-2">No matches found</h3>
+            <p className="text-white/25 uppercase tracking-widest text-[10px] font-bold">Try searching for something else</p>
+          </div>
+        ) : (
+          <div className="text-center py-28">
+            <Loader2 className="w-10 h-10 mx-auto mb-5 text-white/10" />
+            <h3 className="text-lg font-extrabold tracking-tight text-white/30 mb-2">Start your search</h3>
+            <p className="text-white/20 uppercase tracking-widest text-[10px] font-bold">Find your favorite movies and shows</p>
+          </div>
+        )}
+      </div>
+    </PageShell>
   );
 }

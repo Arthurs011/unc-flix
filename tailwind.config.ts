@@ -5,26 +5,26 @@ import tailwindAnimate from "tailwindcss-animate";
 const appBase = plugin(({ addBase, addUtilities }) => {
   addBase({
     ":root": {
-      "--background": "0 0% 4%",
+      "--background": "240 14% 3%",
       "--foreground": "0 0% 98%",
-      "--card": "0 0% 7%",
+      "--card": "240 9% 6%",
       "--card-foreground": "0 0% 98%",
-      "--popover": "0 0% 7%",
+      "--popover": "240 9% 6%",
       "--popover-foreground": "0 0% 98%",
       "--primary": "211 100% 50%",
       "--primary-foreground": "0 0% 100%",
-      "--secondary": "0 0% 12%",
+      "--secondary": "240 6% 12%",
       "--secondary-foreground": "0 0% 98%",
-      "--muted": "0 0% 15%",
-      "--muted-foreground": "0 0% 64%",
-      "--accent": "0 0% 15%",
+      "--muted": "240 5% 16%",
+      "--muted-foreground": "240 4% 60%",
+      "--accent": "240 6% 14%",
       "--accent-foreground": "0 0% 98%",
       "--destructive": "0 84% 60%",
       "--destructive-foreground": "0 0% 98%",
-      "--border": "0 0% 18%",
-      "--input": "0 0% 18%",
+      "--border": "240 6% 14%",
+      "--input": "240 6% 14%",
       "--ring": "211 100% 50%",
-      "--radius": "0.75rem",
+      "--radius": "1rem",
     },
     "*, ::before, ::after": {
       borderColor: "hsl(var(--border))",
@@ -86,6 +86,10 @@ export default {
       },
     },
     extend: {
+      spacing: {
+        "13": "3.25rem",
+        "15": "3.75rem",
+      },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
@@ -136,8 +140,15 @@ export default {
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        md: "calc(var(--radius) - 4px)",
+        sm: "calc(var(--radius) - 8px)",
+      },
+      boxShadow: {
+        glow: "0 0 24px -4px hsl(211 100% 50% / 0.45)",
+        "glow-sm": "0 0 14px -2px hsl(211 100% 50% / 0.4)",
+        "glow-lg": "0 8px 56px -8px hsl(211 100% 50% / 0.5)",
+        card: "0 24px 48px -16px rgb(0 0 0 / 0.65)",
+        "card-lg": "0 32px 80px -20px rgb(0 0 0 / 0.8)",
       },
       keyframes: {
         "accordion-down": {

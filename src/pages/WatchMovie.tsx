@@ -1,10 +1,11 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Star, Download, ThumbsUp, ThumbsDown, Share2, Play } from "lucide-react";
+import { ArrowLeft, Star, ThumbsUp, ThumbsDown, Share2, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, imgUrl, Movie, MovieDetails, formatCount } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { SOURCES } from "@/lib/servers";
+import PageShell from "@/components/PageShell";
 
 export default function WatchMovie() {
   const { id } = useParams();
@@ -14,7 +15,7 @@ export default function WatchMovie() {
 
   useEffect(() => {
     if (!id) return;
-    
+
     tmdb.movieDetails(Number(id)).then((m) => {
       setMovie(m);
       updateContinueWatching({
@@ -39,20 +40,20 @@ export default function WatchMovie() {
   const dislikes = movie ? Math.round(movie.vote_count * (1 - (movie.vote_average / 10))) : 0;
 
   return (
-    <div className="min-h-screen bg-black text-white pb-20 overflow-x-hidden">
+    <PageShell className="min-h-screen bg-black text-white pb-28 overflow-x-hidden">
       {/* Header */}
-      <div className="h-16 flex items-center px-4 border-b border-white/5 bg-zinc-950 sticky top-0 z-50">
-        <Link to={`/movie/${id}`} className="p-2 rounded-full hover:bg-white/10 mr-4">
-          <ArrowLeft className="w-6 h-6" />
+      <div className="h-16 flex items-center px-4 sm:px-6 border-b border-white/[0.06] bg-black/80 backdrop-blur-xl sticky top-0 z-50">
+        <Link to={`/movie/${id}`} aria-label="Back to details" className="p-2 rounded-full hover:bg-white/10 mr-3 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-sm font-bold truncate tracking-tight uppercase italic text-white/80">
+        <h1 className="text-sm font-semibold truncate tracking-tight text-white/70">
           {movie ? getTitle(movie) : "Loading..."}
         </h1>
       </div>
 
-      {/* Player Container */}
-      <div className="w-full max-w-[1600px] mx-auto mt-4 sm:mt-8 px-0 sm:px-8">
-        <div className="w-full aspect-video bg-zinc-900 relative group overflow-hidden shadow-2xl rounded-none sm:rounded-2xl border border-white/5">
+      {/* Player */}
+      <div className="w-full max-w-[1600px] mx-auto mt-4 sm:mt-6 px-0 sm:px-8">
+        <div className="w-full aspect-video bg-zinc-900 relative overflow-hidden shadow-card-lg rounded-none sm:rounded-3xl ring-1 ring-white/10">
           <iframe
             key={embedSrc}
             src={embedSrc}
@@ -67,76 +68,74 @@ export default function WatchMovie() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 mt-12">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-10">
         <div className="flex flex-col lg:flex-row gap-12">
-          <div className="flex-1">
-             <div className="space-y-2 mb-8">
-                <span className="text-primary font-black uppercase tracking-[0.3em] text-[10px] italic">Now Streaming</span>
-                <h1 className="text-3xl sm:text-6xl font-black italic uppercase tracking-tighter leading-[0.85]">
-                  {movie ? getTitle(movie) : "Loading..."}
-                </h1>
-                <div className="flex items-center gap-4 pt-4 text-xs font-bold text-white/40 uppercase tracking-widest">
-                  <span className="bg-white/10 px-2 py-0.5 rounded text-white/80">HD Quality</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1.5 text-white/60">
-                    <Star className="w-3.5 h-3.5 text-yellow-500 fill-current" />
-                    {movie?.vote_average.toFixed(1)}
+          <div className="flex-1 min-w-0">
+            <div className="mb-7">
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-2">Now Streaming</p>
+              <h1 className="text-3xl sm:text-5xl font-black tracking-tighter leading-[0.95] mb-4">
+                {movie ? getTitle(movie) : "Loading..."}
+              </h1>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-white/40 uppercase tracking-wider">
+                <span className="rounded-full bg-white/[0.07] px-3 py-1 text-[10px] text-white/70">HD</span>
+                {movie?.vote_average ? (
+                  <span className="flex items-center gap-1.5 text-white/60 normal-case">
+                    <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                    {movie.vote_average.toFixed(1)}
                   </span>
-                  <span>•</span>
-                  <span>{movie?.release_date}</span>
-                </div>
-             </div>
-
-            <div className="flex items-center gap-8 py-6 border-y border-white/5 mb-8">
-              <div className="flex items-center gap-2.5 cursor-pointer group">
-                <ThumbsUp className="w-5 h-5 group-hover:text-primary transition-colors" />
-                <span className="text-sm font-black italic tracking-tighter">{formatCount(likes)}</span>
-              </div>
-              <div className="flex items-center gap-2.5 cursor-pointer group">
-                <ThumbsDown className="w-5 h-5 group-hover:text-red-500 transition-colors" />
-                <span className="text-sm font-black italic tracking-tighter">{formatCount(dislikes)}</span>
-              </div>
-              <div className="ml-auto flex items-center gap-6">
-                 <div className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors group">
-                    <Download className="w-5 h-5" />
-                    <span className="hidden sm:inline text-xs font-black uppercase tracking-tighter">Fast Download</span>
-                 </div>
-                 <Share2 className="w-5 h-5 cursor-pointer hover:text-primary transition-colors" />
+                ) : null}
+                {movie?.release_date && <span>{movie.release_date}</span>}
               </div>
             </div>
 
-            <p className="text-lg sm:text-xl text-white/70 leading-relaxed max-w-4xl font-medium">
+            <div className="flex items-center gap-6 py-5 border-y border-white/[0.06] mb-8">
+              <div className="flex items-center gap-2 cursor-pointer group">
+                <ThumbsUp className="w-[18px] h-[18px] group-hover:text-primary transition-colors" />
+                <span className="text-sm font-bold">{formatCount(likes)}</span>
+              </div>
+              <div className="flex items-center gap-2 cursor-pointer group">
+                <ThumbsDown className="w-[18px] h-[18px] group-hover:text-red-500 transition-colors" />
+                <span className="text-sm font-bold">{formatCount(dislikes)}</span>
+              </div>
+              <div className="ml-auto flex items-center gap-5">
+                <Share2 className="w-[18px] h-[18px] cursor-pointer hover:text-primary transition-colors" />
+              </div>
+            </div>
+
+            <p className="text-base sm:text-lg text-white/60 leading-relaxed max-w-3xl">
               {movie?.overview}
             </p>
           </div>
 
-          <div className="w-full lg:w-80 shrink-0 space-y-8">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic">More Like This</h3>
-            <div className="space-y-5">
+          {/* Recommendations */}
+          <div className="w-full lg:w-80 shrink-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/25 mb-5">More Like This</p>
+            <div className="space-y-4">
               {recommendations.slice(0, 5).map((rec) => (
                 <Link key={rec.id} to={`/movie/${rec.id}`} className="flex gap-4 group">
-                  <div className="w-24 h-32 rounded-xl overflow-hidden shrink-0 shadow-2xl border border-white/5">
-                    <img src={imgUrl(rec.poster_path, "w200")} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <div className="w-20 h-[120px] rounded-xl overflow-hidden shrink-0 ring-1 ring-white/[0.08]">
+                    <img src={imgUrl(rec.poster_path, "w200")} alt="" loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
                   <div className="flex flex-col justify-center overflow-hidden">
-                    <h4 className="font-black uppercase italic text-sm sm:text-base line-clamp-2 group-hover:text-primary transition-colors">{getTitle(rec)}</h4>
-                    <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[10px] font-bold text-white/30 uppercase">{rec.release_date?.substring(0, 4)}</span>
-                        <span className="w-1 h-1 rounded-full bg-white/10" />
-                        <span className="text-[10px] font-bold text-primary uppercase italic">Action</span>
-                    </div>
+                    <h4 className="font-bold text-sm line-clamp-2 group-hover:text-primary transition-colors">{getTitle(rec)}</h4>
+                    <span className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mt-1.5">
+                      {rec.release_date?.substring(0, 4)}
+                    </span>
                   </div>
                 </Link>
               ))}
             </div>
-            
-            <Link to="/" className="w-full h-14 flex items-center justify-center rounded-full border border-white/10 bg-transparent font-black uppercase italic tracking-tighter hover:bg-white hover:text-black transition-all gap-3 mt-4">
+
+            <Link
+              to="/"
+              className="mt-6 w-full h-12 flex items-center justify-center gap-2.5 rounded-full ring-1 ring-white/15 text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+            >
               <Play className="w-4 h-4 fill-current" />
               Browse All
             </Link>
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

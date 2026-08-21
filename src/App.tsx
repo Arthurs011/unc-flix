@@ -1,6 +1,7 @@
 import { lazy, Suspense, Component, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -30,7 +31,27 @@ const queryClient = new QueryClient({
 
 const PageFallback = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
-    <div className="h-10 w-10 animate-spin rounded-full border-2 border-muted border-t-primary" />
+    <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-primary" />
+  </div>
+);
+
+const AuroraBackdrop = () => (
+  <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none bg-background">
+    <motion.div
+      animate={{ x: [0, 60, -20, 0], y: [0, -40, 30, 0] }}
+      transition={{ duration: 32, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute -top-48 -left-48 w-[640px] h-[640px] rounded-full bg-sky-500/[0.07] blur-[140px]"
+    />
+    <motion.div
+      animate={{ x: [0, -70, 40, 0], y: [0, 50, -30, 0] }}
+      transition={{ duration: 38, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute top-1/3 -right-56 w-[720px] h-[720px] rounded-full bg-indigo-600/[0.07] blur-[160px]"
+    />
+    <motion.div
+      animate={{ x: [0, 40, -50, 0], y: [0, -30, 20, 0] }}
+      transition={{ duration: 44, repeat: Infinity, ease: "easeInOut" }}
+      className="absolute -bottom-64 left-1/4 w-[600px] h-[600px] rounded-full bg-fuchsia-600/[0.04] blur-[150px]"
+    />
   </div>
 );
 
@@ -58,13 +79,13 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
       return (
         <div className="min-h-screen flex items-center justify-center bg-background px-4">
           <div className="text-center max-w-md">
-            <h1 className="text-3xl font-bold text-foreground mb-3">Something went wrong</h1>
-            <p className="text-muted-foreground mb-6">
+            <h1 className="text-3xl font-extrabold tracking-tight text-white mb-3">Something went wrong</h1>
+            <p className="text-muted-foreground mb-8 text-sm">
               An unexpected error occurred. Please try refreshing the page.
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="px-6 py-2.5 bg-primary text-primary-foreground rounded-full font-medium hover:bg-primary/90 transition-colors"
+              className="px-8 py-3 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow hover:scale-105 active:scale-95 transition-transform"
             >
               Refresh page
             </button>
@@ -76,11 +97,11 @@ class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryStat
   }
 }
 
-const AppRoutes = () => (
-  <BrowserRouter>
-    <Navbar />
-    <Suspense fallback={<PageFallback />}>
-      <Routes>
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Index />} />
         <Route path="/movie/:id" element={<MovieDetails />} />
         <Route path="/tv/:id" element={<TvDetails />} />
@@ -92,18 +113,24 @@ const AppRoutes = () => (
         <Route path="/movies" element={<Movies />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </Suspense>
-  </BrowserRouter>
-);
+    </AnimatePresence>
+  );
+};
 
 const App = () => {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <AppRoutes />
+          <AuroraBackdrop />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Navbar />
+            <Suspense fallback={<PageFallback />}>
+              <AnimatedRoutes />
+            </Suspense>
+          </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
     </ErrorBoundary>
