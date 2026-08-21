@@ -9,17 +9,18 @@ export interface StreamSource {
 
 /**
  * EXCLUSIVE SOURCE LIST
- * Using VidKing with specific brand configuration.
+ * CineSrc embed with brand accent + auto-next.
+ * Events: cinesrc:timeupdate / cinesrc:nextepisode via postMessage (origin https://cinesrc.st)
  */
 export const SOURCES: StreamSource[] = [
   {
-    id: "vidking",
-    name: "VidKing",
-    baseUrl: "https://www.vidking.net",
-    build: (type, id, s, e) => 
+    id: "cinesrc",
+    name: "CineSrc",
+    baseUrl: "https://cinesrc.st",
+    build: (type, id, s, e) =>
       type === "movie"
-        ? `https://www.vidking.net/embed/movie/${id}?color=5865f2&autoplay=1&next_button=1&episode_selector=1`
-        : `https://www.vidking.net/embed/tv/${id}/${s ?? 1}/${e ?? 1}?color=5865f2&autoplay=1&next_button=1&episode_selector=1`
+        ? `https://cinesrc.st/embed/movie/${id}?color=%230ea5e9&autoplay=true`
+        : `https://cinesrc.st/embed/tv/${id}?s=${s ?? 1}&e=${e ?? 1}&color=%230ea5e9&autoplay=true&autonext=true&nextepisode=true`
   }
 ];
 

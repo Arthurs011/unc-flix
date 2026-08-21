@@ -163,11 +163,11 @@ export default function Index() {
             >
               {continueList.length > 0 && <ContinueRow />}
 
-              <ContentRow title="Trending This Week" kicker="Top 10" movies={trending} showRank />
-              <ContentRow title="Popular Movies" kicker="Everyone is watching" movies={popular} />
-              <ContentRow title="Top Rated Movies" kicker="Critically acclaimed" movies={topRated} />
-              <ContentRow title="Popular TV Shows" kicker="Binge-worthy" movies={tvShows} type="tv" />
-              <ContentRow title="Coming Soon" kicker="Fresh releases" movies={upcoming} />
+              <ContentRow title="Trending This Week" kicker="Top 10" movies={trending} showRank exploreTo="/movies" />
+              <ContentRow title="Popular Movies" kicker="Everyone is watching" movies={popular} exploreTo="/movies" />
+              <ContentRow title="Top Rated Movies" kicker="Critically acclaimed" movies={topRated} exploreTo="/movies" />
+              <ContentRow title="Popular TV Shows" kicker="Binge-worthy" movies={tvShows} type="tv" exploreTo="/tv" />
+              <ContentRow title="Coming Soon" kicker="Fresh releases" movies={upcoming} exploreTo="/movies" />
 
               {recent.length > 0 && <ContentRow title="Recently Viewed" movies={recent} />}
             </motion.div>

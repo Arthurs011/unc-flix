@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Movie } from "@/lib/tmdb";
 import MovieCard from "./MovieCard";
 import { cn } from "@/lib/utils";
@@ -12,9 +13,10 @@ interface Props {
   movies: Movie[] | undefined;
   type?: "movie" | "tv";
   showRank?: boolean;
+  exploreTo?: string;
 }
 
-export default function ContentRow({ title, kicker, movies, type, showRank }: Props) {
+export default function ContentRow({ title, kicker, movies, type, showRank, exploreTo }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
@@ -62,8 +64,18 @@ export default function ContentRow({ title, kicker, movies, type, showRank }: Pr
             {title}
           </h2>
         </div>
-        {safeMovies.length > 5 && (
-          <div className="hidden sm:flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {exploreTo && safeMovies.length > 5 && (
+            <Link
+              to={exploreTo}
+              className="hidden md:flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-white/35 hover:text-primary transition-colors mb-0.5"
+            >
+              Explore all
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          )}
+          {safeMovies.length > 5 && (
+            <div className="hidden sm:flex items-center gap-2">
             <button
               onClick={() => scroll(-1)}
               disabled={!showLeft}
@@ -84,8 +96,9 @@ export default function ContentRow({ title, kicker, movies, type, showRank }: Pr
             >
               <ChevronRight className="w-4 h-4" />
             </button>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="relative -mx-4 sm:mx-0">
@@ -94,15 +107,26 @@ export default function ContentRow({ title, kicker, movies, type, showRank }: Pr
           onScroll={updateArrows}
           className="flex gap-4 sm:gap-5 overflow-x-auto scrollbar-hide px-4 sm:px-0 pb-4 snap-x snap-mandatory"
         >
-          {safeMovies.map((m, i) => (
-            <MovieCard
-              key={`${m.id}-${i}`}
-              movie={m}
-              type={type}
-              rank={showRank ? i + 1 : undefined}
-              className="flex-shrink-0 w-[136px] sm:w-[172px] snap-start"
-            />
-          ))}
+          {safeMovies.map((m, i) =>
+            showRank ? (
+              <div key={`${m.id}-${i}`} className="flex items-end flex-shrink-0 snap-start">
+                <span
+                  aria-hidden
+                  className="select-none leading-none font-black text-[64px] sm:text-[84px] tracking-tighter -mr-3 sm:-mr-4 relative z-10 text-transparent [-webkit-text-stroke:2px_rgba(255,255,255,0.28)]"
+                >
+                  {i + 1}
+                </span>
+                <MovieCard movie={m} type={type} className="w-[136px] sm:w-[160px]" />
+              </div>
+            ) : (
+              <MovieCard
+                key={`${m.id}-${i}`}
+                movie={m}
+                type={type}
+                className="flex-shrink-0 w-[136px] sm:w-[172px] snap-start"
+              />
+            )
+          )}
         </div>
         {/* Edge fades */}
         <div className={cn(
