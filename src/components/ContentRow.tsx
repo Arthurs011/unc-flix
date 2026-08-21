@@ -14,9 +14,10 @@ interface Props {
   type?: "movie" | "tv";
   showRank?: boolean;
   exploreTo?: string;
+  className?: string;
 }
 
-export default function ContentRow({ title, kicker, movies, type, showRank, exploreTo }: Props) {
+export default function ContentRow({ title, kicker, movies, type, showRank, exploreTo, className }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
@@ -51,7 +52,7 @@ export default function ContentRow({ title, kicker, movies, type, showRank, expl
       initial="hidden"
       whileInView="show"
       viewport={viewportOnce}
-      className="mb-14 last:mb-8"
+      className={cn("mb-14 last:mb-8", className)}
     >
       <div className="flex items-end justify-between mb-5 px-4 sm:px-0">
         <div>

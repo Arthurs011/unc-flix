@@ -96,6 +96,7 @@ interface GenreResponse {
 
 export const tmdb = {
   trending: () => get<ListResponse>("/trending/movie/week"),
+  tvTrending: () => get<ListResponse>("/trending/tv/week"),
   popular: (page = 1, genreId?: number) =>
     get<ListResponse>("/discover/movie", {
       sort_by: "popularity.desc",

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Movie, tmdb, imgUrl } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
+import ContentRow from "@/components/ContentRow";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { GridSkeleton } from "@/components/LoadingSkeleton";
@@ -25,6 +26,7 @@ export default function TvShowsPage() {
   const genreIdParam = searchParams.get("genre");
 
   const [shows, setShows] = useState<Movie[]>([]);
+  const [trendingTv, setTrendingTv] = useState<Movie[]>([]);
   const [heroShow, setHeroShow] = useState<Movie | null>(null);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(
     genreIdParam ? Number(genreIdParam) : null
@@ -38,6 +40,12 @@ export default function TvShowsPage() {
   useEffect(() => {
     setSelectedGenre(genreIdParam ? Number(genreIdParam) : null);
   }, [genreIdParam]);
+
+  useEffect(() => {
+    tmdb.tvTrending()
+      .then((d) => setTrendingTv((d.results ?? []).slice(0, 10)))
+      .catch(() => setTrendingTv([]));
+  }, []);
 
   const fetchShows = useCallback(async (p: number, reset = false) => {
     try {
@@ -203,6 +211,17 @@ export default function TvShowsPage() {
             ))}
           </motion.div>
         </motion.header>
+
+        {!selectedGenre && trendingTv.length > 0 && (
+          <ContentRow
+            title="Trending Series This Week"
+            kicker="Top 10 on TV"
+            movies={trendingTv}
+            type="tv"
+            showRank
+            className="mb-12"
+          />
+        )}
 
         <main>
           {loading ? (

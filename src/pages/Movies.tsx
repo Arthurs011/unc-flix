@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Movie, Genre, tmdb } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
+import ContentRow from "@/components/ContentRow";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { GridSkeleton } from "@/components/LoadingSkeleton";
@@ -16,6 +17,7 @@ export default function MoviesPage() {
   const genreIdParam = searchParams.get("genre");
 
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [trending, setTrending] = useState<Movie[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(
     genreIdParam ? Number(genreIdParam) : null
@@ -31,6 +33,9 @@ export default function MoviesPage() {
     tmdb.movieGenres()
       .then((d) => setGenres(d.genres ?? []))
       .catch(() => setGenres([]));
+    tmdb.trending()
+      .then((d) => setTrending((d.results ?? []).slice(0, 10)))
+      .catch(() => setTrending([]));
   }, []);
 
   useEffect(() => {
@@ -121,6 +126,16 @@ export default function MoviesPage() {
             </div>
           </div>
         </motion.header>
+
+        {!selectedGenre && trending.length > 0 && (
+          <ContentRow
+            title="Trending This Week"
+            kicker="Top 10 in Cinema"
+            movies={trending}
+            showRank
+            className="mb-12"
+          />
+        )}
 
         <div className="flex flex-col lg:flex-row gap-10">
           {/* Filter sidebar */}
