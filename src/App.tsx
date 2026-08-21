@@ -1,22 +1,22 @@
-import { lazy, Suspense, Component, ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Navbar from "@/components/Navbar";
 
-const Index = lazy(() => import("./pages/Index"));
-const MovieDetails = lazy(() => import("./pages/MovieDetails"));
-const TvDetails = lazy(() => import("./pages/TvDetails"));
-const WatchMovie = lazy(() => import("./pages/WatchMovie"));
-const WatchTv = lazy(() => import("./pages/WatchTv"));
-const SearchPage = lazy(() => import("./pages/SearchPage"));
-const Watchlist = lazy(() => import("./pages/Watchlist"));
-const TvShows = lazy(() => import("./pages/TvShows"));
-const Movies = lazy(() => import("./pages/Movies"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+import Index from "./pages/Index";
+import MovieDetails from "./pages/MovieDetails";
+import TvDetails from "./pages/TvDetails";
+import WatchMovie from "./pages/WatchMovie";
+import WatchTv from "./pages/WatchTv";
+import SearchPage from "./pages/SearchPage";
+import Watchlist from "./pages/Watchlist";
+import TvShows from "./pages/TvShows";
+import Movies from "./pages/Movies";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,12 +28,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-const PageFallback = () => (
-  <div className="flex min-h-screen items-center justify-center bg-background">
-    <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-primary" />
-  </div>
-);
 
 const AuroraBackdrop = () => (
   <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none bg-background">
@@ -54,48 +48,6 @@ const AuroraBackdrop = () => (
     />
   </div>
 );
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-}
-
-class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("[ErrorBoundary] Uncaught error:", error, info);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background px-4">
-          <div className="text-center max-w-md">
-            <h1 className="text-3xl font-extrabold tracking-tight text-white mb-3">Something went wrong</h1>
-            <p className="text-muted-foreground mb-8 text-sm">
-              An unexpected error occurred. Please try refreshing the page.
-            </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-8 py-3 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow hover:scale-105 active:scale-95 transition-transform"
-            >
-              Refresh page
-            </button>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 const AnimatedRoutes = () => {
   const location = useLocation();
@@ -119,22 +71,29 @@ const AnimatedRoutes = () => {
 
 const App = () => {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <AuroraBackdrop />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuroraBackdrop />
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ErrorBoundaryWithReset>
             <Navbar />
-            <Suspense fallback={<PageFallback />}>
-              <AnimatedRoutes />
-            </Suspense>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+            <AnimatedRoutes />
+          </ErrorBoundaryWithReset>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 };
+
+function ErrorBoundaryWithReset({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  return (
+    <ErrorBoundary resetKeys={[location.pathname]}>
+      {children}
+    </ErrorBoundary>
+  );
+}
 
 export default App;
