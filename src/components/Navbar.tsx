@@ -1,11 +1,12 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Clapperboard, X, LayoutGrid, ChevronDown, BookmarkPlus, Home, Tv, Film } from "lucide-react";
+import { Search, Clapperboard, LayoutGrid, ChevronDown, BookmarkPlus, Home, Tv, Film } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
 import { springSnappy } from "@/lib/motion";
 import SearchDropdown from "@/components/SearchDropdown";
 import { useAutoHideNav } from "@/hooks/useAutoHideNav";
+import MobileNav from "@/components/MobileNav";
 
 const QUICK_GENRES = [
   { id: 28, name: "Action" },
@@ -25,10 +26,8 @@ const LINKS = [
 
 export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
-  const [mobileSearchVisible, setMobileSearchVisible] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [mobileQuery, setMobileQuery] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -64,9 +63,7 @@ export default function Navbar() {
 
   useEffect(() => {
     setQuery("");
-    setMobileQuery("");
     setSearchOpen(false);
-    setMobileSearchVisible(false);
     setBrowseOpen(false);
   }, [location.pathname]);
 
@@ -85,15 +82,15 @@ export default function Navbar() {
       navigate(`/search?q=${encodeURIComponent(q.trim())}`);
       setSearchOpen(false);
       setQuery("");
-      setMobileQuery("");
-      setMobileSearchVisible(false);
     }
   };
 
-  if (location.pathname.startsWith("/watch")) return null;
+  if (location.pathname.startsWith("/watch/") || /^\/watch\/?$/.test(location.pathname)) return null;
 
   return (
     <>
+      <MobileNav />
+
       {/* ===== Desktop floating pill nav ===== */}
       <motion.nav
         initial={{ y: -72, opacity: 0 }}
@@ -243,96 +240,6 @@ export default function Navbar() {
         </motion.div>
       </motion.nav>
 
-      {/* ===== Mobile top bar ===== */}
-      <div className="fixed top-0 left-0 right-0 z-50 md:hidden glass-strong ring-1 ring-white/[0.06] px-5 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5">
-          <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-glow-sm">
-            <Clapperboard className="w-4 h-4" />
-          </span>
-          <span className="text-base font-extrabold tracking-tight text-white">
-            UNC<span className="text-primary">FLIX</span>
-          </span>
-        </Link>
-        <button
-          onClick={() => setMobileSearchVisible(true)}
-          aria-label="Search"
-          className="p-3 -mr-2 rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] transition-all"
-        >
-          <Search className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* ===== Mobile dock ===== */}
-      <motion.div
-        initial={{ y: 90, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed bottom-5 pb-safe left-1/2 -translate-x-1/2 z-50 md:hidden"
-      >
-        <div className="glass-strong ring-1 ring-white/10 rounded-full px-2 py-2 flex items-center gap-2 shadow-card-lg">
-          {LINKS.map((l) => {
-            const isActive = location.pathname === l.to;
-            return (
-              <Link
-                key={l.to}
-                to={l.to}
-                aria-label={l.label}
-                className={cn(
-                  "relative w-13 h-13 rounded-full flex items-center justify-center transition-colors",
-                  isActive ? "text-white" : "text-white/40 hover:text-white/80"
-                )}
-              >
-                {isActive && (
-                  <motion.span
-                    layoutId="dock-active-pill"
-                    transition={springSnappy}
-                    className="absolute inset-0 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 shadow-glow"
-                  />
-                )}
-                <l.icon className="relative z-10 w-5 h-5" />
-              </Link>
-            );
-          })}
-        </div>
-      </motion.div>
-
-      {/* ===== Mobile search overlay ===== */}
-      <AnimatePresence>
-        {mobileSearchVisible && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-2xl flex flex-col p-5 md:hidden"
-          >
-            <div className="flex items-center gap-3 mb-6 pt-3">
-              <form onSubmit={(e) => submit(e, mobileQuery)} className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/35 pointer-events-none" />
-                  <input
-                    autoFocus
-                    value={mobileQuery}
-                    onChange={(e) => setMobileQuery(e.target.value)}
-                    placeholder="Search titles..."
-                    className="w-full h-14 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 text-base text-white placeholder:text-white/30 pl-12 pr-4 outline-none focus:ring-primary/60 transition-all"
-                  />
-                </div>
-              </form>
-              <button
-                onClick={() => setMobileSearchVisible(false)}
-                aria-label="Close search"
-                className="p-4 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 text-white/70"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto scrollbar-hide">
-              <SearchDropdown query={mobileQuery} onSelect={() => { setMobileQuery(""); setMobileSearchVisible(false); }} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

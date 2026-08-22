@@ -98,6 +98,9 @@ const appBase = plugin(({ addBase, addUtilities }) => {
     ".pb-safe": {
       "padding-bottom": "env(safe-area-inset-bottom, 0px)",
     },
+    ".pt-safe": {
+      "padding-top": "env(safe-area-inset-top, 0px)",
+    },
   });
 });
 

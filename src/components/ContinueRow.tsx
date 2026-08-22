@@ -6,8 +6,6 @@ import { fadeUp, viewportOnce } from "@/lib/motion";
 import { imgUrl } from "@/lib/tmdb";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { motion } from "motion/react";
-import { fadeUp, viewportOnce } from "@/lib/motion";
 
 export default function ContinueRow() {
   const [items, setItems] = useState<ContinueItem[]>([]);
