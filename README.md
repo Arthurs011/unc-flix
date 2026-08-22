@@ -104,4 +104,4 @@ Deploys to Vercel on push to `main`. No server component — everything runs cli
 
 ---
 
-Built with a little help from AI, a lot of coffee, and questionable taste in color gradients.
+Built with React, Tailwind CSS, and Motion.
