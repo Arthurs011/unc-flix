@@ -25,8 +25,8 @@ export default function HeroBanner({ movies }: Props) {
     offset: ["start start", "end start"],
   });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
-  const contentOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
-  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "35%"]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.42], [1, 0]);
+  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "16%"]);
 
   const magX = useMotionValue(0);
   const magY = useMotionValue(0);
