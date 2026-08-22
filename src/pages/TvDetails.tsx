@@ -4,6 +4,7 @@ import { Play, Plus, Check, Star, ArrowLeft, X, Film, Clock } from "lucide-react
 import { tmdb, Movie, Review, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
 import { isInWatchlist, toggleWatchlist, addRecentlyViewed } from "@/lib/storage";
 import PageShell from "@/components/PageShell";
+import ScrollProgress from "@/components/ScrollProgress";
 import { DetailSkeleton } from "@/components/LoadingSkeleton";
 import ContentRow from "@/components/ContentRow";
 import ReviewsSection from "@/components/ReviewsSection";
@@ -62,6 +63,7 @@ export default function TvDetailsPage() {
 
   return (
     <PageShell className="min-h-screen pb-32">
+      <ScrollProgress />
       {/* Trailer modal */}
       <AnimatePresence>
         {showTrailer && trailerKey && (

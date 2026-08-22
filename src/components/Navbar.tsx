@@ -2,7 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, Clapperboard, X, LayoutGrid, ChevronDown, BookmarkPlus, Home, Tv, Film } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
 import { springSnappy } from "@/lib/motion";
 import SearchDropdown from "@/components/SearchDropdown";
 import { useAutoHideNav } from "@/hooks/useAutoHideNav";
@@ -71,6 +71,13 @@ export default function Navbar() {
   }, [location.pathname]);
 
   const navHidden = useAutoHideNav();
+  const { scrollY } = useScroll();
+  const pillBg = useTransform(scrollY, [0, 180], ["rgba(13,15,23,0.45)", "rgba(13,15,23,0.88)"]);
+  const pillShadow = useTransform(
+    scrollY,
+    [0, 180],
+    ["0 8px 32px rgba(0,0,0,0.25)", "0 16px 48px rgba(0,0,0,0.55)"]
+  );
 
   const submit = (e: React.FormEvent, q: string) => {
     e.preventDefault();
@@ -95,7 +102,10 @@ export default function Navbar() {
         className="fixed top-4 left-0 right-0 z-50 hidden md:flex justify-center pointer-events-none"
         aria-label="Desktop navigation"
       >
-        <div className="pointer-events-auto flex items-center gap-1 h-16 pl-5 pr-2 rounded-full glass-strong ring-1 ring-white/10 shadow-card">
+        <motion.div
+          style={{ backgroundColor: pillBg, boxShadow: pillShadow }}
+          className="pointer-events-auto flex items-center gap-1 h-16 pl-5 pr-2 rounded-full glass-strong ring-1 ring-white/10"
+        >
           <Link to="/" className="flex items-center gap-2.5 mr-4 group">
             <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-glow-sm group-hover:rotate-12 transition-transform duration-500">
               <Clapperboard className="w-4 h-4" />
@@ -230,7 +240,7 @@ export default function Navbar() {
               <BookmarkPlus className="w-5 h-5" />
             </Link>
           </div>
-        </div>
+        </motion.div>
       </motion.nav>
 
       {/* ===== Mobile top bar ===== */}

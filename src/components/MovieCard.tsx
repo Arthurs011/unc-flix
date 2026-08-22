@@ -1,8 +1,9 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { Star, Play } from "lucide-react";
 import { Movie, imgUrl, posterFallback, getTitle, getYear } from "@/lib/tmdb";
-import { motion } from "motion/react";
-import { springSoft } from "@/lib/motion";
+import { motion, useMotionValue, useSpring } from "motion/react";
+import { springSoft, springSnappy } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -15,13 +16,37 @@ interface Props {
 export default function MovieCard({ movie, type, rank, className }: Props) {
   const mediaType = type || movie.media_type || "movie";
   const to = mediaType === "tv" ? `/tv/${movie.id}` : `/movie/${movie.id}`;
+  const ref = useRef<HTMLDivElement>(null);
+
+  const rawX = useMotionValue(0);
+  const rawY = useMotionValue(0);
+  const rotateX = useSpring(rawY, springSnappy);
+  const rotateY = useSpring(rawX, springSnappy);
+
+  const onMove = (e: React.MouseEvent) => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    rawX.set(px * 9);
+    rawY.set(-py * 9);
+  };
+
+  const reset = () => {
+    rawX.set(0);
+    rawY.set(0);
+  };
 
   return (
     <motion.div
+      ref={ref}
+      onMouseMove={onMove}
+      onMouseLeave={reset}
+      style={{ rotateX, rotateY, transformPerspective: 900 }}
       whileHover={{ y: -8 }}
       whileTap={{ scale: 0.97 }}
       transition={springSoft}
-      className={cn("group relative w-full", className)}
+      className={cn("group relative w-full will-change-transform", className)}
     >
       <Link
         to={to}

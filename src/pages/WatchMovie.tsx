@@ -7,6 +7,7 @@ import { tmdb, getTitle, imgUrl, Movie, MovieDetails, formatCount, getYear } fro
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { SOURCES } from "@/lib/servers";
 import PageShell from "@/components/PageShell";
+import ScrollProgress from "@/components/ScrollProgress";
 import WatchHeader from "@/components/WatchHeader";
 import { EASE, springSnappy } from "@/lib/motion";
 
@@ -80,6 +81,8 @@ export default function WatchMovie() {
       </div>
 
       {/* Floating pill header */}
+      <ScrollProgress />
+
       <WatchHeader
         to={`/movie/${id}`}
         label="Feature Film"

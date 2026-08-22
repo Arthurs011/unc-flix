@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Play, Plus, Check, ChevronLeft, ChevronRight, Star, Shuffle } from "lucide-react";
 import { Movie, imgUrl, getTitle, getYear } from "@/lib/tmdb";
 import { isInWatchlist, toggleWatchlist } from "@/lib/storage";
-import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from "motion/react";
 import { EASE, springSnappy } from "@/lib/motion";
 
 interface Props {
@@ -27,6 +27,11 @@ export default function HeroBanner({ movies }: Props) {
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
   const contentOpacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
   const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "35%"]);
+
+  const magX = useMotionValue(0);
+  const magY = useMotionValue(0);
+  const springMagX = useSpring(magX, springSnappy);
+  const springMagY = useSpring(magY, springSnappy);
 
   const next = useCallback(() => {
     setIdx((i) => (i + 1) % Math.max(featured.length, 1));
@@ -161,6 +166,13 @@ export default function HeroBanner({ movies }: Props) {
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 transition={springSnappy}
+                onMouseMove={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  magX.set((e.clientX - r.left - r.width / 2) * 0.3);
+                  magY.set((e.clientY - r.top - r.height / 2) * 0.45);
+                }}
+                onMouseLeave={() => { magX.set(0); magY.set(0); }}
+                style={{ x: springMagX, y: springMagY }}
                 className="flex items-center gap-2.5 h-13 pl-7 pr-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow-lg hover:shadow-glow"
               >
                 <Link to={`/watch/movie/${current.id}`} className="flex items-center gap-2.5">

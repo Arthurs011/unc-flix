@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import { Play, X, ChevronLeft, ChevronRight, History } from "lucide-react";
 import { getContinueWatching, removeContinueWatching, ContinueItem } from "@/lib/storage";
+import { motion } from "motion/react";
+import { fadeUp, viewportOnce } from "@/lib/motion";
 import { imgUrl } from "@/lib/tmdb";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
@@ -122,8 +124,9 @@ export default function ContinueRow() {
                   <div className="w-full h-1 bg-white/15 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${Math.max(item.progress, 3)}%` }}
-                      transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+                      whileInView={{ width: `${Math.max(item.progress, 3)}%` }}
+                      viewport={viewportOnce}
+                      transition={{ type: "spring", stiffness: 55, damping: 16, delay: 0.15 }}
                       className="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-500"
                     />
                   </div>

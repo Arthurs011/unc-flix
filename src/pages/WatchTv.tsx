@@ -7,6 +7,7 @@ import { tmdb, getTitle, MovieDetails, Episode, SeasonDetails, imgUrl, formatCou
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { SOURCES } from "@/lib/servers";
 import PageShell from "@/components/PageShell";
+import ScrollProgress from "@/components/ScrollProgress";
 import WatchHeader from "@/components/WatchHeader";
 import { EASE, springSnappy } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -109,6 +110,8 @@ export default function WatchTv() {
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/85 to-black" />
       </div>
+
+      <ScrollProgress />
 
       <WatchHeader
         to={`/tv/${id}`}
