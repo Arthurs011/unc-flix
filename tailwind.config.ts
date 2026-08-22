@@ -95,6 +95,9 @@ const appBase = plugin(({ addBase, addUtilities }) => {
     ".scrollbar-hide::-webkit-scrollbar": {
       display: "none",
     },
+    ".pb-safe": {
+      "padding-bottom": "env(safe-area-inset-bottom, 0px)",
+    },
   });
 });
 

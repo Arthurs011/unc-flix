@@ -24,7 +24,7 @@ export default function WatchHeader({ to, label, title, badge }: Props) {
         <Link
           to={to}
           aria-label="Back to details"
-          className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/[0.06] hover:bg-primary hover:shadow-glow-sm transition-all flex items-center justify-center shrink-0 group"
+          className="w-11 h-11 md:w-11 md:h-11 rounded-full bg-white/[0.06] hover:bg-primary hover:shadow-glow-sm transition-all flex items-center justify-center shrink-0 group active:bg-white/[0.12]"
         >
           <ArrowLeft className="w-5 h-5 text-white/80 group-hover:text-white transition-transform group-hover:-translate-x-0.5" />
         </Link>

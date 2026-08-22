@@ -121,7 +121,7 @@ export default function WatchMovie() {
                 <div className="hidden sm:flex absolute -bottom-7 left-1/2 -translate-x-1/2 z-20 items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg">
                   <button
                     onClick={() => { setLiked(!liked); setDisliked(false); }}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all ${liked ? "bg-primary text-white shadow-glow-sm" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${liked ? "bg-primary text-white shadow-glow-sm" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
                   >
                     <ThumbsUp className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
                     {formatCount(likes(movie, liked))}
@@ -129,7 +129,7 @@ export default function WatchMovie() {
                   <span className="w-px h-5 bg-white/10" />
                   <button
                     onClick={() => { setDisliked(!disliked); setLiked(false); }}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
                   >
                     <ThumbsDown className={`w-4 h-4 ${disliked ? "fill-current" : ""}`} />
                     {formatCount(dislikes(movie, disliked))}
@@ -138,7 +138,7 @@ export default function WatchMovie() {
                   <button
                     onClick={() => navigator.clipboard?.writeText(window.location.href)}
                     aria-label="Share"
-                    className="flex items-center px-4 py-2.5 rounded-full text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
+                    className="flex items-center px-4 py-3 rounded-full text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
                   >
                     <Share2 className="w-4 h-4" />
                   </button>
@@ -146,15 +146,15 @@ export default function WatchMovie() {
               </div>
 
               {/* Mobile actions */}
-              <div className="sm:hidden flex justify-center mt-3 relative z-20 px-4">
-                <div className="flex items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg">
-                  <button onClick={() => { setLiked(!liked); setDisliked(false); }} aria-label="Like" className={`flex items-center px-4 py-2.5 rounded-full transition-all ${liked ? "bg-primary text-white" : "text-white/60"}`}>
+              <div className="sm:hidden flex justify-center mt-3 relative z-20 px-4 pb-safe">
+                <div className="flex items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg gap-x-0.5">
+                  <button onClick={() => { setLiked(!liked); setDisliked(false); }} aria-label="Like" className={`flex items-center px-4 py-3 rounded-full transition-all ${liked ? "bg-primary text-white" : "text-white/60"}`}>
                     <ThumbsUp className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
                   </button>
-                  <button onClick={() => { setDisliked(!disliked); setLiked(false); }} aria-label="Dislike" className={`flex items-center px-4 py-2.5 rounded-full transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60"}`}>
+                  <button onClick={() => { setDisliked(!disliked); setLiked(false); }} aria-label="Dislike" className={`flex items-center px-4 py-3 rounded-full transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60"}`}>
                     <ThumbsDown className={`w-4 h-4 ${disliked ? "fill-current" : ""}`} />
                   </button>
-                  <button onClick={() => navigator.clipboard?.writeText(window.location.href)} aria-label="Share" className="flex items-center px-4 py-2.5 rounded-full text-white/60">
+                  <button onClick={() => navigator.clipboard?.writeText(window.location.href)} aria-label="Share" className="flex items-center px-4 py-3 rounded-full text-white/60">
                     <Share2 className="w-4 h-4" />
                   </button>
                 </div>

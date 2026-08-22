@@ -256,7 +256,7 @@ export default function Navbar() {
         <button
           onClick={() => setMobileSearchVisible(true)}
           aria-label="Search"
-          className="p-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] transition-all"
+          className="p-3 -mr-2 rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] transition-all"
         >
           <Search className="w-5 h-5" />
         </button>
@@ -267,9 +267,9 @@ export default function Navbar() {
         initial={{ y: 90, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 md:hidden"
+        className="fixed bottom-5 pb-safe left-1/2 -translate-x-1/2 z-50 md:hidden"
       >
-        <div className="glass-strong ring-1 ring-white/10 rounded-full px-2 py-2 flex items-center gap-1 shadow-card-lg">
+        <div className="glass-strong ring-1 ring-white/10 rounded-full px-2 py-2 flex items-center gap-2 shadow-card-lg">
           {LINKS.map((l) => {
             const isActive = location.pathname === l.to;
             return (
