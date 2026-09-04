@@ -37,7 +37,7 @@ export default function AnimeHub() {
   const [loadingGenre, setLoadingGenre] = useState(false);
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       tmdb.animeTv(),
       tmdb.animeMovies(),
       tmdb.marvelTv(),
@@ -46,12 +46,14 @@ export default function AnimeHub() {
       tmdb.animatedMovies(),
     ])
       .then(([aTv, aM, mTv, mM, anTv, anM]) => {
-        setAnimeTv(aTv?.results ?? []);
-        setAnimeMovies(aM?.results ?? []);
-        setMarvelTv(mTv?.results ?? []);
-        setMarvelMovies(mM?.results ?? []);
-        setAnimatedTv(anTv?.results ?? []);
-        setAnimatedMovies(anM?.results ?? []);
+        const ok = <T,>(r: PromiseSettledResult<T>): T[] =>
+          r.status === "fulfilled" ? (r.value as { results?: Movie[] })?.results ?? [] : [];
+        setAnimeTv(ok(aTv));
+        setAnimeMovies(ok(aM));
+        setMarvelTv(ok(mTv));
+        setMarvelMovies(ok(mM));
+        setAnimatedTv(ok(anTv));
+        setAnimatedMovies(ok(anM));
       })
       .catch(() => {})
       .finally(() => setLoading(false));

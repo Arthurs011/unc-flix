@@ -42,20 +42,15 @@ export default function Index() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    // Core rows — if these fail, show error page
     Promise.all([
       tmdb.trending(),
       tmdb.popular(),
       tmdb.topRated(),
       tmdb.tvPopular(),
       tmdb.upcoming(),
-      tmdb.animeTv(),
-      tmdb.animeMovies(),
-      tmdb.marvelMovies(),
-      tmdb.marvelTv(),
-      tmdb.animatedMovies(),
-      tmdb.animatedTv(),
     ])
-      .then(([t, p, tr, tv, u, aTv, aM, mM, mTv, anM, anTv]) => {
+      .then(([t, p, tr, tv, u]) => {
         setTrending(t?.results ?? []);
         setPopular(p?.results ?? []);
         setTopRated(tr?.results ?? []);
@@ -63,20 +58,37 @@ export default function Index() {
         setUpcoming(u?.results ?? []);
         setRecent(getRecentlyViewed() || []);
         setContinueList(getContinueWatching() || []);
-
-        const tagTv = (items: Movie[]) =>
-          (items ?? []).map((m) => ({ ...m, media_type: "tv" as const }));
-        const tagMovie = (items: Movie[]) =>
-          (items ?? []).map((m) => ({ ...m, media_type: "movie" as const }));
-        setAnime([...tagTv(aTv), ...tagMovie(aM)].slice(0, 40));
-        setMarvel([...tagMovie(mM), ...tagTv(mTv)].slice(0, 40));
-        setAnimated([...tagMovie(anM), ...tagTv(anTv)].slice(0, 40));
       })
       .catch((err) => {
         console.error("TMDB Fetch Error:", err);
         setError(true);
       })
       .finally(() => setLoading(false));
+
+    // Extra rails — staggered 600ms after core to avoid TMDB rate-limit burst
+    const tagTv = (items: Movie[]) =>
+      (items ?? []).map((m) => ({ ...m, media_type: "tv" as const }));
+    const tagMovie = (items: Movie[]) =>
+      (items ?? []).map((m) => ({ ...m, media_type: "movie" as const }));
+
+    const t = setTimeout(() => {
+      Promise.allSettled([
+      tmdb.animeTv(),
+      tmdb.animeMovies(),
+      tmdb.marvelMovies(),
+      tmdb.marvelTv(),
+      tmdb.animatedMovies(),
+      tmdb.animatedTv(),
+    ]).then(([aTv, aM, mM, mTv, anM, anTv]) => {
+      const ok = <T,>(r: PromiseSettledResult<T>): T[] =>
+        r.status === "fulfilled" ? (r.value as { results?: Movie[] })?.results ?? [] : [];
+      setAnime([...tagTv(ok(aTv)), ...tagMovie(ok(aM))].slice(0, 40));
+      setMarvel([...tagMovie(ok(mM)), ...tagTv(ok(mTv))].slice(0, 40));
+      setAnimated([...tagMovie(ok(anM)), ...tagTv(ok(anTv))].slice(0, 40));
+    });
+    }, 600);
+
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
