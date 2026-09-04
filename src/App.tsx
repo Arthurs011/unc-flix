@@ -17,6 +17,7 @@ import SearchPage from "./pages/SearchPage";
 import Watchlist from "./pages/Watchlist";
 import TvShows from "./pages/TvShows";
 import Movies from "./pages/Movies";
+import Anime from "./pages/Anime";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -64,6 +65,7 @@ const AnimatedRoutes = () => {
         <Route path="/watchlist" element={<Watchlist />} />
         <Route path="/tv" element={<TvShows />} />
         <Route path="/movies" element={<Movies />} />
+        <Route path="/anime" element={<Anime />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>

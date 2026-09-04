@@ -130,6 +130,50 @@ export const tmdb = {
     get<Episode>(`/tv/${tvId}/season/${season}/episode/${episode}`),
   tvSeason: (tvId: number, season: number) =>
     get<SeasonDetails>(`/tv/${tvId}/season/${season}`),
+
+  // Anime — Japanese animation (genre 16 + original_language ja)
+  animeTv: (page = 1) =>
+    get<ListResponse>("/discover/tv", {
+      sort_by: "popularity.desc",
+      with_genres: "16",
+      with_original_language: "ja",
+      page: String(page),
+    }),
+  animeMovies: (page = 1) =>
+    get<ListResponse>("/discover/movie", {
+      sort_by: "popularity.desc",
+      with_genres: "16",
+      with_original_language: "ja",
+      page: String(page),
+    }),
+
+  // Animated — all animation genre (movies & TV)
+  animatedMovies: (page = 1) =>
+    get<ListResponse>("/discover/movie", {
+      sort_by: "popularity.desc",
+      with_genres: "16",
+      page: String(page),
+    }),
+  animatedTv: (page = 1) =>
+    get<ListResponse>("/discover/tv", {
+      sort_by: "popularity.desc",
+      with_genres: "16",
+      page: String(page),
+    }),
+
+  // Marvel — Marvel Studios (company 420)
+  marvelMovies: (page = 1) =>
+    get<ListResponse>("/discover/movie", {
+      sort_by: "popularity.desc",
+      with_companies: "420",
+      page: String(page),
+    }),
+  marvelTv: (page = 1) =>
+    get<ListResponse>("/discover/tv", {
+      sort_by: "popularity.desc",
+      with_companies: "420",
+      page: String(page),
+    }),
 };
 
 export function imgUrl(path: string | null, size = "w500") {

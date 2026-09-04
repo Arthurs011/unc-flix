@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Clapperboard, LayoutGrid, ChevronDown, BookmarkPlus, Home, Tv, Film } from "lucide-react";
+import { Search, Clapperboard, LayoutGrid, ChevronDown, BookmarkPlus, Home, Tv, Film, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
@@ -21,6 +21,7 @@ const LINKS = [
   { to: "/", label: "Home", icon: Home },
   { to: "/tv", label: "Series", icon: Tv },
   { to: "/movies", label: "Cinema", icon: Film },
+  { to: "/anime", label: "Anime", icon: Sparkles },
   { to: "/watchlist", label: "Saved", icon: BookmarkPlus },
 ];
 
@@ -113,7 +114,7 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center gap-0.5">
-            {LINKS.slice(0, 3).map((l) => {
+            {LINKS.slice(0, 4).map((l) => {
               const isActive = location.pathname === l.to;
               return (
                 <Link

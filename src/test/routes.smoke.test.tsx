@@ -97,7 +97,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 
 const App = (await import("@/App")).default;
 
-const ROUTES = ["/", "/movies", "/tv", "/movie/1", "/tv/2", "/watch/movie/1", "/watch/tv/2/1/1", "/search?q=test", "/watchlist", "/nope"];
+const ROUTES = ["/", "/movies", "/tv", "/anime", "/movie/1", "/tv/2", "/watch/movie/1", "/watch/tv/2/1/1", "/search?q=test", "/watchlist", "/nope"];
 
 describe("route smoke tests", () => {
   for (const route of ROUTES) {

@@ -123,7 +123,7 @@ export default function ContentRow({ title, kicker, movies, type, showRank, expl
               <MovieCard
                 key={`${m.id}-${i}`}
                 movie={m}
-                type={type}
+                type={m.media_type === "tv" ? "tv" : type}
                 className="flex-shrink-0 w-[136px] sm:w-[172px] snap-start"
               />
             )

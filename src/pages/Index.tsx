@@ -30,6 +30,9 @@ export default function Index() {
   const [upcoming, setUpcoming] = useState<Movie[]>([]);
   const [recent, setRecent] = useState<Movie[]>([]);
   const [continueList, setContinueList] = useState<ContinueItem[]>([]);
+  const [anime, setAnime] = useState<Movie[]>([]);
+  const [marvel, setMarvel] = useState<Movie[]>([]);
+  const [animated, setAnimated] = useState<Movie[]>([]);
 
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [genreResults, setGenreResults] = useState<Movie[]>([]);
@@ -45,8 +48,14 @@ export default function Index() {
       tmdb.topRated(),
       tmdb.tvPopular(),
       tmdb.upcoming(),
+      tmdb.animeTv(),
+      tmdb.animeMovies(),
+      tmdb.marvelMovies(),
+      tmdb.marvelTv(),
+      tmdb.animatedMovies(),
+      tmdb.animatedTv(),
     ])
-      .then(([t, p, tr, tv, u]) => {
+      .then(([t, p, tr, tv, u, aTv, aM, mM, mTv, anM, anTv]) => {
         setTrending(t?.results ?? []);
         setPopular(p?.results ?? []);
         setTopRated(tr?.results ?? []);
@@ -54,6 +63,14 @@ export default function Index() {
         setUpcoming(u?.results ?? []);
         setRecent(getRecentlyViewed() || []);
         setContinueList(getContinueWatching() || []);
+
+        const tagTv = (items: Movie[]) =>
+          (items ?? []).map((m) => ({ ...m, media_type: "tv" as const }));
+        const tagMovie = (items: Movie[]) =>
+          (items ?? []).map((m) => ({ ...m, media_type: "movie" as const }));
+        setAnime([...tagTv(aTv), ...tagMovie(aM)].slice(0, 40));
+        setMarvel([...tagMovie(mM), ...tagTv(mTv)].slice(0, 40));
+        setAnimated([...tagMovie(anM), ...tagTv(anTv)].slice(0, 40));
       })
       .catch((err) => {
         console.error("TMDB Fetch Error:", err);
@@ -168,6 +185,16 @@ export default function Index() {
               <ContentRow title="Top Rated Movies" kicker="Critically acclaimed" movies={topRated} exploreTo="/movies" />
               <ContentRow title="Popular TV Shows" kicker="Binge-worthy" movies={tvShows} type="tv" exploreTo="/tv" />
               <ContentRow title="Coming Soon" kicker="Fresh releases" movies={upcoming} exploreTo="/movies" />
+
+              {anime.length > 0 && (
+                <ContentRow title="Anime" kicker="Japanese animation" movies={anime} exploreTo="/anime" />
+              )}
+              {marvel.length > 0 && (
+                <ContentRow title="Marvel Universe" kicker="Marvel Studios" movies={marvel} exploreTo="/anime" />
+              )}
+              {animated.length > 0 && (
+                <ContentRow title="Animated" kicker="Cartoon features & series" movies={animated} exploreTo="/anime" />
+              )}
 
               {recent.length > 0 && <ContentRow title="Recently Viewed" movies={recent} />}
             </motion.div>

@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Clapperboard, X, Home, Tv, Film, BookmarkPlus, LayoutGrid } from "lucide-react";
+import { Search, Clapperboard, X, Home, Tv, Film, BookmarkPlus, LayoutGrid, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,7 @@ const DOCK_LINKS = [
   { to: "/", label: "Home", icon: Home },
   { to: "/tv", label: "Series", icon: Tv },
   { to: "/movies", label: "Cinema", icon: Film },
-  { to: "/watchlist", label: "Saved", icon: BookmarkPlus },
+  { to: "/anime", label: "Anime", icon: Sparkles },
 ];
 
 const QUICK_GENRES = [
@@ -61,13 +61,22 @@ export default function MobileNav() {
               UNC<span className="text-primary">FLIX</span>
             </span>
           </Link>
-          <button
-            onClick={() => setSearchOpen(true)}
-            aria-label="Search"
-            className="w-11 h-11 rounded-full flex items-center justify-center text-white/70 active:bg-white/[0.1] transition-all"
-          >
-            <Search className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            <Link
+              to="/watchlist"
+              aria-label="Watchlist"
+              className="w-11 h-11 rounded-full flex items-center justify-center text-white/70 active:bg-white/[0.1] transition-all"
+            >
+              <BookmarkPlus className="w-5 h-5" />
+            </Link>
+            <button
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search"
+              className="w-11 h-11 rounded-full flex items-center justify-center text-white/70 active:bg-white/[0.1] transition-all"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </header>
 
