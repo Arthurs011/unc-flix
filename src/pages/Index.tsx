@@ -202,10 +202,10 @@ export default function Index() {
                 <ContentRow title="Anime" kicker="Japanese animation" movies={anime} exploreTo="/anime" />
               )}
               {marvel.length > 0 && (
-                <ContentRow title="Marvel Universe" kicker="Marvel Studios" movies={marvel} exploreTo="/anime" />
+                <ContentRow title="Marvel Universe" kicker="Marvel Studios" movies={marvel} exploreTo="/marvel" />
               )}
               {animated.length > 0 && (
-                <ContentRow title="Animated" kicker="Cartoon features & series" movies={animated} exploreTo="/anime" />
+                <ContentRow title="Animated" kicker="Cartoon features & series" movies={animated} exploreTo="/animated" />
               )}
 
               {recent.length > 0 && <ContentRow title="Recently Viewed" movies={recent} />}
