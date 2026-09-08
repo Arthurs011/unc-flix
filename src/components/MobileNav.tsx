@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Clapperboard, X, Home, Tv, Film, BookmarkPlus, LayoutGrid, Sparkles, Shield } from "lucide-react";
+import { Search, Clapperboard, X, Home, Tv, Film, BookmarkPlus, LayoutGrid } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -10,8 +10,7 @@ const DOCK_LINKS = [
   { to: "/", label: "Home", icon: Home },
   { to: "/tv", label: "Series", icon: Tv },
   { to: "/movies", label: "Cinema", icon: Film },
-  { to: "/anime", label: "Anime", icon: Sparkles },
-  { to: "/marvel", label: "Marvel", icon: Shield },
+  { to: "/watchlist", label: "Saved", icon: BookmarkPlus },
 ];
 
 const QUICK_GENRES = [
