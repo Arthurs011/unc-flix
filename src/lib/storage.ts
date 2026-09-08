@@ -11,6 +11,8 @@ export interface ContinueItem {
   poster_path: string | null;
   backdrop_path: string | null;
   progress: number; // 0-100
+  currentTime: number; // seconds into video
+  duration: number; // total seconds
   season?: number;
   episode?: number;
   timestamp: number;
@@ -75,14 +77,21 @@ export function getContinueWatching(): ContinueItem[] {
 }
 
 export function updateContinueWatching(item: ContinueItem) {
-  const list = getContinueWatching().filter((c) => c.id !== item.id);
+  const list = getContinueWatching().filter(
+    (c) => !(c.id === item.id && c.type === item.type && c.season === item.season && c.episode === item.episode)
+  );
   const next = { ...item, timestamp: Date.now() };
   list.unshift(next);
   write(CONTINUE_KEY, list.slice(0, 20));
 }
 
-export function removeContinueWatching(id: number) {
-  write(CONTINUE_KEY, getContinueWatching().filter((c) => c.id !== id));
+export function removeContinueWatching(id: number, season?: number, episode?: number) {
+  write(
+    CONTINUE_KEY,
+    getContinueWatching().filter(
+      (c) => !(c.id === id && c.season === season && c.episode === episode)
+    )
+  );
 }
 
 export function clearLocalUserData() {

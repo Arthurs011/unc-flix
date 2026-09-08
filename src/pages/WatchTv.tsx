@@ -25,6 +25,9 @@ export default function WatchTv() {
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const lastSaveRef = useRef(0);
+  const lastProgressRef = useRef<{ currentTime: number; duration: number } | null>(null);
+  const searchParams = new URLSearchParams(window.location.search);
+  const seekTo = Number(searchParams.get("t")) || 0;
 
   const s = Number(season) || 1;
   const e = Number(episode) || 1;
@@ -43,6 +46,8 @@ export default function WatchTv() {
         poster_path: d.poster_path,
         backdrop_path: d.backdrop_path,
         progress: 0,
+        currentTime: 0,
+        duration: 0,
         season: s,
         episode: e,
         timestamp: Date.now(),
@@ -67,16 +72,21 @@ export default function WatchTv() {
 
       if (data.type === "cinesrc:timeupdate" && typeof data.currentTime === "number" && typeof data.duration === "number" && data.duration > 0) {
         const now = Date.now();
-        if (now - lastSaveRef.current < 15000) return;
+        if (now - lastSaveRef.current < 8000) return;
         lastSaveRef.current = now;
         if (!id) return;
+        const progress = Math.min(100, Math.round((data.currentTime / data.duration) * 100));
+        if (progress < 2 || !show) return;
+        lastProgressRef.current = { currentTime: data.currentTime, duration: data.duration };
         updateContinueWatching({
           id: Number(id),
           type: "tv",
           title: getTitle(show),
           poster_path: show?.poster_path,
           backdrop_path: show?.backdrop_path,
-          progress: Math.min(100, Math.round((data.currentTime / data.duration) * 100)),
+          progress,
+          currentTime: data.currentTime,
+          duration: data.duration,
           season: s,
           episode: e,
           timestamp: now,
@@ -91,10 +101,31 @@ export default function WatchTv() {
       }
     };
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      const last = lastProgressRef.current;
+      if (last && id && show) {
+        const progress = Math.min(100, Math.round((last.currentTime / last.duration) * 100));
+        if (progress >= 2) {
+          updateContinueWatching({
+            id: Number(id),
+            type: "tv",
+            title: getTitle(show),
+            poster_path: show?.poster_path,
+            backdrop_path: show?.backdrop_path,
+            progress,
+            currentTime: last.currentTime,
+            duration: last.duration,
+            season: s,
+            episode: e,
+            timestamp: Date.now(),
+          });
+        }
+      }
+    };
   }, [id, s, e, show, navigate]);
 
-  const embedSrc = SOURCES[0].build("tv", id || "", s, e);
+  const embedSrc = SOURCES[0].build("tv", id || "", s, e) + (seekTo > 0 ? `&t=${seekTo}` : "");
   const seasons = show?.seasons?.filter((se) => se.season_number > 0) ?? [];
 
   return (

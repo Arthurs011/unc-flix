@@ -7,6 +7,15 @@ import { imgUrl } from "@/lib/tmdb";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 
+function formatTime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  return h > 0
+    ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+    : `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export default function ContinueRow() {
   const [items, setItems] = useState<ContinueItem[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -35,8 +44,8 @@ export default function ContinueRow() {
     }
   };
 
-  const remove = (id: number) => {
-    removeContinueWatching(id);
+  const remove = (id: number, season?: number, episode?: number) => {
+    removeContinueWatching(id, season, episode);
     setItems(getContinueWatching());
   };
 
@@ -97,8 +106,8 @@ export default function ContinueRow() {
               <Link
                 to={
                   item.type === "tv"
-                    ? `/watch/tv/${item.id}/${item.season || 1}/${item.episode || 1}`
-                    : `/watch/movie/${item.id}`
+                    ? `/watch/tv/${item.id}/${item.season || 1}/${item.episode || 1}${item.currentTime > 0 ? `?t=${Math.floor(item.currentTime)}` : ""}`
+                    : `/watch/movie/${item.id}${item.currentTime > 0 ? `?t=${Math.floor(item.currentTime)}` : ""}`
                 }
                 className="block aspect-video rounded-2xl overflow-hidden bg-card relative ring-1 ring-white/[0.08] shadow-card group-hover:ring-primary/40 transition-all duration-300"
               >
@@ -128,6 +137,11 @@ export default function ContinueRow() {
                       className="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-500"
                     />
                   </div>
+                  {item.currentTime > 0 && (
+                    <p className="text-[9px] font-semibold text-white/50 mt-1.5">
+                      Resume from {formatTime(item.currentTime)}
+                    </p>
+                  )}
                 </div>
 
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -141,7 +155,7 @@ export default function ContinueRow() {
               </Link>
 
               <button
-                onClick={(e) => { e.preventDefault(); remove(item.id); }}
+                onClick={(e) => { e.preventDefault(); remove(item.id, item.season, item.episode); }}
                 aria-label="Remove from continue watching"
                 className="absolute top-2.5 right-2.5 p-2 rounded-full bg-black/60 backdrop-blur-md ring-1 ring-white/10 text-white/50 hover:text-white hover:bg-red-500/80 transition-all opacity-0 group-hover:opacity-100"
               >

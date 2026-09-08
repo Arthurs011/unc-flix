@@ -21,6 +21,9 @@ export default function WatchMovie() {
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const lastSaveRef = useRef(0);
+  const lastProgressRef = useRef<{ currentTime: number; duration: number } | null>(null);
+  const searchParams = new URLSearchParams(window.location.search);
+  const seekTo = Number(searchParams.get("t")) || 0;
 
   useEffect(() => {
     if (!id) return;
@@ -46,25 +49,49 @@ export default function WatchMovie() {
       if (!data || typeof data !== "object") return;
 
       if (data.type === "cinesrc:timeupdate" && typeof data.currentTime === "number" && typeof data.duration === "number" && data.duration > 0 && id) {
+        lastProgressRef.current = { currentTime: data.currentTime, duration: data.duration };
         const now = Date.now();
-        if (now - lastSaveRef.current < 15000 || !movie) return;
+        if (now - lastSaveRef.current < 8000 || !movie) return;
         lastSaveRef.current = now;
+        const progress = Math.min(100, Math.round((data.currentTime / data.duration) * 100));
+        if (progress < 2) return;
         updateContinueWatching({
           id: Number(id),
           type: "movie",
           title: getTitle(movie),
           poster_path: movie.poster_path,
           backdrop_path: movie.backdrop_path,
-          progress: Math.min(100, Math.round((data.currentTime / data.duration) * 100)),
+          progress,
+          currentTime: data.currentTime,
+          duration: data.duration,
           timestamp: now,
         });
       }
     };
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      const last = lastProgressRef.current;
+      if (last && id && movie) {
+        const progress = Math.min(100, Math.round((last.currentTime / last.duration) * 100));
+        if (progress >= 2) {
+          updateContinueWatching({
+            id: Number(id),
+            type: "movie",
+            title: getTitle(movie),
+            poster_path: movie.poster_path,
+            backdrop_path: movie.backdrop_path,
+            progress,
+            currentTime: last.currentTime,
+            duration: last.duration,
+            timestamp: Date.now(),
+          });
+        }
+      }
+    };
   }, [id, movie]);
 
-  const embedSrc = SOURCES[0].build("movie", id || "");
+  const embedSrc = SOURCES[0].build("movie", id || "") + (seekTo > 0 ? `&t=${seekTo}` : "");
 
   return (
     <PageShell className="min-h-screen text-white pb-32 overflow-x-hidden">
