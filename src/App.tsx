@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Navbar from "@/components/Navbar";
 import BackToTop from "@/components/BackToTop";
+import { AuthProvider } from "@/contexts/AuthProvider";
 
 import Index from "./pages/Index";
 import MovieDetails from "./pages/MovieDetails";
@@ -18,6 +19,8 @@ import Watchlist from "./pages/Watchlist";
 import TvShows from "./pages/TvShows";
 import Movies from "./pages/Movies";
 import NotFound from "./pages/NotFound";
+import Auth from "./pages/Auth";
+import Account from "./pages/Account";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +67,8 @@ const AnimatedRoutes = () => {
         <Route path="/watchlist" element={<Watchlist />} />
         <Route path="/tv" element={<TvShows />} />
         <Route path="/movies" element={<Movies />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/account" element={<Account />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>
@@ -79,11 +84,13 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <ErrorBoundaryWithReset>
-              <Navbar />
-              <AnimatedRoutes />
-              <BackToTop />
-            </ErrorBoundaryWithReset>
+            <AuthProvider>
+              <ErrorBoundaryWithReset>
+                <Navbar />
+                <AnimatedRoutes />
+                <BackToTop />
+              </ErrorBoundaryWithReset>
+            </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>

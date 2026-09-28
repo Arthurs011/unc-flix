@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Play, X, ChevronLeft, ChevronRight, History } from "lucide-react";
-import { getContinueWatching, removeContinueWatching, ContinueItem } from "@/lib/storage";
+import { removeContinueWatching } from "@/lib/storage";
+import { useContinueWatching } from "@/hooks/useContinueWatching";
 import { motion } from "motion/react";
 import { fadeUp, viewportOnce } from "@/lib/motion";
 import { imgUrl } from "@/lib/tmdb";
@@ -8,7 +9,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 
 export default function ContinueRow() {
-  const [items, setItems] = useState<ContinueItem[]>([]);
+  const items = useContinueWatching();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
@@ -22,11 +23,10 @@ export default function ContinueRow() {
   }, []);
 
   useEffect(() => {
-    setItems(getContinueWatching());
     updateArrows();
     window.addEventListener("resize", updateArrows);
     return () => window.removeEventListener("resize", updateArrows);
-  }, [updateArrows]);
+  }, [updateArrows, items.length]);
 
   const scroll = (dir: number) => {
     if (scrollRef.current) {
@@ -35,9 +35,8 @@ export default function ContinueRow() {
     }
   };
 
-  const remove = (id: number) => {
-    removeContinueWatching(id);
-    setItems(getContinueWatching());
+  const remove = (id: number, type: "movie" | "tv") => {
+    removeContinueWatching(id, type);
   };
 
   if (!items.length) return null;
@@ -141,7 +140,7 @@ export default function ContinueRow() {
               </Link>
 
               <button
-                onClick={(e) => { e.preventDefault(); remove(item.id); }}
+                onClick={(e) => { e.preventDefault(); remove(item.id, item.type); }}
                 aria-label="Remove from continue watching"
                 className="absolute top-2.5 right-2.5 p-2 rounded-full bg-black/60 backdrop-blur-md ring-1 ring-white/10 text-white/50 hover:text-white hover:bg-red-500/80 transition-all opacity-0 group-hover:opacity-100"
               >

@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Play, Plus, Check, Star, ArrowLeft, X, Film, Clock } from "lucide-react";
 import { tmdb, Movie, Review, Episode, SeasonDetails, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
-import { isInWatchlist, toggleWatchlist, addRecentlyViewed, getContinueWatching } from "@/lib/storage";
+import { isInWatchlist, toggleWatchlist, addRecentlyViewed } from "@/lib/storage";
+import { useContinueWatching } from "@/hooks/useContinueWatching";
 import { cn } from "@/lib/utils";
 import PageShell from "@/components/PageShell";
 import ScrollProgress from "@/components/ScrollProgress";
@@ -29,6 +30,12 @@ export default function TvDetailsPage() {
   const { scrollYProgress } = useScroll({ target: backdropRef, offset: ["start start", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
 
+  const continueItems = useContinueWatching();
+  const resumeItem = show
+    ? continueItems.find((c) => c.type === "tv" && c.id === show.id)
+    : undefined;
+  const resumeSeason = resumeItem?.season;
+
   useEffect(() => {
     if (!id) return;
     setLoading(true);
@@ -53,18 +60,19 @@ export default function TvDetailsPage() {
   }, [id]);
 
   // Open on the season the viewer last watched, otherwise the first season.
+  // Keyed on the stored resume season rather than the whole list, so a manual
+  // season pick isn't undone by unrelated progress updates.
   useEffect(() => {
     if (!show) return;
     const list = (show.seasons ?? []).filter((x) => x.season_number > 0);
     if (list.length === 0) { setSeasonNum(null); return; }
-    const resume = getContinueWatching().find((c) => c.type === "tv" && c.id === show.id);
     const firstSeason = list.reduce((min, x) => Math.min(min, x.season_number), Infinity);
     const target =
-      resume?.season && list.some((x) => x.season_number === resume.season)
-        ? resume.season
+      resumeSeason && list.some((x) => x.season_number === resumeSeason)
+        ? resumeSeason
         : firstSeason;
     setSeasonNum(target);
-  }, [show]);
+  }, [show, resumeSeason]);
 
   // Load the episode list for the selected season.
   useEffect(() => {
@@ -90,7 +98,6 @@ export default function TvDetailsPage() {
 
   const cast = show.credits?.cast?.slice(0, 15) ?? [];
   const seasons = show.seasons?.filter((s) => s.season_number > 0) ?? [];
-  const resumeItem = getContinueWatching().find((c) => c.type === "tv" && c.id === show.id);
   const episodes = seasonData?.episodes ?? [];
 
   return (

@@ -2,7 +2,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Star, ThumbsUp, ThumbsDown, Share2, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { updateContinueWatching } from "@/lib/storage";
+import { getContinueWatching, updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, MovieDetails, Episode, SeasonDetails, imgUrl, formatCount } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { SOURCES } from "@/lib/servers";
@@ -49,13 +49,16 @@ export default function WatchTv() {
       if (cancelled) return;
       setShow(d);
       document.title = `Watch ${getTitle(d)} · UNCFLIX`;
+      // Keep any progress already recorded - opening the page shouldn't reset
+      // it, otherwise every visit would wipe the synced value on the account.
+      const prior = getContinueWatching().find((c) => c.type === "tv" && c.id === d.id);
       updateContinueWatching({
         id: d.id,
         type: "tv",
         title: getTitle(d),
         poster_path: d.poster_path,
         backdrop_path: d.backdrop_path,
-        progress: 0,
+        progress: prior?.progress ?? 0,
         season: ds,
         episode: de,
         timestamp: Date.now(),

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Movie, tmdb, Genre } from "@/lib/tmdb";
-import { getRecentlyViewed, getContinueWatching, ContinueItem } from "@/lib/storage";
+import { getRecentlyViewed } from "@/lib/storage";
+import { useContinueWatching } from "@/hooks/useContinueWatching";
 import HeroBanner from "@/components/HeroBanner";
 import ContentRow from "@/components/ContentRow";
 import ContinueRow from "@/components/ContinueRow";
@@ -29,7 +30,7 @@ export default function Index() {
   const [tvShows, setTvShows] = useState<Movie[]>([]);
   const [upcoming, setUpcoming] = useState<Movie[]>([]);
   const [recent, setRecent] = useState<Movie[]>([]);
-  const [continueList, setContinueList] = useState<ContinueItem[]>([]);
+  const continueList = useContinueWatching();
 
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [genreResults, setGenreResults] = useState<Movie[]>([]);
@@ -53,7 +54,6 @@ export default function Index() {
         setTvShows(tv?.results ?? []);
         setUpcoming(u?.results ?? []);
         setRecent(getRecentlyViewed() || []);
-        setContinueList(getContinueWatching() || []);
       })
       .catch((err) => {
         console.error("TMDB Fetch Error:", err);

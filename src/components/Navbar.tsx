@@ -7,6 +7,7 @@ import { springSnappy } from "@/lib/motion";
 import SearchDropdown from "@/components/SearchDropdown";
 import { useAutoHideNav } from "@/hooks/useAutoHideNav";
 import MobileNav from "@/components/MobileNav";
+import AccountMenu from "@/components/AccountMenu";
 
 const QUICK_GENRES = [
   { id: 28, name: "Action" },
@@ -236,6 +237,8 @@ export default function Navbar() {
             >
               <BookmarkPlus className="w-5 h-5" />
             </Link>
+
+            <AccountMenu />
           </div>
         </motion.div>
       </motion.nav>
