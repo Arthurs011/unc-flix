@@ -114,7 +114,7 @@ export default function Index() {
     <PageShell className="min-h-screen bg-background pb-28">
       <HeroBanner movies={trending} />
 
-      <div className="section-shell relative z-20 mt-4 sm:mt-6 safe-bottom">
+      <div className="section-shell relative z-20 mt-4 sm:mt-6">
         <section className="mb-6 flex flex-col gap-3 sm:mb-8 md:flex-row md:items-center md:justify-between" aria-labelledby="mood-heading">
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
@@ -141,7 +141,9 @@ export default function Index() {
             ))}
           </div>
         </section>
+      </div>
 
+      <div className="relative z-20">
         <AnimatePresence mode="wait">
           {selectedGenre !== null ? (
             <motion.div
@@ -153,7 +155,9 @@ export default function Index() {
               className="pt-2"
             >
               {loadingGenre ? (
-                <RowSkeleton />
+                <div className="section-shell">
+                  <RowSkeleton />
+                </div>
               ) : (
                 <ContentRow
                   eyebrow="SPOTLIGHT"

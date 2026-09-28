@@ -1,8 +1,12 @@
+import { useLocation } from "react-router-dom";
 import { motion, useScroll, useSpring } from "motion/react";
 
 export default function ScrollProgress() {
+  const { pathname } = useLocation();
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 160, damping: 28, mass: 0.35 });
+
+  if (pathname.startsWith("/watch/")) return null;
 
   return (
     <motion.div

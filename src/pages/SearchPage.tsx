@@ -45,6 +45,19 @@ export default function SearchPage() {
   }, [query]);
 
   useEffect(() => {
+    const trimmed = input.trim();
+    if (trimmed === query.trim()) return;
+    const timer = window.setTimeout(() => {
+      if (trimmed) {
+        navigate(`/search?q=${encodeURIComponent(trimmed)}`, { replace: true });
+      } else {
+        navigate("/search", { replace: true });
+      }
+    }, 320);
+    return () => window.clearTimeout(timer);
+  }, [input, navigate, query]);
+
+  useEffect(() => {
     if (!query.trim()) {
       setResults([]);
       setLoading(false);

@@ -115,7 +115,9 @@ export default function Navbar() {
 
           <div className="flex h-full items-center gap-1 xl:gap-2">
             {NAV_ITEMS.map((item) => {
-              const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+              const isMoviesActive = item.href === "/movies" && (pathname === "/movies" || pathname.startsWith("/movie/"));
+              const isTvActive = item.href === "/tv" && (pathname === "/tv" || pathname.startsWith("/tv/"));
+              const active = item.href === "/" ? pathname === "/" : isMoviesActive || isTvActive || pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.href}

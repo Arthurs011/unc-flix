@@ -15,12 +15,39 @@ export interface StreamSource {
 export const SOURCES: StreamSource[] = [
   {
     id: "cinesrc",
-    name: "CineSrc",
+    name: "Server 1 (CineSrc)",
     baseUrl: "https://cinesrc.st",
     build: (type, id, s, e) =>
       type === "movie"
         ? `https://cinesrc.st/embed/movie/${id}?color=%230ea5e9&autoplay=true`
         : `https://cinesrc.st/embed/tv/${id}?s=${s ?? 1}&e=${e ?? 1}&color=%230ea5e9&autoplay=true&autonext=true&nextepisode=true`
+  },
+  {
+    id: "vidlink",
+    name: "Server 2 (VidLink)",
+    baseUrl: "https://vidlink.pro",
+    build: (type, id, s, e) =>
+      type === "movie"
+        ? `https://vidlink.pro/movie/${id}?primaryColor=0ea5e9&autoplay=true`
+        : `https://vidlink.pro/tv/${id}/${s ?? 1}/${e ?? 1}?primaryColor=0ea5e9&autoplay=true`
+  },
+  {
+    id: "vidsrc",
+    name: "Server 3 (VidSrc)",
+    baseUrl: "https://vidsrc.to",
+    build: (type, id, s, e) =>
+      type === "movie"
+        ? `https://vidsrc.to/embed/movie/${id}`
+        : `https://vidsrc.to/embed/tv/${id}/${s ?? 1}/${e ?? 1}`
+  },
+  {
+    id: "autoembed",
+    name: "Server 4 (AutoEmbed)",
+    baseUrl: "https://player.autoembed.cc",
+    build: (type, id, s, e) =>
+      type === "movie"
+        ? `https://player.autoembed.cc/embed/movie/${id}`
+        : `https://player.autoembed.cc/embed/tv/${id}/${s ?? 1}/${e ?? 1}`
   }
 ];
 

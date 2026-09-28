@@ -132,46 +132,48 @@ export const tmdb = {
     get<SeasonDetails>(`/tv/${tvId}/season/${season}`),
 
   // Anime — Japanese animation (genre 16 + original_language ja)
-  animeTv: (page = 1) =>
+  animeTv: (page = 1, genre?: number) =>
     get<ListResponse>("/discover/tv", {
       sort_by: "popularity.desc",
-      with_genres: "16",
+      with_genres: genre ? `16,${genre}` : "16",
       with_original_language: "ja",
       page: String(page),
     }),
-  animeMovies: (page = 1) =>
+  animeMovies: (page = 1, genre?: number) =>
     get<ListResponse>("/discover/movie", {
       sort_by: "popularity.desc",
-      with_genres: "16",
+      with_genres: genre ? `16,${genre}` : "16",
       with_original_language: "ja",
       page: String(page),
     }),
 
   // Animated — all animation genre (movies & TV)
-  animatedMovies: (page = 1) =>
+  animatedMovies: (page = 1, genre?: number) =>
     get<ListResponse>("/discover/movie", {
       sort_by: "popularity.desc",
-      with_genres: "16",
+      with_genres: genre ? `16,${genre}` : "16",
       page: String(page),
     }),
-  animatedTv: (page = 1) =>
+  animatedTv: (page = 1, genre?: number) =>
     get<ListResponse>("/discover/tv", {
       sort_by: "popularity.desc",
-      with_genres: "16",
+      with_genres: genre ? `16,${genre}` : "16",
       page: String(page),
     }),
 
   // Marvel — Marvel Studios (company 420)
-  marvelMovies: (page = 1) =>
+  marvelMovies: (page = 1, genre?: number) =>
     get<ListResponse>("/discover/movie", {
       sort_by: "popularity.desc",
       with_companies: "420",
+      ...(genre ? { with_genres: String(genre) } : {}),
       page: String(page),
     }),
-  marvelTv: (page = 1) =>
+  marvelTv: (page = 1, genre?: number) =>
     get<ListResponse>("/discover/tv", {
       sort_by: "popularity.desc",
       with_companies: "420",
+      ...(genre ? { with_genres: String(genre) } : {}),
       page: String(page),
     }),
 };

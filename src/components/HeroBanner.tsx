@@ -46,7 +46,7 @@ export default function HeroBanner({ movies }: Props) {
     if (!featured.length || paused) return;
     const timer = window.setInterval(next, AUTOPLAY_MS);
     return () => window.clearInterval(timer);
-  }, [featured.length, next, paused]);
+  }, [featured.length, next, paused, idx]);
 
   useEffect(() => {
     if (current) setInWatchlist(isInWatchlist(current.id, getItemType(current)));

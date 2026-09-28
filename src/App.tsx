@@ -33,10 +33,10 @@ const queryClient = new QueryClient({
 });
 
 function ScrollToTop() {
-  const { pathname, search } = useLocation();
+  const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [pathname, search]);
+  }, [pathname]);
   return null;
 }
 
@@ -50,11 +50,10 @@ function CinematicBackdrop() {
 
 function PageTransition({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const routeKey = location.pathname.startsWith("/watch/") ? `${location.pathname}${location.search}` : location.pathname;
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
-        key={routeKey}
+        key={location.pathname}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}

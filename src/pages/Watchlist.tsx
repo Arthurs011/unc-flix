@@ -133,26 +133,39 @@ export default function Watchlist() {
               </button>
             </div>
 
-            <motion.div layout className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-              <AnimatePresence mode="popLayout">
-                {filteredList.map((item) => {
-                  const type = item.media_type === "tv" || (!item.title && item.name) ? "tv" : "movie";
-                  return (
-                    <motion.div key={`${type}:${item.id}`} layout exit={{ opacity: 0, scale: 0.9 }} className="group relative min-w-0">
-                      <MovieCard movie={{ ...item, media_type: type }} type={type} />
-                      <button
-                        type="button"
-                        onClick={() => remove(item.id, type)}
-                        aria-label={`Remove ${item.name ?? item.title} from my list`}
-                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-black/60 text-white/50 opacity-0 backdrop-blur-md transition-all hover:border-red-400/40 hover:bg-red-950/80 hover:text-red-200 focus:opacity-100 group-hover:opacity-100"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </motion.div>
+            {filteredList.length === 0 ? (
+              <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-white/[0.1] p-10 text-center">
+                <p className="text-sm font-semibold text-white/60">No {filter === "movie" ? "films" : "series"} in your list yet</p>
+                <button
+                  type="button"
+                  onClick={() => setFilter("all")}
+                  className="mt-3 text-xs font-semibold text-primary transition-colors hover:text-sky-300"
+                >
+                  Show all saved titles
+                </button>
+              </div>
+            ) : (
+              <motion.div layout className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                <AnimatePresence mode="popLayout">
+                  {filteredList.map((item) => {
+                    const type = item.media_type === "tv" || (!item.title && item.name) ? "tv" : "movie";
+                    return (
+                      <motion.div key={`${type}:${item.id}`} layout exit={{ opacity: 0, scale: 0.9 }} className="group relative min-w-0">
+                        <MovieCard movie={{ ...item, media_type: type }} type={type} />
+                        <button
+                          type="button"
+                          onClick={() => remove(item.id, type)}
+                          aria-label={`Remove ${item.name ?? item.title} from my list`}
+                          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-black/60 text-white/50 opacity-0 backdrop-blur-md transition-all hover:border-red-400/40 hover:bg-red-950/80 hover:text-red-200 focus:opacity-100 group-hover:opacity-100"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </motion.div>
+            )}
 
             <div className="mt-14 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25">
               <Check className="h-3.5 w-3.5 text-emerald-400" />

@@ -13,12 +13,20 @@ import { cn } from "@/lib/utils";
 
 export default function MoviesPage() {
   usePageTitle("Movies");
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const genreIdParam = searchParams.get("genre");
   const [movies, setMovies] = useState<Movie[]>([]);
   const [trending, setTrending] = useState<Movie[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(genreIdParam ? Number(genreIdParam) : null);
+
+  const handleSelectGenre = (genreId: number | null) => {
+    setSelectedGenre(genreId);
+    const next = new URLSearchParams(searchParams);
+    if (genreId === null) next.delete("genre");
+    else next.set("genre", String(genreId));
+    setSearchParams(next);
+  };
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -124,7 +132,7 @@ export default function MoviesPage() {
                 <div className="mb-3 flex items-center justify-between px-2 pt-1">
                   <h2 className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/35">Genre</h2>
                   {selectedGenre && (
-                    <button type="button" onClick={() => setSelectedGenre(null)} className="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary hover:text-sky-200">Reset</button>
+                    <button type="button" onClick={() => handleSelectGenre(null)} className="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary hover:text-sky-200">Reset</button>
                   )}
                 </div>
                 <div className="grid max-h-[60vh] grid-cols-2 gap-1 overflow-y-auto lg:grid-cols-1">
@@ -132,7 +140,7 @@ export default function MoviesPage() {
                     <button
                       key={genre.name}
                       type="button"
-                      onClick={() => setSelectedGenre(genre.id)}
+                      onClick={() => handleSelectGenre(genre.id)}
                       className={cn(
                         "flex min-h-10 items-center justify-between rounded-lg px-3 text-left text-xs font-medium transition-colors",
                         selectedGenre === genre.id ? "bg-primary text-[#071019]" : "text-white/45 hover:bg-white/[0.05] hover:text-white/85"
@@ -160,7 +168,7 @@ export default function MoviesPage() {
               <div className="flex min-h-80 flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.12] text-center">
                 <Film className="mb-4 h-8 w-8 text-white/18" />
                 <h2 className="text-lg font-semibold tracking-tight text-white/65">No films in this cut</h2>
-                <button type="button" onClick={() => setSelectedGenre(null)} className="mt-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary hover:text-sky-200">Clear filter</button>
+                <button type="button" onClick={() => handleSelectGenre(null)} className="mt-5 text-[10px] font-bold uppercase tracking-[0.18em] text-primary hover:text-sky-200">Clear filter</button>
               </div>
             ) : (
               <motion.div layout className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">

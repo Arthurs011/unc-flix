@@ -47,7 +47,10 @@ export default function AnimeHub() {
       return;
     }
     setLoadingGenre(true);
-    tmdb.animeTv().then((response) => setGenreResults((response.results ?? []).filter((item) => item.genre_ids?.includes(selectedGenre)))).catch(() => setGenreResults([])).finally(() => setLoadingGenre(false));
+    tmdb.animeTv(1, selectedGenre)
+      .then((response) => setGenreResults((response.results ?? []).map((item) => ({ ...item, media_type: "tv" as const }))))
+      .catch(() => setGenreResults([]))
+      .finally(() => setLoadingGenre(false));
   }, [selectedGenre]);
 
   const featured = animeTv[0] ?? null;

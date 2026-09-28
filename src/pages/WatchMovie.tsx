@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
-import { Check, Share2, Star, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Check, Server, Share2, Star, ThumbsDown, ThumbsUp } from "lucide-react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, getYear, imgUrl, type Movie, type MovieDetails, formatCount } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
-import { SOURCES } from "@/lib/servers";
+import { SOURCES, getPreferredSourceIndex, setPreferredSourceIndex } from "@/lib/servers";
 import PageShell from "@/components/PageShell";
 import WatchHeader from "@/components/WatchHeader";
 import { EASE } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
 const CINESRC_ORIGIN = SOURCES[0].baseUrl;
 
@@ -18,6 +19,9 @@ export default function WatchMovie() {
   useFullscreenOrientation();
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [serverIndex, setServerIndex] = useState(() => getPreferredSourceIndex());
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -33,13 +37,25 @@ export default function WatchMovie() {
     }
   };
 
+  const handleServerChange = (index: number) => {
+    setServerIndex(index);
+    setPreferredSourceIndex(index);
+  };
+
   useEffect(() => {
     if (!id) return;
+    setLoading(true);
+    setHasError(false);
     window.scrollTo({ top: 0 });
     tmdb.movieDetails(Number(id)).then((data) => {
       setMovie(data);
       document.title = `Watch ${getTitle(data)} · UNCFLIX`;
-    }).catch(() => setMovie(null));
+    }).catch(() => {
+      setMovie(null);
+      setHasError(true);
+    }).finally(() => {
+      setLoading(false);
+    });
     tmdb.movieRecommendations(Number(id)).then((data) => setRecommendations((data.results ?? []).slice(0, 10))).catch(() => setRecommendations([]));
     return () => { document.title = "UNCFLIX"; };
   }, [id]);
@@ -69,7 +85,23 @@ export default function WatchMovie() {
     };
   }, [id, movie]);
 
-  const embedSrc = SOURCES[0].build("movie", id || "") + (seekTo > 0 ? `&t=${seekTo}` : "");
+  const currentSource = SOURCES[serverIndex] || SOURCES[0];
+  const embedSrc = currentSource.build("movie", id || "") + (seekTo > 0 ? `&t=${seekTo}` : "");
+
+  if (hasError && !movie && !loading) {
+    return (
+      <PageShell className="flex min-h-screen items-center justify-center bg-[#030408] px-4 text-center text-white">
+        <div>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Signal lost</p>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Movie stream unavailable</h1>
+          <p className="mt-2 text-sm text-white/40">Could not retrieve information for this title.</p>
+          <Link to="/movies" className="mt-5 inline-flex h-10 items-center rounded-lg bg-white px-5 text-sm font-semibold text-[#06070a]">
+            Back to movies
+          </Link>
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell className="min-h-screen overflow-x-hidden bg-[#030408] pb-24 text-white">
@@ -87,6 +119,30 @@ export default function WatchMovie() {
               <div className="overflow-hidden border-y border-white/[0.08] bg-black shadow-2xl sm:rounded-2xl sm:border">
                 <div className="relative aspect-video w-full overflow-hidden bg-black">
                   <iframe key={embedSrc} src={embedSrc} title={movie ? `${getTitle(movie)} player` : "Streaming player"} className="absolute inset-0 z-10 h-full w-full border-0" allowFullScreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" referrerPolicy="no-referrer-when-downgrade" loading="eager" />
+                </div>
+              </div>
+
+              {/* Server selector */}
+              <div className="mt-3 flex flex-wrap items-center gap-2 px-4 sm:px-0">
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
+                  <Server className="h-3 w-3 text-primary" /> Source:
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {SOURCES.map((source, index) => (
+                    <button
+                      key={source.id}
+                      type="button"
+                      onClick={() => handleServerChange(index)}
+                      className={cn(
+                        "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all",
+                        serverIndex === index
+                          ? "bg-primary text-[#060e17] shadow-sm"
+                          : "border border-white/10 bg-white/[0.04] text-white/60 hover:bg-white/[0.08] hover:text-white"
+                      )}
+                    >
+                      {source.name}
+                    </button>
+                  ))}
                 </div>
               </div>
             </motion.section>
@@ -192,10 +248,14 @@ export default function WatchMovie() {
 
 function likes(movie: MovieDetails | null, boost: boolean): number {
   if (!movie) return 0;
-  return Math.round(movie.vote_count * (movie.vote_average / 10)) + (boost ? 1 : 0);
+  const count = Number(movie.vote_count) || 0;
+  const avg = Number(movie.vote_average) || 0;
+  return Math.round(count * (avg / 10)) + (boost ? 1 : 0);
 }
 
 function dislikes(movie: MovieDetails | null, boost: boolean): number {
   if (!movie) return 0;
-  return Math.round(movie.vote_count * (1 - movie.vote_average / 10)) + (boost ? 1 : 0);
+  const count = Number(movie.vote_count) || 0;
+  const avg = Number(movie.vote_average) || 0;
+  return Math.round(count * (1 - avg / 10)) + (boost ? 1 : 0);
 }

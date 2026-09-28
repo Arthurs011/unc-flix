@@ -84,6 +84,12 @@ export function getContinueWatching(): ContinueItem[] {
 }
 
 export function updateContinueWatching(item: ContinueItem) {
+  // If progress is >= 95%, title is finished: remove from queue
+  if (item.progress >= 95) {
+    removeContinueWatching(item.id, item.type, item.season, item.episode);
+    return;
+  }
+
   const list = getContinueWatching().filter(
     (c) => !(c.id === item.id && c.type === item.type && c.season === item.season && c.episode === item.episode)
   );
@@ -95,9 +101,13 @@ export function updateContinueWatching(item: ContinueItem) {
 export function removeContinueWatching(id: number, type?: "movie" | "tv", season?: number, episode?: number) {
   write(
     CONTINUE_KEY,
-    getContinueWatching().filter(
-      (c) => !(c.id === id && (!type || c.type === type) && c.season === season && c.episode === episode)
-    )
+    getContinueWatching().filter((c) => {
+      if (c.id !== id) return true;
+      if (type && c.type !== type) return true;
+      if (season !== undefined && c.season !== season) return true;
+      if (episode !== undefined && c.episode !== episode) return true;
+      return false;
+    })
   );
 }
 

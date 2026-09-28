@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { AnimatePresence, motion, useScroll, useTransform } from "motion/react";
 import { ArrowLeft, Check, Clock, Film, Play, Plus, Share2, Star, X } from "lucide-react";
 import { tmdb, type Movie, type MovieDetails as MD, type Review, getTitle, getYear, imgUrl } from "@/lib/tmdb";
-import { addRecentlyViewed, isInWatchlist, toggleWatchlist } from "@/lib/storage";
+import { addRecentlyViewed, getContinueWatching, isInWatchlist, toggleWatchlist } from "@/lib/storage";
 import PageShell from "@/components/PageShell";
 import { DetailSkeleton } from "@/components/LoadingSkeleton";
 import ContentRow from "@/components/ContentRow";
@@ -72,6 +72,11 @@ export default function TvDetailsPage() {
   const cast = show.credits?.cast?.slice(0, 15) ?? [];
   const seasons = show.seasons?.filter((season) => season.season_number > 0) ?? [];
   const year = getYear(show);
+  const continueItem = getContinueWatching().find((item) => item.id === Number(id) && item.type === "tv");
+  const resumeSeason = continueItem?.season ?? 1;
+  const resumeEpisode = continueItem?.episode ?? 1;
+  const isResuming = Boolean(continueItem && (continueItem.season || continueItem.episode));
+  const watchHref = `/watch/tv/${show.id}?season=${resumeSeason}&episode=${resumeEpisode}`;
 
   return (
     <PageShell className="min-h-screen bg-background pb-28">
@@ -80,7 +85,7 @@ export default function TvDetailsPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="Trailer" onClick={() => setShowTrailer(false)}>
             <motion.div initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} transition={springSnappy} className="relative aspect-video w-full max-w-4xl overflow-hidden rounded-xl border border-white/15 bg-black shadow-cinema" onClick={(event) => event.stopPropagation()}>
               <iframe src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`} title="Trailer" allow="autoplay; encrypted-media" allowFullScreen className="h-full w-full" />
-              <button type="button" onClick={() => setShowTrailer(false)} aria-label="Close trailer" className="tap-target absolute -top-12 right-0 flex items-center justify-center rounded-lg text-white/70 hover:text-white"><X className="h-5 w-5" /></button>
+              <button type="button" onClick={() => setShowTrailer(false)} aria-label="Close trailer" className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/75 text-white/75 backdrop-blur-md transition-colors hover:bg-black hover:text-white"><X className="h-4 w-4" /></button>
             </motion.div>
           </motion.div>
         )}
@@ -183,11 +188,11 @@ export default function TvDetailsPage() {
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5 sm:justify-start">
               <Link
-                to={`/watch/tv/${show.id}?season=1&episode=1`}
+                to={watchHref}
                 className="inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-[#06070a] shadow-md transition-all hover:bg-white/90 active:scale-[0.98]"
               >
                 <Play className="h-4 w-4 fill-current" />
-                Start watching
+                {isResuming ? `Resume S${resumeSeason} E${resumeEpisode}` : "Start watching"}
               </Link>
 
               <button
@@ -271,18 +276,21 @@ export default function TvDetailsPage() {
             </div>
           </motion.section>
         )}
-
-        <ReviewsSection reviews={reviews} />
-        {similar.length > 0 && (
-          <ContentRow
-            eyebrow="RECOMMENDED"
-            title="More like this"
-            description="Series with similar atmosphere and themes."
-            results={similar}
-            type="tv"
-          />
-        )}
       </div>
+
+      <div className="section-shell">
+        <ReviewsSection reviews={reviews} />
+      </div>
+
+      {similar.length > 0 && (
+        <ContentRow
+          eyebrow="RECOMMENDED"
+          title="More like this"
+          description="Series with similar atmosphere and themes."
+          results={similar}
+          type="tv"
+        />
+      )}
     </PageShell>
   );
 }

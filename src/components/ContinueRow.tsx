@@ -21,19 +21,33 @@ export default function ContinueRow() {
   if (!items.length) return null;
 
   return (
-    <section className="py-9 sm:py-11" aria-labelledby="continue-watching-title">
+    <section className="group/section py-7 sm:py-9" aria-labelledby="continue-watching-title">
       <div className="section-shell">
-        <div className="mb-5 flex items-end justify-between gap-4 sm:mb-6">
-          <div>
-            <p className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.26em] text-primary">Pick up where you left off</p>
-            <h2 id="continue-watching-title" className="text-xl font-bold tracking-[-0.035em] text-white sm:text-2xl">
+        <div className="mb-4 flex items-end justify-between gap-5 sm:mb-5">
+          <div className="min-w-0">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-primary/85">
+              Pick up where you left off
+            </p>
+            <h2
+              id="continue-watching-title"
+              className="text-balance text-lg font-bold tracking-tight text-white sm:text-2xl"
+            >
               Continue watching
             </h2>
           </div>
           <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/25">Your queue</span>
         </div>
+      </div>
 
-        <div className="no-scrollbar flex snap-x snap-mandatory gap-3.5 overflow-x-auto px-4 pb-3 sm:gap-4 sm:px-6 lg:px-10 xl:px-12">
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[#06070a] to-transparent sm:w-16" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[#06070a] to-transparent sm:w-16" />
+        <div
+          className="no-scrollbar flex snap-x snap-mandatory gap-3.5 overflow-x-auto px-4 pb-2 sm:gap-4 sm:px-6 lg:px-10 xl:px-12"
+          role="region"
+          aria-label="Continue watching"
+          tabIndex={0}
+        >
           {items.map((item, index) => (
             <ContinueCard key={`${item.type}:${item.id}:${item.season ?? 0}:${item.episode ?? 0}:${index}`} item={item} onRemove={remove} />
           ))}

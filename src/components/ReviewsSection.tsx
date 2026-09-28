@@ -20,7 +20,7 @@ export default function ReviewsSection({ reviews }: Props) {
       initial="hidden"
       whileInView="show"
       viewport={viewportOnce}
-      className="section-shell my-16 sm:my-20"
+      className="my-16 sm:my-20"
       aria-labelledby="reviews-heading"
     >
       <div className="mb-6 flex items-end justify-between gap-4">

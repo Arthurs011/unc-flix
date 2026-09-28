@@ -25,6 +25,7 @@ export default function SearchDropdown({
   className,
 }: Props) {
   const [internalQuery, setInternalQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(-1);
   const navigate = useNavigate();
   const value = onQueryChange ? query : internalQuery;
   const searchTerm = value.trim();
@@ -34,18 +35,36 @@ export default function SearchDropdown({
     queryFn: () =>
       tmdb
         .search(searchTerm)
-        .then((response) => response.results.filter((item) => item.media_type === "movie" || item.media_type === "tv")),
+        .then((response) => (response.results ?? []).filter((item) => item.media_type === "movie" || item.media_type === "tv")),
     enabled: searchTerm.length >= 2,
     staleTime: 1000 * 60 * 5,
   });
 
   const updateQuery = (next: string) => {
+    setActiveIndex(-1);
     if (onQueryChange) onQueryChange(next);
     else setInternalQuery(next);
   };
 
+  const visibleResults = results.slice(0, 6);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (visibleResults.length === 0) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((prev) => (prev < visibleResults.length - 1 ? prev + 1 : 0));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((prev) => (prev > 0 ? prev - 1 : visibleResults.length - 1));
+    }
+  };
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (activeIndex >= 0 && visibleResults[activeIndex]) {
+      selectResult(visibleResults[activeIndex]);
+      return;
+    }
     if (!searchTerm) return;
     if (onSubmit) onSubmit();
     else navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
@@ -73,6 +92,7 @@ export default function SearchDropdown({
           autoFocus={autoFocus}
           value={value}
           onChange={(event) => updateQuery(event.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Search films and series…"
           aria-label="Search films and series"
           className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/28"
@@ -133,14 +153,19 @@ export default function SearchDropdown({
         )}
 
         <AnimatePresence initial={false}>
-          {searchTerm.length >= 2 && !isFetching && results.slice(0, 6).map((result) => (
+          {searchTerm.length >= 2 && !isFetching && visibleResults.map((result, idx) => (
             <motion.button
               key={`${result.media_type ?? "movie"}:${result.id}`}
               type="button"
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => selectResult(result)}
-              className="group flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-white/[0.06] focus:bg-white/[0.06]"
+              className={cn(
+                "group flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors",
+                idx === activeIndex
+                  ? "bg-white/[0.09] text-white ring-1 ring-primary/40"
+                  : "hover:bg-white/[0.06] focus:bg-white/[0.06]"
+              )}
             >
               <span className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-surface-raised ring-1 ring-white/[0.07]">
                 {result.poster_path ? (

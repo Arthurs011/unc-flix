@@ -46,7 +46,10 @@ export default function AnimatedHub() {
       return;
     }
     setLoadingGenre(true);
-    tmdb.animatedMovies().then((response) => setGenreResults((response.results ?? []).filter((item) => item.genre_ids?.includes(selectedGenre)))).catch(() => setGenreResults([])).finally(() => setLoadingGenre(false));
+    tmdb.animatedMovies(1, selectedGenre)
+      .then((response) => setGenreResults((response.results ?? []).map((item) => ({ ...item, media_type: "movie" as const }))))
+      .catch(() => setGenreResults([]))
+      .finally(() => setLoadingGenre(false));
   }, [selectedGenre]);
 
   const featured = movies[0] ?? null;

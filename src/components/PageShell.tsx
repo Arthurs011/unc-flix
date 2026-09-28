@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { EASE } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
 interface Props {
   children: React.ReactNode;
@@ -13,7 +14,7 @@ export default function PageShell({ children, className }: Props) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6 }}
       transition={{ duration: 0.3, ease: EASE }}
-      className={className}
+      className={cn("safe-bottom", className)}
     >
       {children}
     </motion.main>

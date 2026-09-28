@@ -48,7 +48,12 @@ export default function MobileNav() {
 
   if (pathname.startsWith("/watch/")) return null;
 
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    if (href === "/movies") return pathname === "/movies" || pathname.startsWith("/movie/");
+    if (href === "/tv") return pathname === "/tv" || pathname.startsWith("/tv/");
+    return pathname.startsWith(href);
+  };
 
   return (
     <>
