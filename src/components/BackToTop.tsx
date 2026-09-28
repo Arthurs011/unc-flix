@@ -20,15 +20,17 @@ export default function BackToTop() {
     <AnimatePresence>
       {visible && (
         <motion.button
-          initial={{ opacity: 0, scale: 0.7, y: 12 }}
+          initial={{ opacity: 0, scale: 0.8, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.7, y: 12 }}
+          exit={{ opacity: 0, scale: 0.8, y: 10 }}
           transition={springSnappy}
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           aria-label="Back to top"
-          className={`fixed right-4 md:right-8 z-40 w-11 h-11 rounded-full glass-strong ring-1 ring-white/10 shadow-card-lg text-white/70 hover:text-primary hover:ring-primary/40 flex items-center justify-center transition-colors ${onWatchPage ? "bottom-6 md:bottom-8" : "bottom-24 md:bottom-8"}`}
+          className={`fixed right-4 z-40 flex h-11 w-11 items-center justify-center rounded-xl border border-white/[0.1] bg-[#0a0c12]/80 text-white/50 shadow-cinema backdrop-blur-xl transition-colors hover:border-primary/30 hover:bg-primary/10 hover:text-primary md:right-8 ${
+            onWatchPage ? "bottom-6 md:bottom-8" : "bottom-24 md:bottom-8"
+          }`}
         >
-          <ArrowUp className="w-5 h-5" />
+          <ArrowUp className="h-[18px] w-[18px]" />
         </motion.button>
       )}
     </AnimatePresence>

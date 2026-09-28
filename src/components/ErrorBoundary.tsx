@@ -1,6 +1,6 @@
-import { Component, ReactNode } from "react";
+import { Component, type ReactNode } from "react";
 import { motion } from "motion/react";
-import { RefreshCw, Home, AlertTriangle, ChevronDown } from "lucide-react";
+import { AlertTriangle, ChevronDown, Home, RefreshCw } from "lucide-react";
 import { EASE } from "@/lib/motion";
 
 interface Props {
@@ -15,12 +15,7 @@ interface State {
 }
 
 export default class ErrorBoundary extends Component<Props, State> {
-  private lastResetKeys: unknown[] = [];
-
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false, error: null, showDetails: false };
-  }
+  state: State = { hasError: false, error: null, showDetails: false };
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
@@ -31,68 +26,49 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (this.state.hasError && prevProps.resetKeys !== this.props.resetKeys) {
-      this.lastResetKeys = this.props.resetKeys ?? [];
-      this.setState({ hasError: false, error: null });
-    }
+    if (!this.state.hasError) return;
+    const previous = prevProps.resetKeys?.join("|") ?? "";
+    const next = this.props.resetKeys?.join("|") ?? "";
+    if (previous !== next) this.setState({ hasError: false, error: null, showDetails: false });
   }
 
   render() {
     if (!this.state.hasError) return this.props.children;
 
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[560px] h-[560px] rounded-full bg-red-500/[0.06] blur-[130px] pointer-events-none" />
-
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#05060a] px-4 py-12">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/[0.05] blur-[120px]" />
         <motion.div
-          initial={{ opacity: 0, y: 24, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.5, ease: EASE }}
-          className="relative text-center max-w-lg w-full"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: EASE }}
+          className="relative w-full max-w-lg text-center"
         >
-          <div className="mx-auto mb-7 w-16 h-16 rounded-3xl bg-red-500/10 ring-1 ring-red-500/25 flex items-center justify-center">
-            <AlertTriangle className="w-7 h-7 text-red-400" />
+          <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-xl border border-red-300/15 bg-red-300/[0.06] text-red-200">
+            <AlertTriangle className="h-6 w-6" />
           </div>
-
-          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-red-400/80 mb-3">
-            Transmission Interrupted
-          </p>
-          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tighter leading-[0.95] mb-4">
-            Something broke the stream
-          </h1>
-          <p className="text-white/45 text-sm sm:text-base leading-relaxed mb-9 max-w-md mx-auto">
-            An unexpected error interrupted this page. Navigating away resets it automatically —
-            or jump back home and pick up where you left off.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
-            <button
-              onClick={() => window.location.reload()}
-              className="flex items-center gap-2.5 h-12 px-7 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow hover:scale-[1.03] active:scale-95 transition-transform"
-            >
-              <RefreshCw className="w-4 h-4" />
+          <p className="mb-3 text-[9px] font-bold uppercase tracking-[0.3em] text-red-200/65">Transmission interrupted</p>
+          <h1 className="text-balance text-3xl font-black leading-tight tracking-[-0.045em] text-white sm:text-4xl">The reel went blank</h1>
+          <p className="mx-auto mb-8 mt-4 max-w-md text-sm leading-7 text-white/42">Something unexpected interrupted this page. Reload the experience, or return to the archive and keep exploring.</p>
+          <div className="mb-7 flex flex-col justify-center gap-2.5 sm:flex-row">
+            <button type="button" onClick={() => window.location.reload()} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-bold text-[#080a0f] transition-colors hover:bg-sky-100">
+              <RefreshCw className="h-4 w-4" />
               Reload
             </button>
-            <button
-              onClick={() => { window.location.href = "/"; }}
-              className="flex items-center gap-2.5 h-12 px-7 rounded-full glass ring-1 ring-white/15 text-white font-bold text-sm hover:bg-white/10 transition-colors"
-            >
-              <Home className="w-4 h-4" />
-              Go Home
+            <button type="button" onClick={() => { window.location.href = "/"; }} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.045] px-5 text-sm font-semibold text-white/75 transition-colors hover:bg-white/[0.08] hover:text-white">
+              <Home className="h-4 w-4" />
+              Go home
             </button>
           </div>
 
           {this.state.error && (
-            <div className="text-left rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.07] overflow-hidden">
-              <button
-                onClick={() => this.setState((s) => ({ showDetails: !s.showDetails }))}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white/70 transition-colors"
-              >
-                Error Details
-                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${this.state.showDetails ? "rotate-180" : ""}`} />
+            <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.025] text-left">
+              <button type="button" onClick={() => this.setState((state) => ({ showDetails: !state.showDetails }))} className="flex w-full items-center justify-between px-4 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35 transition-colors hover:text-white/70">
+                Error details
+                <ChevronDown className={`h-4 w-4 transition-transform ${this.state.showDetails ? "rotate-180" : ""}`} />
               </button>
               {this.state.showDetails && (
-                <pre className="px-5 pb-5 pt-1 text-[11px] leading-relaxed text-white/35 whitespace-pre-wrap break-words font-mono max-h-48 overflow-y-auto scrollbar-hide">
+                <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words px-4 pb-4 font-mono text-[10px] leading-relaxed text-white/30">
                   {this.state.error.message}
                   {"\n\n"}
                   {this.state.error.stack}

@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { Movie, tmdb, imgUrl, getTitle, getYear } from "@/lib/tmdb";
+import { Link } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
+import { Orbit, Play, Shield, Star } from "lucide-react";
+import { tmdb, getTitle, getYear, imgUrl, type Movie } from "@/lib/tmdb";
 import PageShell from "@/components/PageShell";
 import ContentRow from "@/components/ContentRow";
-import { usePageTitle } from "@/hooks/usePageTitle";
+import MovieCard from "@/components/MovieCard";
 import { RowSkeleton } from "@/components/LoadingSkeleton";
-import { motion, AnimatePresence } from "motion/react";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { staggerFast } from "@/lib/motion";
-import { Link } from "react-router-dom";
-import { Play, Star } from "lucide-react";
 
 const MARVEL_GENRES = [
   { id: null as number | null, name: "All" },
@@ -22,7 +23,6 @@ const MARVEL_GENRES = [
 
 export default function MarvelHub() {
   usePageTitle("Marvel · UNCFLIX");
-
   const [movies, setMovies] = useState<Movie[]>([]);
   const [shows, setShows] = useState<Movie[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
@@ -32,197 +32,82 @@ export default function MarvelHub() {
 
   useEffect(() => {
     Promise.allSettled([tmdb.marvelMovies(), tmdb.marvelTv()])
-      .then(([mM, mTv]) => {
-        const ok = <T,>(r: PromiseSettledResult<T>): T[] =>
-          r.status === "fulfilled" ? (r.value as { results?: Movie[] })?.results ?? [] : [];
-        const tagTv = (items: Movie[]) =>
-          items.map((m) => ({ ...m, media_type: "tv" as const }));
-        setMovies(ok(mM));
-        setShows(tagTv(ok(mTv)));
+      .then(([movieResult, tvResult]) => {
+        const getResults = <T,>(result: PromiseSettledResult<T>): Movie[] => result.status === "fulfilled" ? ((result.value as { results?: Movie[] })?.results ?? []) : [];
+        setMovies(getResults(movieResult));
+        setShows(getResults(tvResult).map((item) => ({ ...item, media_type: "tv" as const })));
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    if (selectedGenre === null) { setGenreResults([]); return; }
+    if (selectedGenre === null) {
+      setGenreResults([]);
+      return;
+    }
     setLoadingGenre(true);
-    tmdb.marvelMovies(1)
-      .then((res) => {
-        setGenreResults((res.results ?? []).filter((m) => m.genre_ids?.includes(selectedGenre!)));
-      })
-      .catch(() => setGenreResults([]))
-      .finally(() => setLoadingGenre(false));
+    tmdb.marvelMovies().then((response) => setGenreResults((response.results ?? []).filter((item) => item.genre_ids?.includes(selectedGenre)))).catch(() => setGenreResults([])).finally(() => setLoadingGenre(false));
   }, [selectedGenre]);
 
   const featured = movies[0] ?? null;
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="h-[50vh] bg-white/[0.03] animate-pulse" />
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-12 pb-32">
-          <RowSkeleton /><RowSkeleton /><RowSkeleton />
-        </div>
-      </div>
-    );
+    return <div className="min-h-screen bg-background"><div className="h-[52svh] animate-pulse bg-white/[0.035]" /><div className="section-shell pb-28 pt-10"><RowSkeleton /><RowSkeleton /></div></div>;
   }
 
   return (
-    <PageShell className="bg-background min-h-screen">
-      {/* Hero */}
+    <PageShell className="min-h-screen bg-background pb-28">
       {featured && (
-        <div className="relative w-full h-[45vh] sm:h-[55vh] overflow-hidden">
-          <img
-            src={imgUrl(featured.backdrop_path, "w1280")}
-            alt={getTitle(featured)}
-            loading="eager"
-            decoding="async"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent hidden sm:block" />
-
-          <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-12 lg:p-20 z-10 max-w-7xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="max-w-3xl"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <span className="rounded-full bg-gradient-to-r from-red-600 to-red-500 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-glow-sm">
-                  Marvel Studios
-                </span>
-                <span className="flex items-center gap-1.5 text-xs font-bold text-white/80">
-                  <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                  {featured.vote_average.toFixed(1)}
-                </span>
-                <span className="w-1 h-1 rounded-full bg-white/25" />
-                <span className="text-xs font-semibold tracking-wider text-white/50 uppercase">
-                  {getYear(featured)}
-                </span>
-              </div>
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white mb-4 tracking-tighter leading-[0.95] drop-shadow-2xl">
-                {getTitle(featured)}
-              </h1>
-              <p className="text-sm sm:text-base text-white/60 max-w-xl mb-6 line-clamp-3 leading-relaxed">
-                {featured.overview}
-              </p>
-              <Link
-                to={`/movie/${featured.id}`}
-                className="inline-flex items-center gap-2.5 h-12 px-7 rounded-full bg-gradient-to-r from-red-600 to-red-500 text-white font-bold text-sm shadow-glow-lg hover:shadow-glow hover:scale-105 active:scale-95 transition-all"
-              >
-                <Play className="w-5 h-5 fill-current" />
-                Watch Now
-              </Link>
+        <section className="relative h-[54svh] min-h-[34rem] max-h-[46rem] overflow-hidden">
+          {featured.backdrop_path && <img src={imgUrl(featured.backdrop_path, "w1280")} alt="" className="absolute inset-0 h-full w-full object-cover object-[center_22%]" loading="eager" />}
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,10,0.97),rgba(5,6,10,0.62)_48%,rgba(5,6,10,0.18))]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#05060a] via-transparent to-black/25" />
+          <div className="cinema-vignette absolute inset-0" />
+          <div className="section-shell relative z-10 flex h-full items-end pb-14 sm:pb-20 lg:pb-24">
+            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }} className="max-w-2xl">
+              <div className="mb-5 flex items-center gap-3 text-[9px] font-bold uppercase tracking-[0.24em] text-white/40"><span className="text-red-300/80">MCU spotlight</span><span className="h-1 w-1 rounded-full bg-white/20" /><span className="inline-flex items-center gap-1.5 text-amber-200/75"><Star className="h-3 w-3 fill-current" />{featured.vote_average.toFixed(1)}</span></div>
+              <h1 className="text-balance text-4xl font-black leading-[0.95] tracking-[-0.06em] text-white sm:text-6xl lg:text-7xl">{getTitle(featured)}</h1>
+              <p className="mt-5 line-clamp-3 max-w-xl text-sm leading-7 text-white/50">{featured.overview}</p>
+              <Link to={`/movie/${featured.id}`} className="mt-7 inline-flex h-12 items-center gap-2.5 rounded-lg bg-white px-5 text-sm font-bold text-[#080a0f] transition-colors hover:bg-red-100"><Play className="h-[18px] w-[18px] fill-current" />Explore film</Link>
             </motion.div>
           </div>
-        </div>
+        </section>
       )}
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-10 relative z-30 pb-32 sm:pb-28">
-        {/* Genre chips */}
-        <motion.div
-          variants={staggerFast}
-          initial="hidden"
-          animate="show"
-          className="flex gap-2 overflow-x-auto scrollbar-hide py-4 mb-6"
-        >
-          {MARVEL_GENRES.map((g) => (
-            <motion.button
-              key={g.name}
-              variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setSelectedGenre(g.id)}
-              className={cn(
-                "px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all shrink-0 ring-1",
-                selectedGenre === g.id
-                  ? "bg-gradient-to-r from-red-600 to-red-500 text-white ring-transparent shadow-glow"
-                  : "bg-background/70 backdrop-blur-md text-white/45 ring-white/[0.08] hover:bg-white/[0.12] hover:text-white"
-              )}
-            >
-              {g.name}
-            </motion.button>
-          ))}
-        </motion.div>
+      <div className="section-shell relative z-20 -mt-5 sm:-mt-8">
+        <div className="flex flex-col gap-4 border-y border-white/[0.07] py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-300/20 bg-red-300/[0.06] text-red-200"><Shield className="h-4 w-4" /></span><div><p className="text-[9px] font-bold uppercase tracking-[0.24em] text-red-200/75">The cinematic universe</p><p className="mt-1 text-sm font-semibold text-white/78">Every thread, one archive</p></div></div>
+          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {MARVEL_GENRES.map((genre) => <button key={genre.name} type="button" onClick={() => setSelectedGenre(genre.id)} aria-pressed={selectedGenre === genre.id} className={cn("h-9 shrink-0 rounded-lg border px-3.5 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors", selectedGenre === genre.id ? "border-red-300/35 bg-red-300 text-[#1b0b0b]" : "border-white/[0.08] bg-white/[0.025] text-white/42 hover:bg-white/[0.06] hover:text-white/80")}>{genre.name}</button>)}
+          </div>
+        </div>
 
         <AnimatePresence mode="wait">
           {selectedGenre !== null ? (
-            <motion.div
-              key="genre-results"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14 }}
-              transition={{ duration: 0.35 }}
-            >
-              {loadingGenre ? (
-                <RowSkeleton />
-              ) : (
-                <ContentRow
-                  title={`${MARVEL_GENRES.find((g) => g.id === selectedGenre)?.name} Marvel`}
-                  kicker="Filtered results"
-                  movies={genreResults}
-                />
-              )}
+            <motion.div key="marvel-filter" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3, ease: EASE }} className="pt-8">
+              {loadingGenre ? <RowSkeleton /> : <div className="-mx-4 sm:-mx-6 lg:-mx-10 xl:-mx-12"><ContentRow title={`${MARVEL_GENRES.find((genre) => genre.id === selectedGenre)?.name} stories`} description="A filtered run through the MCU archive." results={genreResults} type="movie" /></div>}
             </motion.div>
           ) : (
-            <motion.div
-              key="all-sections"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* Marvel Movies grid */}
-              <div className="mb-10">
-                <div className="flex items-end justify-between mb-5 px-4 sm:px-0">
+            <motion.div key="marvel-all" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <section className="pt-8" aria-labelledby="marvel-movies-heading">
+                <div className="mb-5 flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-red-500 mb-1.5">
-                      MCU Timeline
-                    </p>
-                    <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-                      Marvel Movies
-                    </h2>
+                    <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em] text-red-200/70">The main timeline</p>
+                    <h2 id="marvel-movies-heading" className="text-xl font-bold tracking-tight text-white sm:text-2xl">Marvel movies</h2>
                   </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/30">In order of arrival</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-                  {movies.filter((m) => m.poster_path).slice(0, 18).map((m, i) => (
-                    <Link
-                      key={`${m.id}-${i}`}
-                      to={`/movie/${m.id}`}
-                      className="group relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/[0.08] bg-white/[0.03] active:scale-[0.97] transition-transform"
-                    >
-                      <img
-                        src={imgUrl(m.poster_path, "w342")}
-                        alt={getTitle(m)}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <p className="text-xs font-bold text-white truncate">{getTitle(m)}</p>
-                        <p className="text-[10px] text-white/50 mt-0.5">{getYear(m)}</p>
-                      </div>
-                      <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-red-600 text-[8px] font-bold uppercase tracking-wider text-white">
-                        Movie
-                      </span>
-                    </Link>
-                  ))}
+                <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                  {movies.filter((item) => item.poster_path).slice(0, 18).map((item) => <MovieCard key={item.id} movie={item} type="movie" />)}
                 </div>
+              </section>
+              <div className="-mx-4 sm:-mx-6 lg:-mx-10 xl:-mx-12">
+                <ContentRow title="Marvel series" description="The stories between the big-screen moments." results={shows} type="tv" />
               </div>
-
-              {/* Marvel TV Shows */}
-              <ContentRow
-                title="Marvel Series"
-                kicker="Disney+ Originals"
-                movies={shows}
-                type="tv"
-              />
             </motion.div>
           )}
         </AnimatePresence>
+        <div className="mt-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/22"><Orbit className="h-3.5 w-3.5 text-red-200/70" />A universe of connected stories</div>
       </div>
     </PageShell>
   );

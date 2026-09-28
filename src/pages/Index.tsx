@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
-import { Movie, tmdb, Genre } from "@/lib/tmdb";
-import { getRecentlyViewed, getContinueWatching, ContinueItem } from "@/lib/storage";
+import { motion, AnimatePresence } from "motion/react";
+import { Clapperboard, Compass, Sparkles, TrendingUp } from "lucide-react";
+import { tmdb, type Movie } from "@/lib/tmdb";
+import { getRecentlyViewed, getContinueWatching, type ContinueItem } from "@/lib/storage";
 import HeroBanner from "@/components/HeroBanner";
 import ContentRow from "@/components/ContentRow";
 import ContinueRow from "@/components/ContinueRow";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { HeroSkeleton, RowSkeleton } from "@/components/LoadingSkeleton";
-import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { fadeUp, staggerFast } from "@/lib/motion";
+import { EASE } from "@/lib/motion";
 
 const MOOD_PILLS = [
   { id: 28, name: "Action" },
@@ -33,62 +34,41 @@ export default function Index() {
   const [anime, setAnime] = useState<Movie[]>([]);
   const [marvel, setMarvel] = useState<Movie[]>([]);
   const [animated, setAnimated] = useState<Movie[]>([]);
-
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [genreResults, setGenreResults] = useState<Movie[]>([]);
-
   const [loading, setLoading] = useState(true);
   const [loadingGenre, setLoadingGenre] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    // Core rows — if these fail, show error page
-    Promise.all([
-      tmdb.trending(),
-      tmdb.popular(),
-      tmdb.topRated(),
-      tmdb.tvPopular(),
-      tmdb.upcoming(),
-    ])
-      .then(([t, p, tr, tv, u]) => {
-        setTrending(t?.results ?? []);
-        setPopular(p?.results ?? []);
-        setTopRated(tr?.results ?? []);
-        setTvShows(tv?.results ?? []);
-        setUpcoming(u?.results ?? []);
-        setRecent(getRecentlyViewed() || []);
-        setContinueList(getContinueWatching() || []);
+    Promise.all([tmdb.trending(), tmdb.popular(), tmdb.topRated(), tmdb.tvPopular(), tmdb.upcoming()])
+      .then(([trendingData, popularData, topRatedData, tvData, upcomingData]) => {
+        setTrending(trendingData?.results ?? []);
+        setPopular(popularData?.results ?? []);
+        setTopRated(topRatedData?.results ?? []);
+        setTvShows(tvData?.results ?? []);
+        setUpcoming(upcomingData?.results ?? []);
+        setRecent(getRecentlyViewed());
+        setContinueList(getContinueWatching());
       })
-      .catch((err) => {
-        console.error("TMDB Fetch Error:", err);
-        setError(true);
-      })
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
 
-    // Extra rails — staggered 600ms after core to avoid TMDB rate-limit burst
-    const tagTv = (items: Movie[]) =>
-      (items ?? []).map((m) => ({ ...m, media_type: "tv" as const }));
-    const tagMovie = (items: Movie[]) =>
-      (items ?? []).map((m) => ({ ...m, media_type: "movie" as const }));
-
-    const t = setTimeout(() => {
-      Promise.allSettled([
-      tmdb.animeTv(),
-      tmdb.animeMovies(),
-      tmdb.marvelMovies(),
-      tmdb.marvelTv(),
-      tmdb.animatedMovies(),
-      tmdb.animatedTv(),
-    ]).then(([aTv, aM, mM, mTv, anM, anTv]) => {
-      const ok = <T,>(r: PromiseSettledResult<T>): T[] =>
-        r.status === "fulfilled" ? (r.value as { results?: Movie[] })?.results ?? [] : [];
-      setAnime([...tagTv(ok(aTv)), ...tagMovie(ok(aM))].slice(0, 40));
-      setMarvel([...tagMovie(ok(mM)), ...tagTv(ok(mTv))].slice(0, 40));
-      setAnimated([...tagMovie(ok(anM)), ...tagTv(ok(anTv))].slice(0, 40));
-    });
+    const timer = window.setTimeout(() => {
+      Promise.allSettled([tmdb.animeTv(), tmdb.animeMovies(), tmdb.marvelMovies(), tmdb.marvelTv(), tmdb.animatedMovies(), tmdb.animatedTv()]).then(
+        ([animeTv, animeMovies, marvelMovies, marvelTv, animatedMovies, animatedTv]) => {
+          const results = <T,>(result: PromiseSettledResult<T>): Movie[] =>
+            result.status === "fulfilled" ? ((result.value as { results?: Movie[] })?.results ?? []) : [];
+          const tagTv = (items: Movie[]) => items.map((item) => ({ ...item, media_type: "tv" as const }));
+          const tagMovie = (items: Movie[]) => items.map((item) => ({ ...item, media_type: "movie" as const }));
+          setAnime([...tagTv(results(animeTv)), ...tagMovie(results(animeMovies))].slice(0, 40));
+          setMarvel([...tagMovie(results(marvelMovies)), ...tagTv(results(marvelTv))].slice(0, 40));
+          setAnimated([...tagMovie(results(animatedMovies)), ...tagTv(results(animatedTv))].slice(0, 40));
+        }
+      );
     }, 600);
 
-    return () => clearTimeout(t);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -97,26 +77,23 @@ export default function Index() {
       return;
     }
     setLoadingGenre(true);
-    tmdb.popular(1, selectedGenre)
-      .then((res) => setGenreResults(res.results ?? []))
+    tmdb
+      .popular(1, selectedGenre)
+      .then((response) => setGenreResults(response.results ?? []))
       .catch(() => setGenreResults([]))
       .finally(() => setLoadingGenre(false));
   }, [selectedGenre]);
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-4">
-        <div className="text-center max-w-md">
-          <h2 className="text-3xl font-extrabold tracking-tight mb-3">Something went wrong</h2>
-          <p className="text-muted-foreground mb-8">We couldn't load the content. Please check your internet connection.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-8 py-3 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold shadow-glow hover:scale-105 active:scale-95 transition-transform"
-          >
-            Retry
-          </button>
+      <PageShell className="flex min-h-screen items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <p className="mb-3 text-[9px] font-bold uppercase tracking-[0.28em] text-red-200/65">Signal lost</p>
+          <h1 className="text-3xl font-black tracking-[-0.045em] text-white">The archive is offline</h1>
+          <p className="mt-3 text-sm leading-7 text-white/40">We could not reach the title index. Check your connection and try again.</p>
+          <button type="button" onClick={() => window.location.reload()} className="mt-7 h-11 rounded-lg bg-white px-5 text-sm font-bold text-[#080a0f] transition-colors hover:bg-sky-100">Retry connection</button>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -124,7 +101,7 @@ export default function Index() {
     return (
       <div className="min-h-screen bg-background">
         <HeroSkeleton />
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-12 pb-32">
+        <div className="section-shell pb-28 pt-10">
           <RowSkeleton />
           <RowSkeleton />
           <RowSkeleton />
@@ -134,81 +111,131 @@ export default function Index() {
   }
 
   return (
-    <PageShell className="bg-background min-h-screen">
+    <PageShell className="min-h-screen bg-background pb-28">
       <HeroBanner movies={trending} />
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-10 relative z-30 pb-32 sm:pb-28">
-        {/* Mood pills */}
-        <motion.div
-          variants={staggerFast}
-          initial="hidden"
-          animate="show"
-          className="flex gap-2 overflow-x-auto scrollbar-hide py-4 mb-6"
-        >
-          {[{ id: null as number | null, name: "Everything" }, ...MOOD_PILLS].map((g) => (
-            <motion.button
-              key={g.name}
-              variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setSelectedGenre(g.id)}
-              className={cn(
-                "px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all shrink-0 ring-1",
-                selectedGenre === g.id
-                  ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white ring-transparent shadow-glow"
-                  : "bg-background/70 backdrop-blur-md text-white/45 ring-white/[0.08] hover:bg-white/[0.12] hover:text-white"
-              )}
-            >
-              {g.name}
-            </motion.button>
-          ))}
-        </motion.div>
+      <div className="section-shell relative z-20 mt-4 sm:mt-6 safe-bottom">
+        <section className="mb-6 flex flex-col gap-3 sm:mb-8 md:flex-row md:items-center md:justify-between" aria-labelledby="mood-heading">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <h2 id="mood-heading" className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
+              Browse by mood
+            </h2>
+          </div>
+          <div className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+            {[{ id: null as number | null, name: "All" }, ...MOOD_PILLS].map((mood) => (
+              <button
+                key={mood.name}
+                type="button"
+                onClick={() => setSelectedGenre(mood.id)}
+                aria-pressed={selectedGenre === mood.id}
+                className={cn(
+                  "h-8 shrink-0 rounded-full px-3.5 text-xs font-medium transition-all",
+                  selectedGenre === mood.id
+                    ? "bg-white text-[#06070a] shadow-sm font-semibold"
+                    : "border border-white/[0.08] bg-white/[0.025] text-white/50 hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
+                )}
+              >
+                {mood.name}
+              </button>
+            ))}
+          </div>
+        </section>
 
         <AnimatePresence mode="wait">
           {selectedGenre !== null ? (
             <motion.div
               key="genre-results"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14 }}
-              transition={{ duration: 0.35 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, ease: EASE }}
+              className="pt-2"
             >
               {loadingGenre ? (
                 <RowSkeleton />
               ) : (
                 <ContentRow
-                  title={`${MOOD_PILLS.find((p) => p.id === selectedGenre)?.name} Spotlight`}
-                  kicker="Curated for you"
-                  movies={genreResults}
+                  eyebrow="SPOTLIGHT"
+                  title={`${MOOD_PILLS.find((mood) => mood.id === selectedGenre)?.name} collection`}
+                  description="Curated films and series matching your chosen atmosphere."
+                  results={genreResults}
                 />
               )}
             </motion.div>
           ) : (
             <motion.div
-              key="standard-home"
+              key="home-rows"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-2"
             >
               {continueList.length > 0 && <ContinueRow />}
-
-              <ContentRow title="Trending This Week" kicker="Top 10" movies={trending} showRank exploreTo="/movies" />
-              <ContentRow title="Popular Movies" kicker="Everyone is watching" movies={popular} exploreTo="/movies" />
-              <ContentRow title="Top Rated Movies" kicker="Critically acclaimed" movies={topRated} exploreTo="/movies" />
-              <ContentRow title="Popular TV Shows" kicker="Binge-worthy" movies={tvShows} type="tv" exploreTo="/tv" />
-              <ContentRow title="Coming Soon" kicker="Fresh releases" movies={upcoming} exploreTo="/movies" />
-
+              <ContentRow
+                eyebrow="TRENDING"
+                title="Trending this week"
+                description="The titles setting the pace right now."
+                results={trending}
+              />
+              <ContentRow
+                eyebrow="POPULAR"
+                title="Popular movies"
+                description="What the room is watching."
+                results={popular}
+              />
+              <ContentRow
+                eyebrow="CRITICALLY ACCLAIMED"
+                title="Top rated"
+                description="The films that stay with you."
+                results={topRated}
+              />
+              <ContentRow
+                eyebrow="TELEVISION"
+                title="Popular series"
+                description="Stay for one more episode."
+                results={tvShows}
+                type="tv"
+              />
+              <ContentRow
+                eyebrow="UPCOMING"
+                title="Coming soon"
+                description="Fresh stories on the horizon."
+                results={upcoming}
+              />
               {anime.length > 0 && (
-                <ContentRow title="Anime" kicker="Japanese animation" movies={anime} exploreTo="/anime" />
+                <ContentRow
+                  eyebrow="ANIME"
+                  title="Japanese animation"
+                  description="Hand-picked and hand-drawn stories."
+                  results={anime}
+                />
               )}
               {marvel.length > 0 && (
-                <ContentRow title="Marvel Universe" kicker="Marvel Studios" movies={marvel} exploreTo="/marvel" />
+                <ContentRow
+                  eyebrow="MARVEL"
+                  title="Marvel universe"
+                  description="One connected cinematic mythology."
+                  results={marvel}
+                />
               )}
               {animated.length > 0 && (
-                <ContentRow title="Animated" kicker="Cartoon features & series" movies={animated} exploreTo="/animated" />
+                <ContentRow
+                  eyebrow="ANIMATION"
+                  title="Animated features"
+                  description="Big feelings, beautifully animated."
+                  results={animated}
+                />
               )}
-
-              {recent.length > 0 && <ContentRow title="Recently Viewed" movies={recent} />}
+              {recent.length > 0 && (
+                <ContentRow
+                  eyebrow="RECENT"
+                  title="Recently viewed"
+                  description="Return to your last discoveries."
+                  results={recent}
+                />
+              )}
             </motion.div>
           )}
         </AnimatePresence>

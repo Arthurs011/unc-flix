@@ -1,15 +1,14 @@
-import { useEffect, useState, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Play, Plus, Check, Star, ArrowLeft, X, Film, Clock } from "lucide-react";
-import { tmdb, Movie, Review, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
-import { isInWatchlist, toggleWatchlist, addRecentlyViewed } from "@/lib/storage";
+import { useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { AnimatePresence, motion, useScroll, useTransform } from "motion/react";
+import { ArrowLeft, Check, Clock, Film, Play, Plus, Share2, Star, X } from "lucide-react";
+import { tmdb, type Movie, type MovieDetails as MD, type Review, getTitle, getYear, imgUrl } from "@/lib/tmdb";
+import { addRecentlyViewed, isInWatchlist, toggleWatchlist } from "@/lib/storage";
 import PageShell from "@/components/PageShell";
-import ScrollProgress from "@/components/ScrollProgress";
 import { DetailSkeleton } from "@/components/LoadingSkeleton";
 import ContentRow from "@/components/ContentRow";
 import ReviewsSection from "@/components/ReviewsSection";
-import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
-import { EASE, springSnappy, fadeUp, viewportOnce } from "@/lib/motion";
+import { EASE, fadeUp, springSnappy, viewportOnce } from "@/lib/motion";
 
 export default function MovieDetailsPage() {
   const { id } = useParams();
@@ -20,243 +19,235 @@ export default function MovieDetailsPage() {
   const [inWL, setInWL] = useState(false);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
-
+  const [copied, setCopied] = useState(false);
   const backdropRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: backdropRef, offset: ["start start", "end start"] });
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    tmdb.movieDetails(Number(id))
-      .then((d) => {
-        setShow(d);
-        setInWL(isInWatchlist(d.id));
-        addRecentlyViewed({ ...d, media_type: "movie" });
-        const videos = d.videos?.results ?? [];
-        const trailer = videos.find((v) => v.site === "YouTube" && v.type === "Trailer")
-          ?? videos.find((v) => v.site === "YouTube");
-        setTrailerKey(trailer?.key ?? null);
-      })
-      .catch(() => setShow(null))
-      .finally(() => setLoading(false));
-    tmdb.movieRecommendations(Number(id))
-      .then((d) => setSimilar((d.results ?? []).filter((m) => m.poster_path)))
-      .catch(() => setSimilar([]));
-    tmdb.movieReviews(Number(id))
-      .then((d) => setReviews(d.results ?? []))
-      .catch(() => setReviews([]));
+    tmdb.movieDetails(Number(id)).then((data) => {
+      setShow(data);
+      setInWL(isInWatchlist(data.id, "movie"));
+      addRecentlyViewed({ ...data, media_type: "movie" });
+      const videos = data.videos?.results ?? [];
+      const trailer = videos.find((video) => video.site === "YouTube" && video.type === "Trailer") ?? videos.find((video) => video.site === "YouTube");
+      setTrailerKey(trailer?.key ?? null);
+    }).catch(() => setShow(null)).finally(() => setLoading(false));
+    tmdb.movieRecommendations(Number(id)).then((data) => setSimilar((data.results ?? []).filter((item) => item.poster_path))).catch(() => setSimilar([]));
+    tmdb.movieReviews(Number(id)).then((data) => setReviews(data.results ?? [])).catch(() => setReviews([]));
   }, [id]);
 
+  useEffect(() => {
+    if (!showTrailer) return;
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setShowTrailer(false); };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showTrailer]);
+
+  const handleShare = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   if (loading) return <DetailSkeleton />;
-  if (!show) return (
-    <div className="min-h-screen flex items-center justify-center pt-20">
-      <div className="text-center">
-        <h2 className="text-2xl font-extrabold tracking-tight text-white mb-3">Movie not found</h2>
-        <Link to="/" className="text-primary font-bold uppercase tracking-widest text-xs hover:underline">Go Home</Link>
-      </div>
-    </div>
-  );
+  if (!show) {
+    return (
+      <PageShell className="flex min-h-screen items-center justify-center px-4 text-center">
+        <div>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Title unavailable</p>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Film not found</h1>
+          <Link to="/movies" className="mt-5 inline-flex h-10 items-center rounded-lg bg-white px-5 text-sm font-semibold text-[#06070a]">
+            Back to movies
+          </Link>
+        </div>
+      </PageShell>
+    );
+  }
 
   const cast = show.credits?.cast?.slice(0, 15) ?? [];
+  const year = getYear(show);
 
   return (
-    <PageShell className="min-h-screen pb-32">
-      <ScrollProgress />
-      {/* Trailer modal */}
+    <PageShell className="min-h-screen bg-background pb-28">
       <AnimatePresence>
         {showTrailer && trailerKey && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4"
-            onClick={() => setShowTrailer(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.92, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.94, opacity: 0 }}
-              transition={springSnappy}
-              className="relative w-full max-w-4xl aspect-video rounded-3xl overflow-hidden ring-1 ring-white/15 shadow-card-lg"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <iframe
-                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`}
-                title="Trailer"
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-                className="w-full h-full"
-              />
-              <button
-                onClick={() => setShowTrailer(false)}
-                aria-label="Close trailer"
-                className="absolute -top-12 right-0 p-2 rounded-full glass text-white/70 hover:text-white transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-xl" role="dialog" aria-modal="true" aria-label="Trailer" onClick={() => setShowTrailer(false)}>
+            <motion.div initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }} transition={springSnappy} className="relative aspect-video w-full max-w-4xl overflow-hidden rounded-xl border border-white/15 bg-black shadow-cinema" onClick={(event) => event.stopPropagation()}>
+              <iframe src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`} title="Trailer" allow="autoplay; encrypted-media" allowFullScreen className="h-full w-full" />
+              <button type="button" onClick={() => setShowTrailer(false)} aria-label="Close trailer" className="tap-target absolute -top-12 right-0 flex items-center justify-center rounded-lg text-white/70 hover:text-white"><X className="h-5 w-5" /></button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Backdrop */}
-      <div ref={backdropRef} className="relative h-[52vh] sm:h-[62vh] overflow-hidden">
-        <motion.div style={{ y: bgY }} className="absolute inset-0 scale-110">
-          <img src={imgUrl(show.backdrop_path, "w1280")} alt="" className="w-full h-full object-cover" />
+      <div ref={backdropRef} className="relative h-[48vh] min-h-[24rem] overflow-hidden sm:h-[62vh]">
+        <motion.div style={{ y: bgY }} className="absolute inset-0 scale-105">
+          {show.backdrop_path && (
+            <img
+              src={imgUrl(show.backdrop_path, "w1280")}
+              alt=""
+              className="h-full w-full object-cover object-[center_20%]"
+            />
+          )}
         </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-transparent" />
-        <Link
-          to="/"
-          aria-label="Back to home"
-          className="absolute top-20 left-4 sm:left-8 p-3 rounded-full glass ring-1 ring-white/10 text-white hover:bg-white/10 transition-colors z-10"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#06070a]/90 via-[#06070a]/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#06070a] via-[#06070a]/60 to-transparent" />
+        <div className="cinema-vignette absolute inset-0" />
+
+        <div className="section-shell absolute inset-x-0 top-20 z-10 sm:top-24">
+          <Link
+            to="/movies"
+            aria-label="Back to movies"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-xs font-medium text-white/70 backdrop-blur-md transition-all hover:bg-black/60 hover:text-white"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Movies</span>
+          </Link>
+        </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 -mt-36 sm:-mt-44 relative z-10">
-        <div className="flex flex-col sm:flex-row gap-8 sm:gap-10">
+      <div className="section-shell relative z-10 -mt-28 sm:-mt-40 safe-bottom">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:gap-8 lg:gap-10">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: EASE }}
-            className="flex-shrink-0 w-44 sm:w-60 mx-auto sm:mx-0"
+            transition={{ duration: 0.45, ease: EASE }}
+            className="mx-auto w-40 shrink-0 sm:mx-0 sm:w-52 lg:w-60"
           >
-            <img
-              src={imgUrl(show.poster_path, "w500")}
-              alt={getTitle(show)}
-              className="w-full rounded-3xl shadow-card-lg ring-1 ring-white/10"
-            />
+            <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#0c0d14] shadow-[0_12px_36px_rgba(0,0,0,0.8)]">
+              {show.poster_path ? (
+                <img src={imgUrl(show.poster_path, "w500")} alt={getTitle(show)} className="aspect-[2/3] w-full object-cover" />
+              ) : (
+                <div className="flex aspect-[2/3] items-center justify-center text-[10px] font-bold tracking-[0.2em] text-white/20">UNCFLIX</div>
+              )}
+            </div>
           </motion.div>
 
           <motion.div
-            initial="hidden"
-            animate="show"
-            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } } }}
-            className="flex-1 pt-2 text-center sm:text-left"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.08, ease: EASE }}
+            className="min-w-0 flex-1 text-center sm:text-left"
           >
-            <motion.p
-              variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}
-              className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-2"
-            >
-              Feature Film
-            </motion.p>
-
-            <motion.h1
-              variants={{ hidden: { opacity: 0, y: 22 }, show: { opacity: 1, y: 0 } }}
-              className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-[0.95] mb-5"
-            >
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-primary">Feature film</p>
+            <h1 className="text-balance text-2xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
               {getTitle(show)}
-            </motion.h1>
+            </h1>
 
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
-              className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-2 text-xs font-semibold text-white/45 mb-6"
-            >
+            <div className="mt-3.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-xs text-white/50 sm:justify-start">
               {show.vote_average > 0 && (
-                <span className="flex items-center gap-1.5 text-white">
-                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                <span className="inline-flex items-center gap-1 font-medium text-white/90">
+                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                   {show.vote_average.toFixed(1)}
                 </span>
               )}
-              {getYear(show) && (
+              {year && (
                 <>
-                  <span className="w-1 h-1 rounded-full bg-white/20" />
-                  <span>{getYear(show)}</span>
+                  <span className="h-0.5 w-0.5 rounded-full bg-white/25" />
+                  <span>{year}</span>
                 </>
               )}
-              {show.runtime ? (
+              {show.runtime && (
                 <>
-                  <span className="w-1 h-1 rounded-full bg-white/20" />
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" />
+                  <span className="h-0.5 w-0.5 rounded-full bg-white/25" />
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
                     {Math.floor(show.runtime / 60)}h {show.runtime % 60}m
                   </span>
                 </>
-              ) : null}
-              {show.genres?.slice(0, 3).map((g) => (
-                <span key={g.id} className="rounded-full bg-white/[0.06] ring-1 ring-white/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/55">
-                  {g.name}
-                </span>
-              ))}
-            </motion.div>
-
-            <motion.p
-              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
-              className="text-white/60 leading-relaxed mb-8 max-w-2xl text-sm sm:text-base mx-auto sm:mx-0"
-            >
-              {show.overview}
-            </motion.p>
-
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
-              className="flex flex-wrap justify-center sm:justify-start items-center gap-3"
-            >
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                transition={springSnappy}
-                className="flex items-center gap-2.5 h-13 pl-7 pr-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow-lg"
-              >
-                <Link to={`/watch/movie/${show.id}`} className="flex items-center gap-2.5">
-                  <Play className="w-5 h-5 fill-current" />
-                  Play Now
-                </Link>
-              </motion.button>
-
-              {trailerKey && (
-                <motion.button
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  transition={springSnappy}
-                  onClick={() => setShowTrailer(true)}
-                  className="flex items-center gap-2.5 h-13 px-7 rounded-full glass ring-1 ring-white/15 text-white font-bold text-sm hover:bg-white/10 transition-colors"
-                >
-                  <Film className="w-5 h-5" />
-                  Trailer
-                </motion.button>
               )}
+              {show.status && (
+                <>
+                  <span className="h-0.5 w-0.5 rounded-full bg-white/25" />
+                  <span>{show.status}</span>
+                </>
+              )}
+            </div>
 
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                transition={springSnappy}
+            {show.genres && show.genres.length > 0 && (
+              <div className="mt-3.5 flex flex-wrap justify-center gap-1.5 sm:justify-start">
+                {show.genres.slice(0, 4).map((genre) => (
+                  <Link
+                    key={genre.id}
+                    to={`/movies?genre=${genre.id}`}
+                    className="rounded-md border border-white/[0.07] bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/55 transition-colors hover:border-white/20 hover:text-white"
+                  >
+                    {genre.name}
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            <p className="mx-auto mt-4 max-w-2xl text-pretty text-xs leading-relaxed text-white/60 sm:mx-0 sm:text-sm sm:leading-6">
+              {show.overview || "No synopsis available for this title."}
+            </p>
+
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5 sm:justify-start">
+              <Link
+                to={`/watch/movie/${show.id}`}
+                className="inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-[#06070a] shadow-md transition-all hover:bg-white/90 active:scale-[0.98]"
+              >
+                <Play className="h-4 w-4 fill-current" />
+                Watch Now
+              </Link>
+
+              <button
+                type="button"
                 onClick={() => setInWL(toggleWatchlist(show))}
                 aria-label={inWL ? "Remove from watchlist" : "Add to watchlist"}
-                className="w-13 h-13 rounded-full glass ring-1 ring-white/15 flex items-center justify-center text-white hover:bg-white/10 transition-colors"
+                className="inline-flex h-11 items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.08] px-4 text-sm font-medium text-white backdrop-blur-md transition-all hover:bg-white/[0.14] active:scale-[0.98]"
               >
-                {inWL ? <Check className="w-5 h-5 text-emerald-400" /> : <Plus className="w-5 h-5" />}
-              </motion.button>
-            </motion.div>
+                {inWL ? <Check className="h-4 w-4 text-emerald-400" /> : <Plus className="h-4 w-4" />}
+                <span>{inWL ? "In List" : "Add to List"}</span>
+              </button>
+
+              {trailerKey && (
+                <button
+                  type="button"
+                  onClick={() => setShowTrailer(true)}
+                  className="inline-flex h-11 items-center gap-1.5 rounded-lg px-3.5 text-sm font-medium text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white"
+                >
+                  <Film className="h-4 w-4" />
+                  <span>Trailer</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleShare}
+                className="inline-flex h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white"
+                aria-label="Share movie link"
+              >
+                <Share2 className="h-4 w-4" />
+                <span className="hidden sm:inline">{copied ? "Copied!" : "Share"}</span>
+              </button>
+            </div>
           </motion.div>
         </div>
 
-        {/* Cast */}
         {cast.length > 0 && (
-          <motion.section
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={viewportOnce}
-            className="mt-16 mb-8"
-          >
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-1.5">Starring</p>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-6">Top Cast</h2>
-            <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-3">
-              {cast.map((c) => (
-                <div key={c.id} className="flex-shrink-0 w-24 text-center group">
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden bg-card mb-3 ring-1 ring-white/[0.08] group-hover:ring-primary/50 transition-all duration-300">
-                    <img
-                      src={imgUrl(c.profile_path, "w185")}
-                      alt={c.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                    />
+          <motion.section variants={fadeUp} initial="hidden" whileInView="show" viewport={viewportOnce} className="mt-14 sm:mt-18">
+            <div className="mb-4">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">Cast & Crew</p>
+              <h2 className="text-lg font-bold tracking-tight text-white sm:text-xl">Top cast</h2>
+            </div>
+            <div className="no-scrollbar flex gap-3.5 overflow-x-auto pb-2">
+              {cast.map((person) => (
+                <div key={person.id} className="group w-20 shrink-0 text-center sm:w-24">
+                  <div className="mb-2 aspect-square overflow-hidden rounded-xl border border-white/[0.08] bg-[#0c0d14]">
+                    {person.profile_path ? (
+                      <img src={imgUrl(person.profile_path, "w185")} alt={person.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-xs font-semibold text-white/20">UNC</div>
+                    )}
                   </div>
-                  <p className="text-[11px] font-bold text-white line-clamp-1">{c.name}</p>
-                  <p className="text-[9px] font-medium uppercase tracking-wider text-white/35 line-clamp-1 mt-0.5">{c.character}</p>
+                  <p className="truncate text-xs font-medium text-white/80">{person.name}</p>
+                  <p className="mt-0.5 truncate text-[10px] text-white/35">{person.character}</p>
                 </div>
               ))}
             </div>
@@ -264,11 +255,13 @@ export default function MovieDetailsPage() {
         )}
 
         <ReviewsSection reviews={reviews} />
-
         {similar.length > 0 && (
-          <section className="mb-8">
-            <ContentRow title="More Like This" kicker="If you liked this" movies={similar} />
-          </section>
+          <ContentRow
+            eyebrow="RECOMMENDED"
+            title="More like this"
+            description="Titles with similar atmosphere and tone."
+            results={similar}
+          />
         )}
       </div>
     </PageShell>

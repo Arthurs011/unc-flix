@@ -1,9 +1,8 @@
-import { useRef } from "react";
 import { Link } from "react-router-dom";
-import { Star, Play } from "lucide-react";
-import { Movie, imgUrl, posterFallback, getTitle, getYear } from "@/lib/tmdb";
-import { motion, useMotionValue, useSpring } from "motion/react";
-import { springSoft, springSnappy } from "@/lib/motion";
+import { motion, useReducedMotion } from "motion/react";
+import { Play, Star } from "lucide-react";
+import { getTitle, getYear, imgUrl, posterFallback, type Movie } from "@/lib/tmdb";
+import { EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -14,90 +13,86 @@ interface Props {
 }
 
 export default function MovieCard({ movie, type, rank, className }: Props) {
-  const mediaType = type || movie.media_type || "movie";
-  const to = mediaType === "tv" ? `/tv/${movie.id}` : `/movie/${movie.id}`;
-  const ref = useRef<HTMLDivElement>(null);
-
-  const rawX = useMotionValue(0);
-  const rawY = useMotionValue(0);
-  const rotateX = useSpring(rawY, springSnappy);
-  const rotateY = useSpring(rawX, springSnappy);
-
-  const onMove = (e: React.MouseEvent) => {
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
-    const px = (e.clientX - r.left) / r.width - 0.5;
-    const py = (e.clientY - r.top) / r.height - 0.5;
-    rawX.set(px * 9);
-    rawY.set(-py * 9);
-  };
-
-  const reset = () => {
-    rawX.set(0);
-    rawY.set(0);
-  };
+  const reduceMotion = useReducedMotion();
+  const isTv = type === "tv" || movie.media_type === "tv";
+  const title = getTitle(movie);
+  const year = getYear(movie);
+  const image = movie.poster_path ?? movie.backdrop_path;
+  const href = isTv ? `/tv/${movie.id}` : `/movie/${movie.id}`;
 
   return (
-    <motion.div
-      ref={ref}
-      onMouseMove={onMove}
-      onMouseLeave={reset}
-      style={{ rotateX, rotateY, transformPerspective: 900 }}
-      whileHover={{ y: -8 }}
-      whileTap={{ scale: 0.97 }}
-      transition={springSoft}
-      className={cn("group relative w-full will-change-transform", className)}
+    <motion.article
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+      whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-30px" }}
+      transition={{ duration: 0.3, ease: EASE }}
+      className={cn("group/card relative min-w-0 select-none", className)}
     >
       <Link
-        to={to}
-        className="block relative aspect-[2/3] rounded-2xl overflow-hidden bg-card ring-1 ring-white/[0.08] shadow-card group-hover:ring-primary/40 transition-[box-shadow,border-color] duration-300"
+        to={href}
+        aria-label={`${title}${year ? `, ${year}` : ""}`}
+        className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#06070a] rounded-xl"
       >
-        <img
-          src={imgUrl(movie.poster_path, "w342")}
-          alt={getTitle(movie)}
-          loading="lazy"
-          decoding="async"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = posterFallback(getTitle(movie));
-          }}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.06]"
-        />
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-white/[0.06] bg-[#0c0d14] shadow-[0_4px_16px_rgba(0,0,0,0.5)] transition-all duration-300 ease-out group-hover/card:scale-[1.03] group-hover/card:-translate-y-1 group-hover/card:border-white/[0.16] group-hover/card:shadow-[0_16px_36px_rgba(0,0,0,0.8)]">
+          {image ? (
+            <img
+              src={imgUrl(image, "w342")}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover transition-transform duration-500 group-hover/card:brightness-[1.04]"
+              onError={(event) => {
+                event.currentTarget.src = posterFallback(title);
+              }}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center bg-[#0d0f17] text-[10px] font-bold tracking-[0.2em] text-white/20">
+              UNCFLIX
+            </div>
+          )}
 
-        {/* Bottom gradient + info */}
-        <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 p-3.5">
-          <p className="text-xs font-bold text-white leading-tight line-clamp-2">
-            {getTitle(movie)}
-          </p>
-          <div className="flex items-center gap-2 mt-1.5 opacity-0 translate-y-1.5 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-            <span className="text-[10px] font-semibold tracking-wider text-white/50 uppercase">
-              {getYear(movie) || mediaType}
+          {rank !== undefined && (
+            <span className="absolute left-2.5 top-2.5 flex h-6 min-w-6 items-center justify-center rounded-md border border-white/10 bg-black/60 px-1.5 font-mono text-[10px] font-bold text-white/90 backdrop-blur-md">
+              {String(rank + 1).padStart(2, "0")}
             </span>
-            <span className="w-1 h-1 rounded-full bg-white/20" />
-            <span className="flex items-center gap-1 text-[10px] font-bold text-primary">
-              <Play className="w-2.5 h-2.5 fill-current" />
-              Watch
-            </span>
+          )}
+
+          {/* Restrained hover overlay: Bottom gradient with quick info */}
+          <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/85 via-black/30 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover/card:opacity-100">
+            <div className="flex items-center justify-between text-[11px] font-medium text-white/80">
+              <span className="flex items-center gap-1">
+                {movie.vote_average > 0 && (
+                  <>
+                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    <span>{movie.vote_average.toFixed(1)}</span>
+                  </>
+                )}
+              </span>
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm">
+                <Play className="h-3 w-3 fill-current ml-0.5" />
+              </span>
+            </div>
           </div>
         </div>
-
-        {/* Rating chip */}
-        {movie.vote_average > 0 && (
-          <div className="absolute top-2.5 right-2.5 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-md px-2 py-1 ring-1 ring-white/10">
-            <Star className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
-            <span className="text-[9px] font-bold text-white">
-              {movie.vote_average.toFixed(1)}
-            </span>
-          </div>
-        )}
-
-        {/* Rank badge */}
-        {rank !== undefined && rank <= 10 && (
-          <div className="absolute top-0 left-0 rounded-br-2xl rounded-tl-2xl bg-gradient-to-r from-sky-500 to-indigo-600 px-2.5 py-1 shadow-glow-sm">
-            <span className="text-[10px] font-extrabold text-white">#{rank}</span>
-          </div>
-        )}
       </Link>
-    </motion.div>
+
+      <div className="mt-2 min-w-0 px-0.5">
+        <Link
+          to={href}
+          className="block truncate text-[13px] font-medium text-white/88 transition-colors hover:text-white"
+        >
+          {title}
+        </Link>
+        <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-white/40">
+          <span>{isTv ? "Series" : "Film"}</span>
+          {year && (
+            <>
+              <span className="h-0.5 w-0.5 rounded-full bg-white/25" />
+              <span>{year}</span>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.article>
   );
 }

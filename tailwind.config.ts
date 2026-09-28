@@ -1,129 +1,17 @@
 import type { Config } from "tailwindcss";
-import plugin from "tailwindcss/plugin";
-import tailwindAnimate from "tailwindcss-animate";
-
-const appBase = plugin(({ addBase, addUtilities }) => {
-  addBase({
-    ":root": {
-      "--background": "240 14% 3%",
-      "--foreground": "0 0% 98%",
-      "--card": "240 9% 6%",
-      "--card-foreground": "0 0% 98%",
-      "--popover": "240 9% 6%",
-      "--popover-foreground": "0 0% 98%",
-      "--primary": "211 100% 50%",
-      "--primary-foreground": "0 0% 100%",
-      "--secondary": "240 6% 12%",
-      "--secondary-foreground": "0 0% 98%",
-      "--muted": "240 5% 16%",
-      "--muted-foreground": "240 4% 60%",
-      "--accent": "240 6% 14%",
-      "--accent-foreground": "0 0% 98%",
-      "--destructive": "0 84% 60%",
-      "--destructive-foreground": "0 0% 98%",
-      "--border": "240 6% 14%",
-      "--input": "240 6% 14%",
-      "--ring": "211 100% 50%",
-      "--radius": "1rem",
-    },
-    "*, ::before, ::after": {
-      borderColor: "hsl(var(--border))",
-    },
-    body: {
-      backgroundColor: "hsl(var(--background))",
-      color: "hsl(var(--foreground))",
-      fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-      "-webkit-font-smoothing": "antialiased",
-      "-moz-osx-font-smoothing": "grayscale",
-      "-webkit-tap-highlight-color": "transparent",
-      overscrollBehaviorY: "none",
-    },
-    "::selection": {
-      backgroundColor: "hsl(211 100% 50% / 0.35)",
-      color: "#fff",
-    },
-    "::-webkit-scrollbar": {
-      width: "10px",
-      height: "10px",
-    },
-    "::-webkit-scrollbar-track": {
-      background: "transparent",
-    },
-    "::-webkit-scrollbar-thumb": {
-      background: "hsl(var(--muted))",
-      borderRadius: "8px",
-      border: "2px solid hsl(var(--background))",
-    },
-    "::-webkit-scrollbar-thumb:hover": {
-      background: "hsl(var(--muted-foreground) / 0.5)",
-    },
-    img: {
-      "-webkit-user-drag": "none",
-      userSelect: "none",
-    },
-    // UNCFLIX sinkhole: hides common injected ad elements
-    '[id*="ad-"], [class*="ad-"], [class*="ads-"], [id*="google_ads"], [class*="google_ads"], [id*="popads"], [id*="propeller"], .ad-container, .ads-wrapper, .ad-slot, .ad-unit, .banner-ads, .fixed-ads, .bottom-ads, iframe[src*="doubleclick.net"], iframe[src*="adservice.google"], iframe[src*="googlesyndication"], iframe[src*="popads.net"], iframe[src*="propellerads"], .trc_rbox_container, .outbrain, .taboola-container':
-      {
-        display: "none !important",
-        visibility: "hidden !important",
-        pointerEvents: "none !important",
-        height: "0 !important",
-        width: "0 !important",
-        overflow: "hidden !important",
-      },
-  });
-
-  addUtilities({
-    ".glass": {
-      backgroundColor: "hsl(var(--background) / 0.6)",
-      "backdrop-filter": "blur(24px)",
-      "-webkit-backdrop-filter": "blur(24px)",
-      borderWidth: "1px",
-      borderColor: "hsl(var(--border) / 0.5)",
-    },
-    ".glass-strong": {
-      backgroundColor: "hsl(var(--background) / 0.8)",
-      "backdrop-filter": "blur(40px)",
-      "-webkit-backdrop-filter": "blur(40px)",
-      borderWidth: "1px",
-      borderColor: "hsl(var(--border) / 0.3)",
-    },
-    ".scrollbar-hide": {
-      "-ms-overflow-style": "none",
-      "scrollbar-width": "none",
-    },
-    ".scrollbar-hide::-webkit-scrollbar": {
-      display: "none",
-    },
-    ".pb-safe": {
-      "padding-bottom": "env(safe-area-inset-bottom, 0px)",
-    },
-    ".pt-safe": {
-      "padding-top": "env(safe-area-inset-top, 0px)",
-    },
-  });
-});
 
 export default {
-  darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
-  prefix: "",
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  darkMode: "class",
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: "1.5rem",
       screens: {
-        "2xl": "1400px",
+        "2xl": "1600px",
       },
     },
     extend: {
-      spacing: {
-        "13": "3.25rem",
-        "15": "3.75rem",
-      },
-      fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -158,49 +46,64 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
+        surface: {
+          quiet: "hsl(225 28% 5%)",
+          raised: "hsl(224 24% 8%)",
+          elevated: "hsl(222 22% 11%)",
         },
+      },
+      fontFamily: {
+        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        display: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["SFMono-Regular", "SF Mono", "Roboto Mono", "ui-monospace", "monospace"],
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 4px)",
-        sm: "calc(var(--radius) - 8px)",
+        md: "calc(var(--radius) - 0.25rem)",
+        sm: "calc(var(--radius) - 0.5rem)",
+      },
+      backdropBlur: {
+        xs: "2px",
+        glass: "18px",
       },
       boxShadow: {
-        glow: "0 0 24px -4px hsl(211 100% 50% / 0.45)",
-        "glow-sm": "0 0 14px -2px hsl(211 100% 50% / 0.4)",
-        "glow-lg": "0 8px 56px -8px hsl(211 100% 50% / 0.5)",
-        card: "0 24px 48px -16px rgb(0 0 0 / 0.65)",
-        "card-lg": "0 32px 80px -20px rgb(0 0 0 / 0.8)",
+        focus: "0 0 0 3px hsl(var(--ring) / 0.18), 0 0 0 1px hsl(var(--ring) / 0.5)",
+        card: "0 18px 50px -28px rgba(0, 0, 0, 0.9)",
+        "card-lg": "0 30px 90px -30px rgba(0, 0, 0, 0.95)",
+        cinema: "0 36px 100px -36px rgba(0, 0, 0, 0.95)",
+        "glow-sm": "0 0 24px -12px hsl(var(--primary) / 0.7)",
+        glow: "0 0 40px -16px hsl(var(--primary) / 0.65)",
+        "glow-lg": "0 0 64px -20px hsl(var(--primary) / 0.6)",
+      },
+      transitionTimingFunction: {
+        cinematic: "cubic-bezier(0.22, 1, 0.36, 1)",
       },
       keyframes: {
-        "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
+        "aurora-one": {
+          "0%, 100%": { transform: "translate3d(-5%, -3%, 0) scale(1)", opacity: "0.12" },
+          "50%": { transform: "translate3d(5%, 3%, 0) scale(1.12)", opacity: "0.19" },
         },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
+        "aurora-two": {
+          "0%, 100%": { transform: "translate3d(4%, 3%, 0) scale(1.08)", opacity: "0.09" },
+          "50%": { transform: "translate3d(-6%, -4%, 0) scale(0.96)", opacity: "0.15" },
+        },
+        "aurora-three": {
+          "0%, 100%": { transform: "translate3d(2%, 5%, 0) scale(0.9)", opacity: "0.06" },
+          "50%": { transform: "translate3d(-2%, -5%, 0) scale(1.08)", opacity: "0.11" },
+        },
+        float: {
+          "0%, 100%": { transform: "translate3d(0, 0, 0)" },
+          "50%": { transform: "translate3d(0, -8px, 0)" },
         },
         shimmer: {
-          "0%": { transform: "translateX(-100%)" },
-          "100%": { transform: "translateX(100%)" },
+          from: { transform: "translateX(-120%)" },
+          to: { transform: "translateX(120%)" },
         },
       },
       animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        shimmer: "shimmer 2s infinite linear",
+        shimmer: "shimmer 1.8s ease-in-out infinite",
       },
     },
   },
-  plugins: [appBase, tailwindAnimate],
+  plugins: [],
 } satisfies Config;

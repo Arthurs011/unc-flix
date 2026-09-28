@@ -1,21 +1,21 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { Star, ThumbsUp, ThumbsDown, Share2, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
+import { Check, Play, Share2, Star, ThumbsDown, ThumbsUp } from "lucide-react";
 import { updateContinueWatching } from "@/lib/storage";
-import { tmdb, getTitle, MovieDetails, Episode, SeasonDetails, imgUrl, formatCount } from "@/lib/tmdb";
+import { tmdb, getTitle, type Episode, type MovieDetails, type SeasonDetails, imgUrl, formatCount } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { SOURCES } from "@/lib/servers";
 import PageShell from "@/components/PageShell";
-import ScrollProgress from "@/components/ScrollProgress";
 import WatchHeader from "@/components/WatchHeader";
-import { EASE, springSnappy } from "@/lib/motion";
+import { EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 const CINESRC_ORIGIN = SOURCES[0].baseUrl;
 
 export default function WatchTv() {
   const { id, season, episode } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   useFullscreenOrientation();
   const [show, setShow] = useState<MovieDetails | null>(null);
@@ -24,80 +24,89 @@ export default function WatchTv() {
   const [seasonData, setSeasonData] = useState<SeasonDetails | null>(null);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
+  const [copied, setCopied] = useState(false);
   const lastSaveRef = useRef(0);
   const lastProgressRef = useRef<{ currentTime: number; duration: number } | null>(null);
-  const searchParams = new URLSearchParams(window.location.search);
-  const seekTo = Number(searchParams.get("t")) || 0;
+  const seekTo = Math.max(0, Number(searchParams.get("t")) || 0);
+  const s = Number(searchParams.get("season") ?? season) || 1;
+  const e = Number(searchParams.get("episode") ?? episode) || 1;
 
-  const s = Number(season) || 1;
-  const e = Number(episode) || 1;
+  const handleShare = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
     window.scrollTo({ top: 0 });
-
-    tmdb.tvDetails(Number(id)).then((d) => {
-      setShow(d);
-      document.title = `Watch ${getTitle(d)} · UNCFLIX`;
-      updateContinueWatching({
-        id: d.id,
-        type: "tv",
-        title: getTitle(d),
-        poster_path: d.poster_path,
-        backdrop_path: d.backdrop_path,
-        progress: 0,
-        currentTime: 0,
-        duration: 0,
-        season: s,
-        episode: e,
-        timestamp: Date.now(),
-      });
-    }).catch(() => {});
-
-    tmdb.tvEpisode(Number(id), s, e).then(setCurrentEp).catch(() => {});
-    tmdb.tvSeason(Number(id), s).then(setSeasonData).catch(() => setSeasonData(null));
-    tmdb.tvEpisode(Number(id), s, e + 1).then(setNextEp).catch(() => {
-      tmdb.tvEpisode(Number(id), s + 1, 1).then(setNextEp).catch(() => setNextEp(null));
+    tmdb.tvDetails(Number(id)).then((data) => {
+      if (cancelled) return;
+      setShow(data);
+      document.title = `Watch ${getTitle(data)} · UNCFLIX`;
+    }).catch(() => {
+      if (!cancelled) setShow(null);
     });
+    return () => {
+      cancelled = true;
+      document.title = "UNCFLIX";
+    };
+  }, [id]);
 
-    return () => { document.title = "UNCFLIX"; };
-  }, [id, s, e]);
-
-  // CineSrc player events: progress sync + out-of-player episode navigation
   useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setCurrentEp(null);
+    setNextEp(null);
+    setSeasonData(null);
+    tmdb.tvEpisode(Number(id), s, e).then((episode) => {
+      if (!cancelled) setCurrentEp(episode);
+    }).catch(() => {
+      if (!cancelled) setCurrentEp(null);
+    });
+    tmdb.tvSeason(Number(id), s).then((season) => {
+      if (!cancelled) setSeasonData(season);
+    }).catch(() => {
+      if (!cancelled) setSeasonData(null);
+    });
+    tmdb.tvEpisode(Number(id), s, e + 1).then((episode) => {
+      if (!cancelled) setNextEp(episode);
+    }).catch(() => {
+      if (cancelled) return;
+      tmdb.tvEpisode(Number(id), s + 1, 1).then((episode) => {
+        if (!cancelled) setNextEp(episode);
+      }).catch(() => {
+        if (!cancelled) setNextEp(null);
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [e, id, s]);
+
+  useEffect(() => {
+    lastSaveRef.current = 0;
+    lastProgressRef.current = null;
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== CINESRC_ORIGIN) return;
       const data = event.data;
       if (!data || typeof data !== "object") return;
-
-      if (data.type === "cinesrc:timeupdate" && typeof data.currentTime === "number" && typeof data.duration === "number" && data.duration > 0) {
+      if (data.type === "cinesrc:timeupdate" && typeof data.currentTime === "number" && typeof data.duration === "number" && data.duration > 0 && id) {
         const now = Date.now();
-        if (now - lastSaveRef.current < 8000) return;
+        if (now - lastSaveRef.current < 8000 || !show) return;
         lastSaveRef.current = now;
-        if (!id) return;
         const progress = Math.min(100, Math.round((data.currentTime / data.duration) * 100));
-        if (progress < 2 || !show) return;
+        if (progress < 2) return;
         lastProgressRef.current = { currentTime: data.currentTime, duration: data.duration };
-        updateContinueWatching({
-          id: Number(id),
-          type: "tv",
-          title: getTitle(show),
-          poster_path: show?.poster_path,
-          backdrop_path: show?.backdrop_path,
-          progress,
-          currentTime: data.currentTime,
-          duration: data.duration,
-          season: s,
-          episode: e,
-          timestamp: now,
-        });
+        updateContinueWatching({ id: Number(id), type: "tv", title: getTitle(show), poster_path: show.poster_path, backdrop_path: show.backdrop_path, progress, currentTime: data.currentTime, duration: data.duration, season: s, episode: e, timestamp: now });
       }
-
       if (data.type === "cinesrc:nextepisode" && data.internalNavigation === false && data.source !== "internal") {
-        const ns = Number(data.season), ne = Number(data.episode);
-        if (ns && ne && (ns !== s || ne !== e)) {
-          navigate(`/watch/tv/${id}/${ns}/${ne}`, { replace: true });
-        }
+        const nextSeason = Number(data.season);
+        const nextEpisode = Number(data.episode);
+        if (nextSeason && nextEpisode && (nextSeason !== s || nextEpisode !== e)) navigate(`/watch/tv/${id}?season=${nextSeason}&episode=${nextEpisode}`, { replace: true });
       }
     };
     window.addEventListener("message", onMessage);
@@ -106,271 +115,178 @@ export default function WatchTv() {
       const last = lastProgressRef.current;
       if (last && id && show) {
         const progress = Math.min(100, Math.round((last.currentTime / last.duration) * 100));
-        if (progress >= 2) {
-          updateContinueWatching({
-            id: Number(id),
-            type: "tv",
-            title: getTitle(show),
-            poster_path: show?.poster_path,
-            backdrop_path: show?.backdrop_path,
-            progress,
-            currentTime: last.currentTime,
-            duration: last.duration,
-            season: s,
-            episode: e,
-            timestamp: Date.now(),
-          });
-        }
+        if (progress >= 2) updateContinueWatching({ id: Number(id), type: "tv", title: getTitle(show), poster_path: show.poster_path, backdrop_path: show.backdrop_path, progress, currentTime: last.currentTime, duration: last.duration, season: s, episode: e, timestamp: Date.now() });
       }
     };
-  }, [id, s, e, show, navigate]);
+  }, [e, id, navigate, s, show]);
 
   const embedSrc = SOURCES[0].build("tv", id || "", s, e) + (seekTo > 0 ? `&t=${seekTo}` : "");
-  const seasons = show?.seasons?.filter((se) => se.season_number > 0) ?? [];
+  const seasons = show?.seasons?.filter((item) => item.season_number > 0) ?? [];
 
   return (
-    <PageShell className="min-h-screen text-white pb-32 overflow-x-hidden">
-      {/* Ambient backdrop */}
-      <div className="fixed inset-0 -z-10">
-        {show?.backdrop_path && (
-          <img
-            src={imgUrl(show.backdrop_path, "w1280")}
-            alt=""
-            className="w-full h-full object-cover opacity-20 scale-110 blur-2xl"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/85 to-black" />
+    <PageShell className="min-h-screen overflow-x-hidden bg-[#030408] pb-24 text-white">
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
+        {show?.backdrop_path && <img src={imgUrl(show.backdrop_path, "w1280")} alt="" className="h-full w-full scale-110 object-cover opacity-[0.10] blur-3xl" />}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-[#040508]/92 to-black" />
       </div>
+      <WatchHeader to={`/tv/${id}`} label="Series" badge={`S${s} · E${e}`} title={show ? getTitle(show) : "Loading…"} />
 
-      <ScrollProgress />
-
-      <WatchHeader
-        to={`/tv/${id}`}
-        label="Series"
-        badge={`S${s} · E${e}`}
-        title={show ? getTitle(show) : "Loading..."}
-      />
-
-      {/* Two-column cinema layout */}
-      <div className="w-full max-w-[1600px] mx-auto mt-5 sm:mt-7 px-0 sm:px-6 pt-16 md:pt-24">
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_370px] xl:grid-cols-[minmax(0,1fr)_410px] gap-6 xl:gap-8 px-0 lg:px-0">
-
-          {/* ===== Left: stage + info ===== */}
+      <div className="mx-auto w-full max-w-[1600px] px-0 pt-16 sm:px-6 sm:pt-20 md:pt-24">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_23rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_26rem]">
           <div className="min-w-0">
-            <motion.section
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, ease: EASE }}
-            >
-              <div className="relative group/stage sm:px-6 lg:px-0">
-                <div className="absolute -inset-1 rounded-none sm:rounded-[2rem] bg-gradient-to-r from-sky-500/25 via-indigo-500/15 to-transparent blur-xl opacity-60" />
-                <div className="relative p-px rounded-none sm:rounded-[1.75rem] bg-gradient-to-b from-white/20 via-white/[0.07] to-transparent shadow-card-lg">
-                  <div className="aspect-video w-full overflow-hidden rounded-none sm:rounded-[1.7rem] bg-black relative">
-                    <iframe
-                      key={embedSrc}
-                      src={embedSrc}
-                      className="absolute inset-0 w-full h-full border-0 z-10"
-                      allowFullScreen
-                      allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      title={`S${s} E${e} player`}
-                      loading="eager"
-                    />
-                  </div>
-                </div>
-
-                {/* Action dock */}
-                <div className="hidden sm:flex absolute -bottom-7 left-1/2 -translate-x-1/2 z-20 items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg">
-                  <button
-                    onClick={() => { setLiked(!liked); setDisliked(false); }}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${liked ? "bg-primary text-white shadow-glow-sm" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
-                  >
-                    <ThumbsUp className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
-                    {formatCount(likes(show, liked))}
-                  </button>
-                  <span className="w-px h-5 bg-white/10" />
-                  <button
-                    onClick={() => { setDisliked(!disliked); setLiked(false); }}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
-                  >
-                    <ThumbsDown className={`w-4 h-4 ${disliked ? "fill-current" : ""}`} />
-                    {formatCount(dislikes(show, disliked))}
-                  </button>
-                  <span className="w-px h-5 bg-white/10" />
-                  <button
-                    onClick={() => navigator.clipboard?.writeText(window.location.href)}
-                    aria-label="Share"
-                    className="flex items-center px-4 py-3 rounded-full text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Mobile actions */}
-              <div className="sm:hidden flex justify-center mt-3 relative z-20 px-4 pb-safe">
-                <div className="flex items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg gap-x-0.5">
-                  <button onClick={() => { setLiked(!liked); setDisliked(false); }} aria-label="Like" className={`flex items-center px-4 py-3 rounded-full transition-all ${liked ? "bg-primary text-white" : "text-white/60"}`}>
-                    <ThumbsUp className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
-                  </button>
-                  <button onClick={() => { setDisliked(!disliked); setLiked(false); }} aria-label="Dislike" className={`flex items-center px-4 py-3 rounded-full transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60"}`}>
-                    <ThumbsDown className={`w-4 h-4 ${disliked ? "fill-current" : ""}`} />
-                  </button>
-                  <button onClick={() => navigator.clipboard?.writeText(window.location.href)} aria-label="Share" className="flex items-center px-4 py-3 rounded-full text-white/60">
-                    <Share2 className="w-4 h-4" />
-                  </button>
+            <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: EASE }}>
+              <div className="overflow-hidden border-y border-white/[0.08] bg-black shadow-2xl sm:rounded-2xl sm:border">
+                <div className="relative aspect-video w-full overflow-hidden bg-black">
+                  <iframe key={embedSrc} src={embedSrc} title={`S${s} E${e} player`} className="absolute inset-0 z-10 h-full w-full border-0" allowFullScreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" referrerPolicy="no-referrer-when-downgrade" loading="eager" />
                 </div>
               </div>
             </motion.section>
 
-            {/* Now playing info */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15, ease: EASE }}
-              className="px-4 sm:px-6 lg:px-0 mt-12 sm:mt-14"
-            >
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-4 text-xs font-semibold text-white/40 uppercase tracking-wider">
-                <Link to={`/tv/${id}`} className="rounded-full bg-white/[0.07] ring-1 ring-white/10 px-3 py-1 text-[10px] normal-case text-white/75 hover:ring-primary/40 transition-all">
-                  {show ? getTitle(show) : "Loading..."}
-                </Link>
-                {show?.vote_average ? (
-                  <span className="flex items-center gap-1.5 text-yellow-400 normal-case font-bold">
-                    <Star className="w-3.5 h-3.5 fill-yellow-400" />
-                    {show.vote_average.toFixed(1)}
-                    <span className="text-white/30 font-semibold">/ 10</span>
-                  </span>
-                ) : null}
-                {currentEp?.air_date && <span>{currentEp.air_date}</span>}
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1, ease: EASE }} className="px-4 pt-6 sm:px-0 sm:pt-8">
+              <div className="flex flex-col gap-4 border-b border-white/[0.06] pb-6 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+                    <Link to={`/tv/${id}`} className="rounded border border-white/10 bg-white/[0.04] px-2 py-0.5 normal-case text-white/70 transition-colors hover:border-white/20 hover:text-white">
+                      {show ? getTitle(show) : "Loading…"}
+                    </Link>
+                    {show?.vote_average ? <span className="inline-flex items-center gap-1 text-amber-200"><Star className="h-3 w-3 fill-amber-300" />{show.vote_average.toFixed(1)}</span> : null}
+                    {currentEp?.air_date && <span>{currentEp.air_date}</span>}
+                  </div>
+                  <h1 className="text-2xl font-black leading-tight tracking-[-0.04em] text-white sm:text-3xl md:text-4xl">
+                    S{s} E{e} <span className="text-white/25">·</span> {currentEp?.name || "Episode"}
+                  </h1>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
+                  <div className="flex items-center rounded-lg border border-white/[0.08] bg-[#0c0d14]/70 p-1 backdrop-blur-md">
+                    <button
+                      type="button"
+                      onClick={() => { setLiked((value) => !value); setDisliked(false); }}
+                      aria-label={liked ? "Remove like" : "Like"}
+                      aria-pressed={liked}
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors ${liked ? "bg-primary text-[#060e17] font-semibold" : "text-white/60 hover:bg-white/[0.08] hover:text-white"}`}
+                    >
+                      <ThumbsUp className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
+                      <span>{formatCount(likes(show, liked))}</span>
+                    </button>
+                    <span className="mx-1 h-3.5 w-px bg-white/10" />
+                    <button
+                      type="button"
+                      onClick={() => { setDisliked((value) => !value); setLiked(false); }}
+                      aria-label={disliked ? "Remove dislike" : "Dislike"}
+                      aria-pressed={disliked}
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors ${disliked ? "bg-red-400 text-red-950 font-semibold" : "text-white/60 hover:bg-white/[0.08] hover:text-white"}`}
+                    >
+                      <ThumbsDown className={`h-3.5 w-3.5 ${disliked ? "fill-current" : ""}`} />
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    aria-label="Share episode link"
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#0c0d14]/70 px-3 text-xs font-medium text-white/60 backdrop-blur-md transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white active:scale-95"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Share</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tighter leading-[0.95] mb-5">
-                S{s} E{e} · {currentEp?.name || "Episode"}
-              </h2>
-
-              <p className="text-base text-white/55 leading-relaxed max-w-2xl">
-                {currentEp?.overview || "No description available for this episode."}
-              </p>
+              <div className="pt-5">
+                <p className="max-w-3xl text-pretty text-sm leading-relaxed text-white/55 sm:text-base">
+                  {currentEp?.overview || "No description available for this episode."}
+                </p>
+              </div>
             </motion.div>
           </div>
 
-          {/* ===== Right: sidebar ===== */}
-          <motion.aside
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.55, delay: 0.1, ease: EASE }}
-            className="w-full min-w-0 px-4 sm:px-6 lg:px-0 lg:sticky lg:top-24 lg:self-start space-y-6"
-          >
-            {/* Up next */}
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/25 mb-3">Up Next</p>
+          <aside className="space-y-7 px-4 sm:px-6 lg:sticky lg:top-24 lg:self-start lg:px-0" aria-label="Episode browser">
+            <section>
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">Up next</p>
               {nextEp ? (
-                <motion.div whileHover={{ x: 4 }} transition={springSnappy}>
-                  <Link
-                    to={`/watch/tv/${id}/${nextEp.season_number}/${nextEp.episode_number}`}
-                    className="flex gap-3.5 p-2.5 rounded-2xl bg-white/[0.03] ring-1 ring-transparent hover:ring-primary/30 hover:bg-white/[0.05] transition-colors"
-                  >
-                    <div className="relative w-32 aspect-video rounded-xl overflow-hidden shrink-0 bg-zinc-900 ring-1 ring-white/[0.08]">
-                      <img
-                        src={imgUrl(nextEp.still_path || show?.backdrop_path || null, "w300")}
-                        alt=""
-                        loading="lazy"
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
-                        <Play className="w-5 h-5 fill-current" />
-                      </div>
-                    </div>
-                    <div className="flex flex-col justify-center min-w-0 pr-1">
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-primary mb-1">
-                        S{nextEp.season_number} · E{nextEp.episode_number}
-                      </span>
-                      <p className="text-xs font-bold line-clamp-2 leading-snug">{nextEp.name}</p>
-                    </div>
-                  </Link>
-                </motion.div>
+                <Link
+                  to={`/watch/tv/${id}?season=${nextEp.season_number}&episode=${nextEp.episode_number}`}
+                  className="group flex gap-3.5 rounded-xl border border-white/[0.07] bg-[#0c0d14]/60 p-3 transition-colors hover:border-white/20 hover:bg-white/[0.05]"
+                >
+                  <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-lg bg-surface-raised">
+                    {nextEp.still_path || show?.backdrop_path ? (
+                      <img src={imgUrl(nextEp.still_path || show?.backdrop_path || null, "w300")} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    ) : null}
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-80 transition-opacity group-hover:opacity-100">
+                      <Play className="h-4 w-4 fill-current text-white" />
+                    </span>
+                  </div>
+                  <div className="min-w-0 py-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">S{nextEp.season_number} · E{nextEp.episode_number}</span>
+                    <p className="mt-1 line-clamp-2 text-xs font-semibold text-white/80 group-hover:text-white">{nextEp.name}</p>
+                  </div>
+                </Link>
               ) : (
-                <div className="p-6 text-center rounded-2xl ring-1 ring-dashed ring-white/10 text-white/25 text-[10px] font-bold uppercase tracking-[0.3em]">
-                  Season Finale Reached
+                <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-5 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
+                  Season finale reached
                 </div>
               )}
-            </div>
+            </section>
 
-            {/* Episodes browser */}
             {seasonData && seasonData.episodes.length > 0 && (
               <section>
-                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 mb-4">
-                  <h3 className="text-sm font-extrabold tracking-tight">
-                    Episodes <span className="text-white/30">{seasonData.episodes.length}</span>
-                  </h3>
-                  <div className="flex gap-1.5 overflow-x-auto scrollbar-hide max-w-[60%]">
-                    {seasons.map((se) => (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-white/50">Episodes <span className="font-normal text-white/30">({seasonData.episodes.length})</span></h2>
+                  <div className="no-scrollbar flex max-w-full gap-1 overflow-x-auto">
+                    {seasons.map((item) => (
                       <Link
-                        key={se.season_number}
-                        to={`/watch/tv/${id}/${se.season_number}/1`}
+                        key={item.season_number}
+                        to={`/watch/tv/${id}?season=${item.season_number}&episode=1`}
                         className={cn(
-                          "px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 transition-all whitespace-nowrap active:scale-95",
-                          se.season_number === s
-                            ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white ring-transparent shadow-glow-sm"
-                            : "bg-white/[0.04] text-white/45 ring-white/[0.08] hover:bg-white/[0.08] hover:text-white"
+                          "h-7 shrink-0 rounded px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors",
+                          item.season_number === s ? "bg-primary text-[#060e17]" : "bg-white/[0.04] text-white/45 hover:bg-white/[0.08] hover:text-white"
                         )}
                       >
-                        S{se.season_number}
+                        S{item.season_number}
                       </Link>
                     ))}
                   </div>
                 </div>
-
-                <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1 -mr-1">
+                <div className="grid max-h-[30rem] gap-1.5 overflow-y-auto pr-1">
                   {seasonData.episodes.map((ep) => {
                     const active = ep.episode_number === e;
                     return (
                       <Link
                         key={ep.id}
-                        to={`/watch/tv/${id}/${s}/${ep.episode_number}`}
+                        to={`/watch/tv/${id}?season=${s}&episode=${ep.episode_number}`}
                         className={cn(
-                          "group flex items-center gap-3 p-2 pr-3.5 rounded-xl ring-1 transition-all",
-                          active
-                            ? "bg-primary/[0.09] ring-primary/40"
-                            : "bg-white/[0.03] ring-transparent hover:ring-white/[0.14] hover:bg-white/[0.05]"
+                          "group flex min-w-0 items-center gap-3 rounded-xl border p-2 transition-colors",
+                          active ? "border-primary/40 bg-primary/[0.08]" : "border-transparent hover:border-white/[0.07] hover:bg-white/[0.035]"
                         )}
                       >
-                        <div className="relative w-24 aspect-video rounded-lg overflow-hidden shrink-0 bg-zinc-900">
-                          <img
-                            src={imgUrl(ep.still_path ?? null, "w300")}
-                            alt=""
-                            loading="lazy"
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                          {active ? (
-                            <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
-                              <span className="rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 px-2 py-0.5 text-[7px] font-bold uppercase tracking-widest text-white shadow-glow-sm">
-                                Playing
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Play className="w-4 h-4 fill-current" />
-                            </div>
-                          )}
+                        <div className="relative aspect-video w-20 shrink-0 overflow-hidden rounded-md bg-surface-raised">
+                          {ep.still_path && <img src={imgUrl(ep.still_path, "w300")} alt="" loading="lazy" className="h-full w-full object-cover" />}
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
+                            <Play className="h-3.5 w-3.5 fill-current text-white" />
+                          </span>
                         </div>
-
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-baseline gap-2">
-                            <span className={cn("text-[10px] font-black tabular-nums", active ? "text-primary" : "text-white/35")}>
+                            <span className={cn("text-[10px] font-bold tabular-nums", active ? "text-primary" : "text-white/35")}>
                               E{String(ep.episode_number).padStart(2, "0")}
                             </span>
-                            <p className={cn("text-xs font-bold truncate", active ? "text-white" : "text-white/80")}>
-                              {ep.name || "Episode"}
-                            </p>
+                            <p className="truncate text-xs font-semibold text-white/80">{ep.name || "Episode"}</p>
                           </div>
-                          <div className="flex items-center gap-2.5 mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/30">
-                            <span>{ep.air_date || "TBA"}</span>
-                            {ep.runtime ? <span>{ep.runtime}m</span> : null}
-                          </div>
+                          <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-white/30">
+                            {ep.air_date || "TBA"}{ep.runtime ? ` · ${ep.runtime}m` : ""}
+                          </p>
                         </div>
-
-                        <Play className={cn("w-3.5 h-3.5 shrink-0 transition-all", active ? "text-primary fill-current" : "text-white/20 group-hover:text-white")} />
+                        {active && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
                       </Link>
                     );
                   })}
@@ -378,32 +294,27 @@ export default function WatchTv() {
               </section>
             )}
 
-            {/* All seasons */}
             {seasons.length > 1 && (
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/25 mb-3">Seasons</p>
+              <section>
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">All seasons</p>
                 <div className="grid grid-cols-2 gap-2">
-                  {seasons.map((se) => (
+                  {seasons.map((item) => (
                     <Link
-                      key={se.season_number}
-                      to={`/watch/tv/${id}/${se.season_number}/1`}
+                      key={item.season_number}
+                      to={`/watch/tv/${id}?season=${item.season_number}&episode=1`}
                       className={cn(
-                        "flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all",
-                        se.season_number === s
-                          ? "bg-primary/15 text-primary ring-1 ring-primary/30"
-                          : "text-white/50 hover:text-white hover:bg-white/[0.05]"
+                        "flex items-center justify-between rounded-lg px-3 py-2 text-[10px] font-semibold transition-colors",
+                        item.season_number === s ? "bg-primary/10 text-primary" : "text-white/45 hover:bg-white/[0.04] hover:text-white"
                       )}
                     >
-                      <span className="truncate">{se.name}</span>
-                      <span className="text-[9px] font-semibold uppercase tracking-wider opacity-60 ml-2 shrink-0">
-                        {se.episode_count} ep
-                      </span>
+                      <span className="truncate">{item.name}</span>
+                      <span className="ml-2 shrink-0 text-[10px] text-white/30">{item.episode_count} ep</span>
                     </Link>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
-          </motion.aside>
+          </aside>
         </div>
       </div>
     </PageShell>
@@ -412,12 +323,10 @@ export default function WatchTv() {
 
 function likes(show: MovieDetails | null, boost: boolean): number {
   if (!show) return 0;
-  const base = Math.round(show.vote_count * (show.vote_average / 10));
-  return base + (boost ? 1 : 0);
+  return Math.round(show.vote_count * (show.vote_average / 10)) + (boost ? 1 : 0);
 }
 
 function dislikes(show: MovieDetails | null, boost: boolean): number {
   if (!show) return 0;
-  const base = Math.round(show.vote_count * (1 - show.vote_average / 10));
-  return base + (boost ? 1 : 0);
+  return Math.round(show.vote_count * (1 - show.vote_average / 10)) + (boost ? 1 : 0);
 }

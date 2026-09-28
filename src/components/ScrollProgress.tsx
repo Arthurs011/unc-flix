@@ -2,12 +2,13 @@ import { motion, useScroll, useSpring } from "motion/react";
 
 export default function ScrollProgress() {
   const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 140, damping: 26, mass: 0.4 });
+  const scaleX = useSpring(scrollYProgress, { stiffness: 160, damping: 28, mass: 0.35 });
 
   return (
     <motion.div
       style={{ scaleX }}
-      className="fixed top-0 left-0 right-0 h-[3px] origin-left z-[80] rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-fuchsia-500 shadow-glow-sm pointer-events-none"
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[80] h-[2px] origin-left bg-gradient-to-r from-sky-400 via-indigo-400 to-violet-400 shadow-[0_0_18px_rgba(56,189,248,0.32)]"
     />
   );
 }

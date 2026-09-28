@@ -1,255 +1,234 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Clapperboard, LayoutGrid, ChevronDown, BookmarkPlus, Home, Tv, Film } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
-import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
-import { springSnappy } from "@/lib/motion";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
+import { ChevronDown, Search, Sparkles, X } from "lucide-react";
 import SearchDropdown from "@/components/SearchDropdown";
-import { useAutoHideNav } from "@/hooks/useAutoHideNav";
 import MobileNav from "@/components/MobileNav";
+import { useAutoHideNav } from "@/hooks/useAutoHideNav";
+import { EASE } from "@/lib/motion";
 
-const QUICK_GENRES = [
-  { id: 28, name: "Action" },
-  { id: 16, name: "Anime" },
-  { id: 35, name: "Comedy" },
-  { id: 27, name: "Horror" },
-  { id: 10749, name: "Romance" },
-  { id: 878, name: "Sci-Fi" },
+const NAV_ITEMS = [
+  { label: "Home", href: "/" },
+  { label: "Movies", href: "/movies" },
+  { label: "Series", href: "/tv" },
+  { label: "My List", href: "/watchlist" },
 ];
 
-const LINKS = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/tv", label: "Series", icon: Tv },
-  { to: "/movies", label: "Cinema", icon: Film },
-  { to: "/watchlist", label: "Saved", icon: BookmarkPlus },
+const BROWSE_ITEMS = [
+  { label: "Anime", description: "Animation from every era", href: "/anime" },
+  { label: "Marvel", description: "A connected cinematic universe", href: "/marvel" },
+  { label: "Animated", description: "Hand-drawn and beyond", href: "/animated" },
 ];
 
 export default function Navbar() {
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const { pathname } = useLocation();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const searchWrapRef = useRef<HTMLDivElement>(null);
+  const hidden = useAutoHideNav(160);
   const browseRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setSearchOpen(true);
-        searchInputRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) {
-        setSearchOpen(false);
-        setQuery("");
-      }
-      if (browseRef.current && !browseRef.current.contains(e.target as Node)) {
-        setBrowseOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  useEffect(() => {
-    setQuery("");
-    setSearchOpen(false);
-    setBrowseOpen(false);
-  }, [location.pathname]);
-
-  const navHidden = useAutoHideNav();
   const { scrollY } = useScroll();
-  const pillBg = useTransform(scrollY, [0, 180], ["rgba(13,15,23,0.45)", "rgba(13,15,23,0.88)"]);
-  const pillShadow = useTransform(
-    scrollY,
-    [0, 180],
-    ["0 8px 32px rgba(0,0,0,0.25)", "0 16px 48px rgba(0,0,0,0.55)"]
-  );
 
-  const submit = (e: React.FormEvent, q: string) => {
-    e.preventDefault();
-    if (q.trim()) {
-      navigate(`/search?q=${encodeURIComponent(q.trim())}`);
-      setSearchOpen(false);
-      setQuery("");
-    }
+  useMotionValueEvent(scrollY, "change", (latest) => setScrolled(latest > 24));
+
+  useEffect(() => {
+    setBrowseOpen(false);
+    setSearchOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setBrowseOpen(false);
+        setSearchOpen(true);
+        return;
+      }
+      if (event.key === "Escape") {
+        setBrowseOpen(false);
+        setSearchOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!browseOpen || browseRef.current?.contains(event.target as Node)) return;
+      setBrowseOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [browseOpen]);
+
+  if (pathname.startsWith("/watch/")) return null;
+
+  const submitSearch = () => {
+    if (!query.trim()) return;
+    navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    setSearchOpen(false);
   };
-
-  if (location.pathname.startsWith("/watch/") || /^\/watch\/?$/.test(location.pathname)) return null;
 
   return (
     <>
       <MobileNav />
+      <nav className="fixed inset-x-0 top-0 z-50 hidden md:block" aria-label="Primary navigation">
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.button
+            type="button"
+            aria-label="Close search"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSearchOpen(false)}
+            className="fixed inset-0 z-40 cursor-default bg-black/55 backdrop-blur-[2px]"
+          />
+        )}
+      </AnimatePresence>
 
-      {/* ===== Desktop floating pill nav ===== */}
-      <motion.nav
-        initial={{ y: -72, opacity: 0 }}
-        animate={{ y: navHidden ? -96 : 0, opacity: 1 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed top-4 left-0 right-0 z-50 hidden md:flex justify-center pointer-events-none"
-        aria-label="Desktop navigation"
+      <motion.header
+        animate={{
+          y: hidden ? -80 : 0,
+          backgroundColor: scrolled || browseOpen ? "rgba(6, 7, 10, 0.82)" : "rgba(6, 7, 10, 0)",
+        }}
+        transition={{ duration: 0.3, ease: EASE }}
+        className={`relative z-50 border-b transition-all duration-300 ${
+          scrolled || browseOpen ? "border-white/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-xl" : "border-transparent"
+        }`}
       >
-        <motion.div
-          style={{ backgroundColor: pillBg, boxShadow: pillShadow }}
-          className="pointer-events-auto flex items-center gap-1 h-16 pl-5 pr-2 rounded-full glass-strong ring-1 ring-white/10"
-        >
-          <Link to="/" className="flex items-center gap-2.5 mr-4 group">
-            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-glow-sm group-hover:rotate-12 transition-transform duration-500">
-              <Clapperboard className="w-4 h-4" />
-            </span>
-            <span className="text-lg font-extrabold tracking-tight text-white">
-              UNC<span className="text-primary">FLIX</span>
-            </span>
-          </Link>
+        <div className="section-shell relative flex h-16 items-center justify-between gap-6">
+          <div className="flex shrink-0 items-center gap-4">
+            <Link to="/" className="group flex items-center gap-2.5" aria-label="UNCFLIX home">
+              <span className="text-[15px] font-black tracking-[-0.055em] text-white">
+                UNC<span className="text-primary">FLIX</span>
+              </span>
+              <span className="h-4 w-px bg-white/15" />
+              <span className="hidden text-[9px] font-semibold uppercase tracking-[0.24em] text-white/35 xl:inline">
+                Cinematic archive
+              </span>
+            </Link>
+          </div>
 
-          <div className="flex items-center gap-0.5">
-            {LINKS.slice(0, 4).map((l) => {
-              const isActive = location.pathname === l.to;
+          <div className="flex h-full items-center gap-1 xl:gap-2">
+            {NAV_ITEMS.map((item) => {
+              const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
               return (
                 <Link
-                  key={l.to}
-                  to={l.to}
-                  className={cn(
-                    "relative px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors",
-                    isActive ? "text-white" : "text-white/50 hover:text-white"
-                  )}
+                  key={item.href}
+                  to={item.href}
+                  className={`relative flex h-full items-center px-3.5 text-[13px] font-medium tracking-tight transition-colors ${
+                    active ? "text-white" : "text-white/50 hover:text-white/90"
+                  }`}
                 >
-                  {isActive && (
+                  {item.label}
+                  {active && (
                     <motion.span
-                      layoutId="nav-active-pill"
-                      transition={springSnappy}
-                      className="absolute inset-0 rounded-full bg-white/[0.09] ring-1 ring-white/10"
+                      layoutId="desktop-nav-active"
+                      className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-primary"
+                      transition={{ duration: 0.25, ease: EASE }}
                     />
                   )}
-                  <span className="relative z-10">{l.label}</span>
                 </Link>
               );
             })}
+          </div>
 
-            {/* Browse dropdown */}
-            <div className="relative" ref={browseRef}>
+          <div className="flex items-center gap-1.5">
+            <div className="relative">
               <button
-                onClick={() => setBrowseOpen((o) => !o)}
-                className={cn(
-                  "flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors outline-none",
-                  browseOpen ? "text-white bg-white/[0.09]" : "text-white/50 hover:text-white"
-                )}
+                type="button"
+                onClick={() => setSearchOpen((open) => !open)}
+                aria-label={searchOpen ? "Close search" : "Open search (Press ⌘K)"}
+                aria-expanded={searchOpen}
+                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
+                  searchOpen
+                    ? "bg-white/[0.1] text-white"
+                    : "text-white/50 hover:bg-white/[0.06] hover:text-white"
+                }`}
               >
-                Browse
-                <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", browseOpen && "rotate-180")} />
+                {searchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+              </button>
+
+              <AnimatePresence>
+                {searchOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                    transition={{ duration: 0.18, ease: EASE }}
+                    className="absolute right-0 top-[calc(100%+0.65rem)] w-[min(92vw,27rem)]"
+                  >
+                    <SearchDropdown
+                      query={query}
+                      onQueryChange={setQuery}
+                      onSelect={() => {
+                        setSearchOpen(false);
+                        setQuery("");
+                      }}
+                      onSubmit={submitSearch}
+                      autoFocus
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div ref={browseRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setBrowseOpen((open) => !open)}
+                aria-expanded={browseOpen}
+                className={`flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors ${
+                  browseOpen ? "bg-white/[0.08] text-white" : "text-white/50 hover:bg-white/[0.05] hover:text-white"
+                }`}
+              >
+                <span>Explore</span>
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${browseOpen ? "rotate-180" : ""}`} />
               </button>
 
               <AnimatePresence>
                 {browseOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    initial={{ opacity: 0, y: -8, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                    transition={{ duration: 0.18 }}
-                    className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-52 rounded-2xl glass-strong ring-1 ring-white/10 shadow-card-lg p-1.5 origin-top"
+                    exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                    transition={{ duration: 0.2, ease: EASE }}
+                    className="glass-strong absolute right-0 top-[calc(100%+0.65rem)] w-72 overflow-hidden rounded-2xl p-2 shadow-cinema"
                   >
-                    <p className="px-3 pt-2 pb-1.5 text-[9px] font-bold uppercase tracking-[0.25em] text-white/30">
-                      Popular Genres
+                    <p className="px-3 pb-2 pt-1 text-[9px] font-bold uppercase tracking-[0.24em] text-white/30">
+                      Curated worlds
                     </p>
-                    {QUICK_GENRES.map((g, i) => (
-                      <motion.div
-                        key={g.id}
-                        initial={{ opacity: 0, x: -6 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.03 * i }}
-                      >
-                        <Link
-                          to={`/movies?genre=${g.id}`}
-                          onClick={() => setBrowseOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-white/60 hover:text-white hover:bg-white/[0.07] transition-colors"
-                        >
-                          <LayoutGrid className="w-3 h-3 text-primary" />
-                          {g.name}
-                        </Link>
-                      </motion.div>
-                    ))}
-                    <div className="border-t border-white/[0.06] mt-1.5 pt-1.5">
+                    {BROWSE_ITEMS.map((item) => (
                       <Link
-                        to="/watchlist"
-                        onClick={() => setBrowseOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-white/60 hover:text-white hover:bg-white/[0.07] transition-colors"
+                        key={item.href}
+                        to={item.href}
+                        className="group flex items-start gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-white/[0.055]"
                       >
-                        <BookmarkPlus className="w-3 h-3 text-primary" />
-                        Saved
+                        <span className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.035] text-primary">
+                          <Sparkles className="h-3.5 w-3.5" />
+                        </span>
+                        <span>
+                          <span className="block text-sm font-semibold text-white/85 transition-colors group-hover:text-white">
+                            {item.label}
+                          </span>
+                          <span className="mt-0.5 block text-xs leading-relaxed text-white/35">
+                            {item.description}
+                          </span>
+                        </span>
                       </Link>
-                    </div>
+                    ))}
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
           </div>
-
-          {/* Right cluster */}
-          <div className="flex items-center gap-1 ml-3 relative" ref={searchWrapRef}>
-            <AnimatePresence>
-              {searchOpen && (
-                <motion.form
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 300, opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 320, damping: 32 }}
-                  onSubmit={(e) => submit(e, query)}
-                  className="overflow-visible relative"
-                >
-                  <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
-                    <input
-                      ref={searchInputRef}
-                      autoFocus
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search titles..."
-                      className="w-full h-11 rounded-full bg-white/[0.06] ring-1 ring-white/10 text-sm text-white placeholder:text-white/30 pl-11 pr-4 outline-none focus:ring-primary/60 transition-all"
-                    />
-                  </div>
-                  <div className="absolute top-full right-0 left-0">
-                    <SearchDropdown query={query} onSelect={() => { setSearchOpen(false); setQuery(""); }} />
-                  </div>
-                </motion.form>
-              )}
-            </AnimatePresence>
-
-            {!searchOpen && (
-              <button
-                onClick={() => setSearchOpen(true)}
-                aria-label="Search"
-                className="p-3 rounded-full text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
-              >
-                <Search className="w-5 h-5" />
-              </button>
-            )}
-
-            <Link
-              to="/watchlist"
-              aria-label="Watchlist"
-              className={cn(
-                "p-3 rounded-full transition-all",
-                location.pathname === "/watchlist"
-                  ? "text-primary bg-primary/10"
-                  : "text-white/60 hover:text-white hover:bg-white/[0.08]"
-              )}
-            >
-              <BookmarkPlus className="w-5 h-5" />
-            </Link>
-          </div>
-        </motion.div>
-      </motion.nav>
-
+        </div>
+      </motion.header>
+      </nav>
     </>
   );
 }

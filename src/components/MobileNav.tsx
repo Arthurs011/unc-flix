@@ -1,206 +1,191 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Clapperboard, X, Home, Tv, Film, BookmarkPlus, LayoutGrid } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { cn } from "@/lib/utils";
-import { EASE, springSnappy } from "@/lib/motion";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
+import { Bookmark, Film, House, Search, Tv, X } from "lucide-react";
 import SearchDropdown from "@/components/SearchDropdown";
+import { useAutoHideNav } from "@/hooks/useAutoHideNav";
+import { EASE } from "@/lib/motion";
 
-const DOCK_LINKS = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/tv", label: "Series", icon: Tv },
-  { to: "/movies", label: "Cinema", icon: Film },
-  { to: "/watchlist", label: "Saved", icon: BookmarkPlus },
-];
-
-const QUICK_GENRES = [
-  { id: 28, name: "Action" },
-  { id: 16, name: "Anime" },
-  { id: 35, name: "Comedy" },
-  { id: 27, name: "Horror" },
+const DOCK_ITEMS = [
+  { label: "Home", href: "/", icon: House },
+  { label: "Movies", href: "/movies", icon: Film },
+  { label: "Series", href: "/tv", icon: Tv },
+  { label: "Search", href: "/search", icon: Search },
+  { label: "My List", href: "/watchlist", icon: Bookmark },
 ];
 
 export default function MobileNav() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const navigate = useNavigate();
-  const location = useLocation();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const { pathname } = useLocation();
+  const hidden = useAutoHideNav(220);
 
   useEffect(() => {
     setSearchOpen(false);
     setQuery("");
-  }, [location.pathname]);
+  }, [pathname]);
 
   useEffect(() => {
-    document.body.style.overflow = searchOpen ? "hidden" : "";
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSearchOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKeyDown);
     };
   }, [searchOpen]);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-      setSearchOpen(false);
-      setQuery("");
-    }
-  };
+  if (pathname.startsWith("/watch/")) return null;
+
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
     <>
-      {/* ===== Top bar ===== */}
-      <header className="fixed top-0 left-0 right-0 z-50 md:hidden glass-strong ring-1 ring-white/[0.06] pt-safe">
-        <div className="h-16 px-4 flex items-center justify-between">
-          <Link to="/" className="-my-2 p-2 flex items-center gap-2.5 active:opacity-70 transition-opacity">
-            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-glow-sm">
-              <Clapperboard className="w-4 h-4" />
-            </span>
-            <span className="text-base font-extrabold tracking-tight text-white">
-              UNC<span className="text-primary">FLIX</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-1">
-            <Link
-              to="/watchlist"
-              aria-label="Watchlist"
-              className="w-11 h-11 rounded-full flex items-center justify-center text-white/70 active:bg-white/[0.1] transition-all"
-            >
-              <BookmarkPlus className="w-5 h-5" />
-            </Link>
-            <button
-              onClick={() => setSearchOpen(true)}
-              aria-label="Search"
-              className="w-11 h-11 rounded-full flex items-center justify-center text-white/70 active:bg-white/[0.1] transition-all"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ===== Bottom dock ===== */}
-      <motion.nav
-        initial={{ y: 110, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.25, ease: EASE }}
-        aria-label="Mobile navigation"
-        className="fixed bottom-0 left-0 right-0 z-50 md:hidden flex justify-center pointer-events-none pb-safe"
+      <motion.header
+        initial={{ y: -72, opacity: 0 }}
+        animate={{ y: hidden && !searchOpen ? -72 : 0, opacity: 1 }}
+        transition={{ duration: 0.3, ease: EASE }}
+        className={`pointer-events-none fixed inset-x-0 top-0 px-4 pt-[calc(0.6rem+env(safe-area-inset-top,0px))] transition-[z-index] md:hidden ${
+          searchOpen ? "z-[70]" : "z-50"
+        }`}
       >
-        <div className="pointer-events-auto mb-3 glass-strong ring-1 ring-white/10 rounded-[2rem] px-2.5 py-2 flex items-center gap-1 shadow-card-lg">
-          {DOCK_LINKS.map((l) => {
-            const isActive = location.pathname === l.to;
-            return (
-              <Link
-                key={l.to}
-                to={l.to}
-                aria-label={l.label}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "relative w-14 h-14 rounded-3xl flex flex-col items-center justify-center gap-1 transition-colors",
-                  isActive ? "text-white" : "text-white/40 active:text-white/80"
-                )}
-              >
-                {isActive && (
-                  <motion.span
-                    layoutId="dock-active-pill"
-                    transition={springSnappy}
-                    className="absolute inset-0 rounded-3xl bg-gradient-to-r from-sky-500 to-indigo-600 shadow-glow-sm"
-                  />
-                )}
-                <l.icon className="relative z-10 w-5 h-5" />
-                <span className="relative z-10 text-[8px] font-bold uppercase tracking-widest">{l.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </motion.nav>
+        <div
+          className={`pointer-events-auto flex h-12 items-center justify-between rounded-xl px-3 transition-all duration-300 ${
+            scrolled || searchOpen
+              ? "border border-white/[0.07] bg-[#07080c]/90 shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-xl"
+              : "border border-transparent bg-transparent"
+          }`}
+        >
+          {searchOpen ? (
+            <button
+              type="button"
+              onClick={() => setSearchOpen(false)}
+              className="tap-target -ml-1 flex items-center justify-center rounded-lg text-white/60 transition-colors hover:text-white"
+              aria-label="Close search"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          ) : (
+            <Link to="/" className="flex items-center gap-2" aria-label="UNCFLIX home">
+              <span className="text-sm font-black tracking-[-0.055em] text-white">
+                UNC<span className="text-primary">FLIX</span>
+              </span>
+            </Link>
+          )}
 
-      {/* ===== Search sheet ===== */}
+          {searchOpen ? (
+            <span className="mr-auto ml-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              Search archive
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="tap-target -mr-1 flex items-center justify-center rounded-lg text-white/55 transition-colors hover:text-white"
+              aria-label="Search"
+            >
+              <Search className="h-[18px] w-[18px]" />
+            </button>
+          )}
+        </div>
+      </motion.header>
+
       <AnimatePresence>
         {searchOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[60] md:hidden bg-black/60 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search the archive"
             onClick={() => setSearchOpen(false)}
+            className="fixed inset-0 z-[60] bg-[#06070a]/95 px-4 pb-6 pt-[calc(5rem+env(safe-area-inset-top,0px))] backdrop-blur-2xl md:hidden"
           >
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", stiffness: 380, damping: 40 }}
-              onClick={(e) => e.stopPropagation()}
-              className="absolute inset-x-0 bottom-0 top-10 rounded-t-[2rem] bg-background ring-1 ring-white/10 flex flex-col overflow-hidden"
-            >
-              <div className="pt-safe shrink-0">
-                <div className="flex justify-center pt-3 pb-1">
-                  <span className="w-10 h-1 rounded-full bg-white/20" />
-                </div>
-
-                <form onSubmit={submit} className="px-4 pb-4 flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/35 pointer-events-none" />
-                    <input
-                      ref={inputRef}
-                      autoFocus
-                      enterKeyHint="search"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Movies, series, people..."
-                      className="w-full h-13 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 text-base text-white placeholder:text-white/30 pl-12 pr-4 outline-none focus:ring-primary/60 transition-all"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSearchOpen(false)}
-                    aria-label="Close search"
-                    className="w-12 h-12 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 flex items-center justify-center text-white/70 active:bg-white/[0.12]"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </form>
-
-                {!query && (
-                  <div className="px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-hide">
-                    {QUICK_GENRES.map((g) => (
-                      <button
-                        key={g.id}
-                        onClick={() => navigate(`/movies?genre=${g.id}`)}
-                        className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/[0.05] ring-1 ring-white/[0.08] text-[11px] font-bold uppercase tracking-wider text-white/55 active:bg-white/[0.1]"
-                      >
-                        <LayoutGrid className="w-3 h-3 text-primary" />
-                        {g.name}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => navigate("/animated")}
-                      className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/[0.05] ring-1 ring-white/[0.08] text-[11px] font-bold uppercase tracking-wider text-white/55 active:bg-white/[0.1]"
-                    >
-                      <Film className="w-3 h-3 text-emerald-400" />
-                      Animated
-                    </button>
-                    <button
-                      onClick={() => navigate("/watchlist")}
-                      className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white/[0.05] ring-1 ring-white/[0.08] text-[11px] font-bold uppercase tracking-wider text-white/55 active:bg-white/[0.1]"
-                    >
-                      <BookmarkPlus className="w-3 h-3 text-primary" />
-                      Saved
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pb-safe">
-                <SearchDropdown query={query} onSelect={() => { setQuery(""); setSearchOpen(false); }} />
-              </div>
-            </motion.div>
+            <div onClick={(event) => event.stopPropagation()} className="mx-auto w-full max-w-lg">
+              <SearchDropdown
+                query={query}
+                onQueryChange={setQuery}
+                onSelect={() => {
+                  setQuery("");
+                  setSearchOpen(false);
+                }}
+                autoFocus
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <motion.nav
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.35, ease: EASE }}
+        aria-label="Mobile navigation"
+        className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:hidden pointer-events-none"
+      >
+        <div className="pointer-events-auto mx-auto grid h-[3.85rem] max-w-sm grid-cols-5 items-center rounded-2xl border border-white/[0.08] bg-[#090b10]/92 px-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.85)] backdrop-blur-2xl">
+          {DOCK_ITEMS.map((item) => {
+            const active = isActive(item.href);
+            const Icon = item.icon;
+            if (item.label === "Search") {
+              return (
+                <button
+                  key={item.href}
+                  type="button"
+                  onClick={() => setSearchOpen(true)}
+                  className={`tap-target relative flex flex-col items-center justify-center gap-0.5 rounded-xl transition-colors ${
+                    active || searchOpen ? "text-white" : "text-white/40 hover:text-white/75"
+                  }`}
+                  aria-label="Search"
+                >
+                  <Icon className="h-5 w-5" strokeWidth={active || searchOpen ? 2.2 : 1.8} />
+                  <span className={`text-[10px] font-medium tracking-tight ${active || searchOpen ? "text-primary" : ""}`}>
+                    {item.label}
+                  </span>
+                  {(active || searchOpen) && (
+                    <motion.span
+                      layoutId="mobile-dock-dot"
+                      className="absolute top-1 h-1 w-1 rounded-full bg-primary"
+                    />
+                  )}
+                </button>
+              );
+            }
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={`tap-target relative flex flex-col items-center justify-center gap-0.5 rounded-xl transition-colors ${
+                  active ? "text-white" : "text-white/40 hover:text-white/75"
+                }`}
+              >
+                <Icon className="h-5 w-5" strokeWidth={active ? 2.2 : 1.8} />
+                <span className={`text-[10px] font-medium tracking-tight ${active ? "text-primary" : ""}`}>
+                  {item.label}
+                </span>
+                {active && (
+                  <motion.span
+                    layoutId="mobile-dock-dot"
+                    className="absolute top-1 h-1 w-1 rounded-full bg-primary"
+                  />
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </motion.nav>
     </>
   );
 }

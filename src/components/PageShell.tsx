@@ -9,10 +9,10 @@ interface Props {
 export default function PageShell({ children, className }: Props) {
   return (
     <motion.main
-      initial={{ opacity: 0, y: 18, filter: "blur(8px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: -14, filter: "blur(8px)" }}
-      transition={{ duration: 0.4, ease: EASE }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.3, ease: EASE }}
       className={className}
     >
       {children}

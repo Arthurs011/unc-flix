@@ -1,72 +1,62 @@
-import { useParams, Link } from "react-router-dom";
-import { Star, ThumbsUp, ThumbsDown, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
+import { Check, Share2, Star, ThumbsDown, ThumbsUp } from "lucide-react";
 import { updateContinueWatching } from "@/lib/storage";
-import { tmdb, getTitle, imgUrl, Movie, MovieDetails, formatCount, getYear } from "@/lib/tmdb";
+import { tmdb, getTitle, getYear, imgUrl, type Movie, type MovieDetails, formatCount } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { SOURCES } from "@/lib/servers";
 import PageShell from "@/components/PageShell";
-import ScrollProgress from "@/components/ScrollProgress";
 import WatchHeader from "@/components/WatchHeader";
-import { EASE, springSnappy } from "@/lib/motion";
+import { EASE } from "@/lib/motion";
 
 const CINESRC_ORIGIN = SOURCES[0].baseUrl;
 
 export default function WatchMovie() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   useFullscreenOrientation();
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
+  const [copied, setCopied] = useState(false);
   const lastSaveRef = useRef(0);
   const lastProgressRef = useRef<{ currentTime: number; duration: number } | null>(null);
-  const searchParams = new URLSearchParams(window.location.search);
-  const seekTo = Number(searchParams.get("t")) || 0;
+  const seekTo = Math.max(0, Number(searchParams.get("t")) || 0);
+
+  const handleShare = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
     window.scrollTo({ top: 0 });
-
-    tmdb.movieDetails(Number(id)).then((m) => {
-      setMovie(m);
-      document.title = `Watch ${getTitle(m)} · UNCFLIX`;
-    }).catch(() => {});
-
-    tmdb.movieRecommendations(Number(id)).then((res) => {
-      setRecommendations((res.results ?? []).slice(0, 10));
-    }).catch(() => setRecommendations([]));
-
+    tmdb.movieDetails(Number(id)).then((data) => {
+      setMovie(data);
+      document.title = `Watch ${getTitle(data)} · UNCFLIX`;
+    }).catch(() => setMovie(null));
+    tmdb.movieRecommendations(Number(id)).then((data) => setRecommendations((data.results ?? []).slice(0, 10))).catch(() => setRecommendations([]));
     return () => { document.title = "UNCFLIX"; };
   }, [id]);
 
-  // CineSrc progress sync
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== CINESRC_ORIGIN) return;
       const data = event.data;
       if (!data || typeof data !== "object") return;
-
-      if (data.type === "cinesrc:timeupdate" && typeof data.currentTime === "number" && typeof data.duration === "number" && data.duration > 0 && id) {
-        lastProgressRef.current = { currentTime: data.currentTime, duration: data.duration };
-        const now = Date.now();
-        if (now - lastSaveRef.current < 8000 || !movie) return;
-        lastSaveRef.current = now;
-        const progress = Math.min(100, Math.round((data.currentTime / data.duration) * 100));
-        if (progress < 2) return;
-        updateContinueWatching({
-          id: Number(id),
-          type: "movie",
-          title: getTitle(movie),
-          poster_path: movie.poster_path,
-          backdrop_path: movie.backdrop_path,
-          progress,
-          currentTime: data.currentTime,
-          duration: data.duration,
-          timestamp: now,
-        });
-      }
+      if (data.type !== "cinesrc:timeupdate" || typeof data.currentTime !== "number" || typeof data.duration !== "number" || data.duration <= 0 || !id) return;
+      lastProgressRef.current = { currentTime: data.currentTime, duration: data.duration };
+      const now = Date.now();
+      if (now - lastSaveRef.current < 8000 || !movie) return;
+      lastSaveRef.current = now;
+      const progress = Math.min(100, Math.round((data.currentTime / data.duration) * 100));
+      if (progress < 2) return;
+      updateContinueWatching({ id: Number(id), type: "movie", title: getTitle(movie), poster_path: movie.poster_path, backdrop_path: movie.backdrop_path, progress, currentTime: data.currentTime, duration: data.duration, timestamp: now });
     };
     window.addEventListener("message", onMessage);
     return () => {
@@ -74,19 +64,7 @@ export default function WatchMovie() {
       const last = lastProgressRef.current;
       if (last && id && movie) {
         const progress = Math.min(100, Math.round((last.currentTime / last.duration) * 100));
-        if (progress >= 2) {
-          updateContinueWatching({
-            id: Number(id),
-            type: "movie",
-            title: getTitle(movie),
-            poster_path: movie.poster_path,
-            backdrop_path: movie.backdrop_path,
-            progress,
-            currentTime: last.currentTime,
-            duration: last.duration,
-            timestamp: Date.now(),
-          });
-        }
+        if (progress >= 2) updateContinueWatching({ id: Number(id), type: "movie", title: getTitle(movie), poster_path: movie.poster_path, backdrop_path: movie.backdrop_path, progress, currentTime: last.currentTime, duration: last.duration, timestamp: Date.now() });
       }
     };
   }, [id, movie]);
@@ -94,177 +72,117 @@ export default function WatchMovie() {
   const embedSrc = SOURCES[0].build("movie", id || "") + (seekTo > 0 ? `&t=${seekTo}` : "");
 
   return (
-    <PageShell className="min-h-screen text-white pb-32 overflow-x-hidden">
-      {/* Ambient backdrop */}
-      <div className="fixed inset-0 -z-10">
-        {movie?.backdrop_path && (
-          <img
-            src={imgUrl(movie.backdrop_path, "w1280")}
-            alt=""
-            className="w-full h-full object-cover opacity-20 scale-110 blur-2xl"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/85 to-black" />
+    <PageShell className="min-h-screen overflow-x-hidden bg-[#030408] pb-24 text-white">
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
+        {movie?.backdrop_path && <img src={imgUrl(movie.backdrop_path, "w1280")} alt="" className="h-full w-full scale-110 object-cover opacity-[0.10] blur-3xl" />}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-[#040508]/92 to-black" />
       </div>
 
-      {/* Floating pill header */}
-      <ScrollProgress />
+      <WatchHeader to={`/movie/${id}`} label="Feature film" title={movie ? getTitle(movie) : "Loading…"} />
 
-      <WatchHeader
-        to={`/movie/${id}`}
-        label="Feature Film"
-        title={movie ? getTitle(movie) : "Loading..."}
-      />
-
-      {/* Two-column cinema layout */}
-      <div className="w-full max-w-[1600px] mx-auto mt-5 sm:mt-7 px-0 sm:px-6 pt-16 md:pt-24">
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_370px] xl:grid-cols-[minmax(0,1fr)_410px] gap-6 xl:gap-8">
-
-          {/* ===== Left: stage + info ===== */}
+      <div className="mx-auto w-full max-w-[1600px] px-0 pt-16 sm:px-6 sm:pt-20 md:pt-24">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_25rem]">
           <div className="min-w-0">
-            <motion.section
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, ease: EASE }}
-            >
-              <div className="relative group/stage sm:px-6 lg:px-0">
-                <div className="absolute -inset-1 rounded-none sm:rounded-[2rem] bg-gradient-to-r from-sky-500/25 via-indigo-500/15 to-transparent blur-xl opacity-60" />
-                <div className="relative p-px rounded-none sm:rounded-[1.75rem] bg-gradient-to-b from-white/20 via-white/[0.07] to-transparent shadow-card-lg">
-                  <div className="aspect-video w-full overflow-hidden rounded-none sm:rounded-[1.7rem] bg-black relative">
-                    <iframe
-                      key={embedSrc}
-                      src={embedSrc}
-                      className="absolute inset-0 w-full h-full border-0 z-10"
-                      allowFullScreen
-                      allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      title={movie ? `${getTitle(movie)} player` : "Streaming player"}
-                      loading="eager"
-                    />
-                  </div>
-                </div>
-
-                {/* Action dock */}
-                <div className="hidden sm:flex absolute -bottom-7 left-1/2 -translate-x-1/2 z-20 items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg">
-                  <button
-                    onClick={() => { setLiked(!liked); setDisliked(false); }}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${liked ? "bg-primary text-white shadow-glow-sm" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
-                  >
-                    <ThumbsUp className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
-                    {formatCount(likes(movie, liked))}
-                  </button>
-                  <span className="w-px h-5 bg-white/10" />
-                  <button
-                    onClick={() => { setDisliked(!disliked); setLiked(false); }}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
-                  >
-                    <ThumbsDown className={`w-4 h-4 ${disliked ? "fill-current" : ""}`} />
-                    {formatCount(dislikes(movie, disliked))}
-                  </button>
-                  <span className="w-px h-5 bg-white/10" />
-                  <button
-                    onClick={() => navigator.clipboard?.writeText(window.location.href)}
-                    aria-label="Share"
-                    className="flex items-center px-4 py-3 rounded-full text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Mobile actions */}
-              <div className="sm:hidden flex justify-center mt-3 relative z-20 px-4 pb-safe">
-                <div className="flex items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg gap-x-0.5">
-                  <button onClick={() => { setLiked(!liked); setDisliked(false); }} aria-label="Like" className={`flex items-center px-4 py-3 rounded-full transition-all ${liked ? "bg-primary text-white" : "text-white/60"}`}>
-                    <ThumbsUp className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
-                  </button>
-                  <button onClick={() => { setDisliked(!disliked); setLiked(false); }} aria-label="Dislike" className={`flex items-center px-4 py-3 rounded-full transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60"}`}>
-                    <ThumbsDown className={`w-4 h-4 ${disliked ? "fill-current" : ""}`} />
-                  </button>
-                  <button onClick={() => navigator.clipboard?.writeText(window.location.href)} aria-label="Share" className="flex items-center px-4 py-3 rounded-full text-white/60">
-                    <Share2 className="w-4 h-4" />
-                  </button>
+            <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: EASE }}>
+              <div className="overflow-hidden border-y border-white/[0.08] bg-black shadow-2xl sm:rounded-2xl sm:border">
+                <div className="relative aspect-video w-full overflow-hidden bg-black">
+                  <iframe key={embedSrc} src={embedSrc} title={movie ? `${getTitle(movie)} player` : "Streaming player"} className="absolute inset-0 z-10 h-full w-full border-0" allowFullScreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" referrerPolicy="no-referrer-when-downgrade" loading="eager" />
                 </div>
               </div>
             </motion.section>
 
-            {/* Info */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15, ease: EASE }}
-              className="px-4 sm:px-6 lg:px-0 mt-12 sm:mt-14"
-            >
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-4 text-xs font-semibold text-white/40 uppercase tracking-wider">
-                <Link to={`/movie/${id}`} className="rounded-full bg-white/[0.07] ring-1 ring-white/10 px-3 py-1 text-[10px] normal-case text-white/75 hover:ring-primary/40 transition-all">HD</Link>
-                {movie?.vote_average ? (
-                  <span className="flex items-center gap-1.5 text-yellow-400 normal-case font-bold">
-                    <Star className="w-3.5 h-3.5 fill-yellow-400" />
-                    {movie.vote_average.toFixed(1)}
-                    <span className="text-white/30 font-semibold">/ 10</span>
-                  </span>
-                ) : null}
-                {movie && getYear(movie) && <span>{getYear(movie)}</span>}
-                {movie?.runtime ? (
-                  <span>{Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m</span>
-                ) : null}
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1, ease: EASE }} className="px-4 pt-6 sm:px-0 sm:pt-8">
+              <div className="flex flex-col gap-4 border-b border-white/[0.06] pb-6 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">
+                    <span className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-white/70">HD</span>
+                    {movie?.vote_average ? <span className="inline-flex items-center gap-1 text-amber-200"><Star className="h-3 w-3 fill-amber-300" />{movie.vote_average.toFixed(1)}</span> : null}
+                    {movie && getYear(movie) ? <span>{getYear(movie)}</span> : null}
+                    {movie?.runtime ? <span>{Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m</span> : null}
+                  </div>
+                  <h1 className="text-2xl font-black leading-tight tracking-[-0.04em] text-white sm:text-3xl md:text-4xl">{movie ? getTitle(movie) : "Loading…"}</h1>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2 self-start sm:self-center">
+                  <div className="flex items-center rounded-lg border border-white/[0.08] bg-[#0c0d14]/70 p-1 backdrop-blur-md">
+                    <button
+                      type="button"
+                      onClick={() => { setLiked((value) => !value); setDisliked(false); }}
+                      aria-label={liked ? "Remove like" : "Like"}
+                      aria-pressed={liked}
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors ${liked ? "bg-primary text-[#060e17] font-semibold" : "text-white/60 hover:bg-white/[0.08] hover:text-white"}`}
+                    >
+                      <ThumbsUp className={`h-3.5 w-3.5 ${liked ? "fill-current" : ""}`} />
+                      <span>{formatCount(likes(movie, liked))}</span>
+                    </button>
+                    <span className="mx-1 h-3.5 w-px bg-white/10" />
+                    <button
+                      type="button"
+                      onClick={() => { setDisliked((value) => !value); setLiked(false); }}
+                      aria-label={disliked ? "Remove dislike" : "Dislike"}
+                      aria-pressed={disliked}
+                      className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors ${disliked ? "bg-red-400 text-red-950 font-semibold" : "text-white/60 hover:bg-white/[0.08] hover:text-white"}`}
+                    >
+                      <ThumbsDown className={`h-3.5 w-3.5 ${disliked ? "fill-current" : ""}`} />
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    aria-label="Share movie link"
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#0c0d14]/70 px-3 text-xs font-medium text-white/60 backdrop-blur-md transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white active:scale-95"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Share</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tighter leading-[0.95] mb-5">
-                {movie ? getTitle(movie) : "Loading..."}
-              </h2>
-
-              <p className="text-base text-white/55 leading-relaxed max-w-2xl">
-                {movie?.overview || "No description available."}
-              </p>
-
-              {movie?.genres && movie.genres.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-8">
-                  {movie.genres.map((g) => (
-                    <Link
-                      key={g.id}
-                      to={`/movies?genre=${g.id}`}
-                      className="rounded-full bg-white/[0.05] ring-1 ring-white/[0.09] px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white/55 hover:text-white hover:bg-white/[0.09] hover:ring-white/20 transition-all"
-                    >
-                      {g.name}
-                    </Link>
-                  ))}
-                </div>
-              )}
+              <div className="pt-5">
+                <p className="max-w-3xl text-pretty text-sm leading-relaxed text-white/55 sm:text-base">{movie?.overview || "No description available."}</p>
+                {movie?.genres && movie.genres.length > 0 && (
+                  <div className="mt-5 flex flex-wrap gap-1.5">
+                    {movie.genres.map((genre) => (
+                      <Link key={genre.id} to={`/movies?genre=${genre.id}`} className="rounded border border-white/[0.07] bg-white/[0.025] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/40 transition-colors hover:border-white/20 hover:text-white/75">
+                        {genre.name}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
 
-          {/* ===== Right: recommendations sidebar ===== */}
           {recommendations.length > 0 && (
-            <motion.aside
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.55, delay: 0.1, ease: EASE }}
-              className="w-full min-w-0 px-4 sm:px-6 lg:px-0 lg:sticky lg:top-24 lg:self-start"
-            >
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/25 mb-4">More Like This</p>
-              <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1 -mr-1">
+            <aside className="px-4 sm:px-6 lg:sticky lg:top-24 lg:self-start lg:px-0" aria-label="More like this">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">More like this</p>
+                <span className="text-[10px] text-white/25">{recommendations.length} titles</span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
                 {recommendations.map((rec) => (
-                  <motion.button
-                    key={rec.id}
-                    whileHover={{ x: 4 }}
-                    transition={springSnappy}
-                    className="flex gap-3.5 p-2 rounded-xl bg-white/[0.03] ring-1 ring-transparent hover:ring-primary/30 hover:bg-white/[0.05] transition-colors text-left w-full"
-                  >
-                    <div className="w-12 h-[72px] rounded-lg overflow-hidden shrink-0 ring-1 ring-white/[0.08] bg-card">
-                      <img src={imgUrl(rec.poster_path, "w200")} alt="" loading="lazy" className="w-full h-full object-cover" />
+                  <Link key={rec.id} to={`/movie/${rec.id}`} className="group flex min-w-0 items-center gap-3 rounded-xl border border-transparent p-2 transition-colors hover:border-white/[0.08] hover:bg-white/[0.035]">
+                    <div className="h-16 w-11 shrink-0 overflow-hidden rounded-md border border-white/[0.07] bg-[#0c0d14]">
+                      {rec.poster_path && <img src={imgUrl(rec.poster_path, "w200")} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />}
                     </div>
-                    <div className="flex flex-col justify-center min-w-0 pr-1">
-                      <p className="text-xs font-bold line-clamp-2 leading-snug">{getTitle(rec)}</p>
-                      <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mt-1">
-                        {getYear(rec)}
-                        {rec.vote_average ? ` · ★ ${rec.vote_average.toFixed(1)}` : ""}
-                      </span>
+                    <div className="min-w-0">
+                      <p className="line-clamp-1 text-xs font-semibold text-white/75 transition-colors group-hover:text-white">{getTitle(rec)}</p>
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/30">{getYear(rec)}{rec.vote_average ? ` · ${rec.vote_average.toFixed(1)}` : ""}</p>
                     </div>
-                  </motion.button>
+                  </Link>
                 ))}
               </div>
-            </motion.aside>
+            </aside>
           )}
         </div>
       </div>
@@ -274,12 +192,10 @@ export default function WatchMovie() {
 
 function likes(movie: MovieDetails | null, boost: boolean): number {
   if (!movie) return 0;
-  const base = Math.round(movie.vote_count * (movie.vote_average / 10));
-  return base + (boost ? 1 : 0);
+  return Math.round(movie.vote_count * (movie.vote_average / 10)) + (boost ? 1 : 0);
 }
 
 function dislikes(movie: MovieDetails | null, boost: boolean): number {
   if (!movie) return 0;
-  const base = Math.round(movie.vote_count * (1 - movie.vote_average / 10));
-  return base + (boost ? 1 : 0);
+  return Math.round(movie.vote_count * (1 - movie.vote_average / 10)) + (boost ? 1 : 0);
 }

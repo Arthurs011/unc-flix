@@ -1,144 +1,88 @@
-import { useRef, useState, useEffect, useCallback, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
-import { Movie } from "@/lib/tmdb";
-import MovieCard from "./MovieCard";
-import { cn } from "@/lib/utils";
-import { motion } from "motion/react";
-import { fadeUp, viewportOnce } from "@/lib/motion";
+import { useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import MovieCard from "@/components/MovieCard";
+import type { Movie } from "@/lib/tmdb";
 
 interface Props {
   title: string;
-  kicker?: string;
-  movies: Movie[] | undefined;
+  results: Movie[];
   type?: "movie" | "tv";
-  showRank?: boolean;
-  exploreTo?: string;
-  className?: string;
+  description?: string;
+  eyebrow?: string;
 }
 
-export default function ContentRow({ title, kicker, movies, type, showRank, exploreTo, className }: Props) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [showLeft, setShowLeft] = useState(false);
-  const [showRight, setShowRight] = useState(true);
-  const safeMovies = useMemo(() => movies ?? [], [movies]);
+export default function ContentRow({ title, results, type = "movie", description, eyebrow }: Props) {
+  const rowRef = useRef<HTMLDivElement>(null);
 
-  const updateArrows = useCallback(() => {
-    if (scrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-      setShowLeft(scrollLeft > 10);
-      setShowRight(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  }, []);
-
-  useEffect(() => {
-    updateArrows();
-    window.addEventListener("resize", updateArrows);
-    return () => window.removeEventListener("resize", updateArrows);
-  }, [safeMovies, updateArrows]);
-
-  const scroll = (dir: number) => {
-    if (scrollRef.current) {
-      const { clientWidth } = scrollRef.current;
-      scrollRef.current.scrollBy({ left: dir * clientWidth * 0.8, behavior: "smooth" });
-    }
+  const scroll = (direction: 1 | -1) => {
+    rowRef.current?.scrollBy({ left: direction * Math.min(rowRef.current.clientWidth * 0.8, 760), behavior: "smooth" });
   };
 
-  if (!safeMovies.length) return null;
+  if (!results.length) return null;
 
   return (
-    <motion.section
-      variants={fadeUp}
-      initial="hidden"
-      whileInView="show"
-      viewport={viewportOnce}
-      className={cn("mb-14 last:mb-8", className)}
-    >
-      <div className="flex items-end justify-between mb-5 px-4 sm:px-0">
-        <div>
-          {kicker && (
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-1.5">
-              {kicker}
-            </p>
-          )}
-          <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-            {title}
-          </h2>
-        </div>
-        <div className="flex items-center gap-3">
-          {exploreTo && safeMovies.length > 5 && (
-            <Link
-              to={exploreTo}
-              className="hidden md:flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-white/35 hover:text-primary transition-colors mb-0.5"
+    <section className="group/section py-7 sm:py-9" aria-labelledby={`row-${title.replace(/\s+/g, "-").toLowerCase()}`}>
+      <div className="section-shell">
+        <div className="mb-4 flex items-end justify-between gap-5 sm:mb-5">
+          <div className="min-w-0">
+            {eyebrow && (
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-primary/85">
+                {eyebrow}
+              </p>
+            )}
+            <h2
+              id={`row-${title.replace(/\s+/g, "-").toLowerCase()}`}
+              className="text-balance text-lg font-bold tracking-tight text-white sm:text-2xl"
             >
-              Explore all
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          )}
-          {safeMovies.length > 5 && (
-            <div className="hidden sm:flex items-center gap-2">
+              {title}
+            </h2>
+            {description && (
+              <p className="mt-1 max-w-2xl text-xs text-white/45 sm:text-sm">
+                {description}
+              </p>
+            )}
+          </div>
+          <div className="hidden shrink-0 items-center gap-1.5 opacity-0 transition-opacity duration-200 group-hover/section:opacity-100 lg:flex">
             <button
+              type="button"
               onClick={() => scroll(-1)}
-              disabled={!showLeft}
-              aria-label="Scroll left"
-              className={cn(
-                "p-2.5 rounded-full ring-1 ring-white/10 bg-white/[0.04] text-white/70 hover:bg-white/10 hover:text-white hover:ring-white/20 transition-all disabled:opacity-25 disabled:pointer-events-none"
-              )}
+              aria-label={`Scroll ${title} left`}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-white/50 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
             <button
+              type="button"
               onClick={() => scroll(1)}
-              disabled={!showRight}
-              aria-label="Scroll right"
-              className={cn(
-                "p-2.5 rounded-full ring-1 ring-white/10 bg-white/[0.04] text-white/70 hover:bg-white/10 hover:text-white hover:ring-white/20 transition-all disabled:opacity-25 disabled:pointer-events-none"
-              )}
+              aria-label={`Scroll ${title} right`}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] text-white/50 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="h-4 w-4" />
             </button>
-            </div>
-          )}
+          </div>
         </div>
       </div>
 
-      <div className="relative -mx-4 sm:mx-0">
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[#06070a] to-transparent sm:w-16" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[#06070a] to-transparent sm:w-16" />
         <div
-          ref={scrollRef}
-          onScroll={updateArrows}
-          className="flex gap-4 sm:gap-5 overflow-x-auto scrollbar-hide px-4 sm:px-0 pb-4 snap-x snap-mandatory"
+          ref={rowRef}
+          className="no-scrollbar flex snap-x snap-mandatory gap-3.5 overflow-x-auto px-4 pb-2 sm:gap-4 sm:px-6 lg:px-10 xl:px-12"
+          role="region"
+          aria-label={title}
+          tabIndex={0}
         >
-          {safeMovies.map((m, i) =>
-            showRank ? (
-              <div key={`${m.id}-${i}`} className="flex items-end flex-shrink-0 snap-start">
-                <span
-                  aria-hidden
-                  className="select-none leading-none font-black text-[64px] sm:text-[84px] tracking-tighter -mr-3 sm:-mr-4 relative z-10 text-transparent [-webkit-text-stroke:2px_rgba(255,255,255,0.28)]"
-                >
-                  {i + 1}
-                </span>
-                <MovieCard movie={m} type={type} className="w-[136px] sm:w-[160px]" />
-              </div>
-            ) : (
-              <MovieCard
-                key={`${m.id}-${i}`}
-                movie={m}
-                type={m.media_type === "tv" ? "tv" : type}
-                className="flex-shrink-0 w-[136px] sm:w-[172px] snap-start"
-              />
-            )
-          )}
+          {results.map((movie, index) => (
+            <MovieCard
+              key={`${movie.media_type ?? type}:${movie.id}:${index}`}
+              movie={movie}
+              type={type}
+              className="w-[150px] shrink-0 snap-start sm:w-[172px] md:w-[188px] lg:w-[200px]"
+            />
+          ))}
         </div>
-        {/* Edge fades */}
-        <div className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent transition-opacity duration-300",
-          showLeft ? "opacity-100" : "opacity-0 sm:hidden"
-        )} />
-        <div className={cn(
-          "pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent transition-opacity duration-300",
-          showRight ? "opacity-100" : "opacity-0"
-        )} />
       </div>
-    </motion.section>
+    </section>
   );
 }

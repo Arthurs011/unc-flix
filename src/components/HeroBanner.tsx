@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Play, Plus, Check, ChevronLeft, ChevronRight, Star, Shuffle } from "lucide-react";
-import { Movie, imgUrl, getTitle, getYear } from "@/lib/tmdb";
+import { AnimatePresence, motion, useScroll, useSpring, useTransform } from "motion/react";
+import { Check, ChevronLeft, ChevronRight, Info, Pause, Play, Plus, Shuffle, Star } from "lucide-react";
+import { getTitle, getYear, imgUrl, type Movie } from "@/lib/tmdb";
 import { isInWatchlist, toggleWatchlist } from "@/lib/storage";
-import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from "motion/react";
-import { EASE, springSnappy } from "@/lib/motion";
+import { EASE } from "@/lib/motion";
 
 interface Props {
   movies: Movie[] | undefined;
@@ -15,6 +15,7 @@ const AUTOPLAY_MS = 8000;
 export default function HeroBanner({ movies }: Props) {
   const [idx, setIdx] = useState(0);
   const [inWatchlist, setInWatchlist] = useState(false);
+  const [paused, setPaused] = useState(false);
   const safeMovies = useMemo(() => movies ?? [], [movies]);
   const featured = useMemo(() => safeMovies.slice(0, 8), [safeMovies]);
   const current = featured[idx] ?? null;
@@ -24,213 +25,220 @@ export default function HeroBanner({ movies }: Props) {
     target: heroRef,
     offset: ["start start", "end start"],
   });
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
-  const contentOpacity = useTransform(scrollYProgress, [0, 0.42], [1, 0]);
-  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "16%"]);
-
-  const magX = useMotionValue(0);
-  const magY = useMotionValue(0);
-  const springMagX = useSpring(magX, springSnappy);
-  const springMagY = useSpring(magY, springSnappy);
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "16%"]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
+  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "10%"]);
+  const progressSpring = useSpring(1, { stiffness: 100, damping: 24, mass: 0.5 });
 
   const next = useCallback(() => {
-    setIdx((i) => (i + 1) % Math.max(featured.length, 1));
+    setIdx((index) => (index + 1) % Math.max(featured.length, 1));
   }, [featured.length]);
 
-  const prev = useCallback(() => {
-    setIdx((i) => (i - 1 + featured.length) % Math.max(featured.length, 1));
+  const previous = useCallback(() => {
+    setIdx((index) => (index - 1 + featured.length) % Math.max(featured.length, 1));
   }, [featured.length]);
 
   useEffect(() => {
-    if (!featured.length) return;
-    const t = setInterval(next, AUTOPLAY_MS);
-    return () => clearInterval(t);
-  }, [next, idx, featured.length]);
+    if (idx >= featured.length) setIdx(0);
+  }, [featured.length, idx]);
 
   useEffect(() => {
-    if (current) setInWatchlist(isInWatchlist(current.id));
+    if (!featured.length || paused) return;
+    const timer = window.setInterval(next, AUTOPLAY_MS);
+    return () => window.clearInterval(timer);
+  }, [featured.length, next, paused]);
+
+  useEffect(() => {
+    if (current) setInWatchlist(isInWatchlist(current.id, getItemType(current)));
   }, [current]);
-
-  const handleShuffle = () => {
-    if (!safeMovies.length) return;
-    setIdx(Math.floor(Math.random() * featured.length));
-  };
 
   if (!current) return null;
 
-  const words = getTitle(current).split(" ");
+  const title = getTitle(current);
+  const year = getYear(current);
+  const overview = current.overview || "A new story awaits in the UNCFLIX archive.";
+  const type = getItemType(current);
+  const watchHref = type === "tv" ? `/watch/tv/${current.id}?season=1&episode=1` : `/watch/movie/${current.id}`;
+  const detailsHref = type === "tv" ? `/tv/${current.id}` : `/movie/${current.id}`;
 
   return (
-    <div ref={heroRef} className="relative w-full h-[82vh] sm:h-[88vh] overflow-hidden">
-      {/* Backdrop with parallax */}
+    <section
+      ref={heroRef}
+      aria-roledescription="carousel"
+      aria-label="Featured titles"
+      className="group/hero relative h-[72svh] min-h-[34rem] sm:h-[82svh] sm:min-h-[40rem] max-h-[56rem] w-full overflow-hidden"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
       <motion.div style={{ y: bgY }} className="absolute inset-0">
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           <motion.div
-            key={current.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            key={`${type}:${current.id}`}
+            initial={{ opacity: 0, scale: 1.02 }}
+            animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 1, ease: "easeInOut" }}
+            transition={{ duration: 0.65, ease: EASE }}
             className="absolute inset-0"
           >
-            <motion.img
-              initial={{ scale: 1.12 }}
-              animate={{ scale: 1.02 }}
-              transition={{ duration: 9, ease: "linear" }}
+            <img
               src={imgUrl(current.backdrop_path, "w1280")}
-              alt={getTitle(current)}
+              alt=""
               loading="eager"
               decoding="async"
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover object-[center_20%]"
             />
           </motion.div>
         </AnimatePresence>
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/85 via-background/20 to-transparent hidden sm:block" />
+        {/* Multi-layered intentional gradients */}
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#06070a]/80 via-[#06070a]/30 to-transparent pointer-events-none" />
+        <div className="absolute inset-y-0 left-0 w-full max-w-3xl bg-gradient-to-r from-[#06070a] via-[#06070a]/75 to-transparent pointer-events-none" />
+        <div className="cinema-vignette absolute inset-0 pointer-events-none" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#06070a] via-[#06070a]/70 to-transparent pointer-events-none" />
       </motion.div>
 
-      {/* Arrows */}
-      <button
-        onClick={prev}
-        aria-label="Previous"
-        className="absolute left-6 xl:left-12 top-1/2 -translate-y-1/2 z-20 p-3.5 rounded-full glass text-white/70 hover:text-white hover:bg-white/10 opacity-0 group-hover/hero:opacity-100 md:opacity-0 md:focus:opacity-100 transition-all duration-300 hidden md:block"
-      >
-        <ChevronLeft className="w-5 h-5" />
-      </button>
-      <button
-        onClick={next}
-        aria-label="Next"
-        className="absolute right-6 xl:right-12 top-1/2 -translate-y-1/2 z-20 p-3.5 rounded-full glass text-white/70 hover:text-white hover:bg-white/10 transition-all duration-300 hidden md:block"
-      >
-        <ChevronRight className="w-5 h-5" />
-      </button>
-
-      {/* Content */}
-      <motion.div
-        style={{ opacity: contentOpacity, y: contentY }}
-        className="absolute bottom-0 left-0 right-0 p-6 sm:p-12 lg:p-20 z-10 max-w-7xl mx-auto w-full"
-      >
-        <AnimatePresence mode="wait">
+      <div className="pointer-events-none absolute inset-0 z-10">
+        <div className="section-shell flex h-full items-end pb-12 sm:pb-16 lg:pb-20">
           <motion.div
-            key={current.id}
-            initial="hidden"
-            animate="show"
-            exit={{ opacity: 0, y: -16, transition: { duration: 0.25 } }}
-            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } } }}
-            className="max-w-3xl"
+            style={{ opacity: contentOpacity, y: contentY }}
+            className="pointer-events-auto w-full"
+            aria-live={paused ? "polite" : "off"}
           >
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } } }}
-              className="flex items-center gap-3 mb-5"
-            >
-              <span className="rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-glow-sm">
-                Featured
-              </span>
-              <span className="flex items-center gap-1.5 text-xs font-bold text-white/80">
-                <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                {current.vote_average.toFixed(1)}
-              </span>
-              <span className="w-1 h-1 rounded-full bg-white/25" />
-              <span className="text-xs font-semibold tracking-wider text-white/50 uppercase">
-                {getYear(current)}
-              </span>
-            </motion.div>
-
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white mb-5 tracking-tighter leading-[0.95] drop-shadow-2xl">
-              {words.map((word, i) => (
-                <motion.span
-                  key={`${current.id}-${i}`}
-                  variants={{
-                    hidden: { opacity: 0, y: 34 },
-                    show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE } },
-                  }}
-                  className="inline-block mr-[0.24em]"
-                >
-                  {word}
-                </motion.span>
-              ))}
-            </h1>
-
-            <motion.p
-              variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } } }}
-              className="text-sm sm:text-base text-white/65 max-w-xl mb-8 line-clamp-3 leading-relaxed"
-            >
-              {current.overview}
-            </motion.p>
-
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } } }}
-              className="flex flex-wrap items-center gap-3"
-            >
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                transition={springSnappy}
-                onMouseMove={(e) => {
-                  const r = e.currentTarget.getBoundingClientRect();
-                  magX.set((e.clientX - r.left - r.width / 2) * 0.3);
-                  magY.set((e.clientY - r.top - r.height / 2) * 0.45);
-                }}
-                onMouseLeave={() => { magX.set(0); magY.set(0); }}
-                style={{ x: springMagX, y: springMagY }}
-                className="flex items-center gap-2.5 h-13 pl-7 pr-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow-lg hover:shadow-glow"
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`${type}:${current.id}`}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.45, ease: EASE }}
+                className="max-w-2xl"
               >
-                <Link to={`/watch/movie/${current.id}`} className="flex items-center gap-2.5">
-                  <Play className="w-5 h-5 fill-current" />
-                  Play Now
-                </Link>
-              </motion.button>
+                <div className="mb-3.5 flex flex-wrap items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
+                  <span className="text-primary font-bold">Featured</span>
+                  <span className="h-1 w-1 rounded-full bg-white/25" />
+                  <span>{year}</span>
+                  {current.vote_average > 0 && (
+                    <>
+                      <span className="h-1 w-1 rounded-full bg-white/25" />
+                      <span className="inline-flex items-center gap-1 text-white/80 font-medium">
+                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        {current.vote_average.toFixed(1)}
+                      </span>
+                    </>
+                  )}
+                </div>
 
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                transition={springSnappy}
-                onClick={() => setInWatchlist(toggleWatchlist(current))}
-                className="flex items-center gap-2.5 h-13 px-7 rounded-full glass ring-1 ring-white/15 text-white font-bold text-sm hover:bg-white/10 transition-colors"
-              >
-                {inWatchlist ? <Check className="w-5 h-5 text-emerald-400" /> : <Plus className="w-5 h-5" />}
-                {inWatchlist ? "Saved" : "My List"}
-              </motion.button>
+                <h1 className="max-w-[15ch] text-balance text-3xl font-extrabold leading-[1.04] tracking-[-0.04em] text-white drop-shadow-md sm:text-5xl lg:text-6xl">
+                  {title}
+                </h1>
 
-              <motion.button
-                whileHover={{ scale: 1.08, rotate: 12 }}
-                whileTap={{ scale: 0.92 }}
-                transition={springSnappy}
-                onClick={handleShuffle}
-                aria-label="Surprise me"
-                title="Surprise me"
-                className="w-13 h-13 rounded-full glass ring-1 ring-white/15 text-white/70 hover:text-primary flex items-center justify-center transition-colors"
+                <p className="mt-3.5 max-w-lg text-pretty text-xs leading-relaxed text-white/60 sm:text-sm sm:leading-6 line-clamp-3 sm:line-clamp-4">
+                  {overview}
+                </p>
+
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <Link
+                    to={watchHref}
+                    className="inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-[#06070a] shadow-md transition-all hover:bg-white/90 active:scale-[0.98]"
+                  >
+                    <Play className="h-4 w-4 fill-current" />
+                    Watch Now
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => setInWatchlist(toggleWatchlist({ ...current, media_type: type }))}
+                    aria-label={inWatchlist ? `Remove ${title} from my list` : `Add ${title} to my list`}
+                    aria-pressed={inWatchlist}
+                    className="inline-flex h-11 items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.08] px-4 text-sm font-medium text-white backdrop-blur-md transition-all hover:bg-white/[0.14] active:scale-[0.98]"
+                  >
+                    {inWatchlist ? <Check className="h-4 w-4 text-emerald-400" /> : <Plus className="h-4 w-4" />}
+                    <span>{inWatchlist ? "In List" : "Add to List"}</span>
+                  </button>
+
+                  <Link
+                    to={detailsHref}
+                    aria-label={`View details for ${title}`}
+                    className="inline-flex h-11 items-center gap-1.5 rounded-lg px-3.5 text-sm font-medium text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white"
+                  >
+                    <Info className="h-4 w-4" />
+                    <span className="hidden sm:inline">Details</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => setIdx(Math.floor(Math.random() * featured.length))}
+                    aria-label="Show a random featured title"
+                    className="hidden h-11 w-11 items-center justify-center rounded-lg text-white/40 transition-colors hover:bg-white/[0.06] hover:text-white sm:inline-flex"
+                  >
+                    <Shuffle className="h-4 w-4" />
+                  </button>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="mt-8 flex items-center gap-3 sm:mt-10">
+              <div className="flex items-center gap-1.5" aria-label="Choose featured title">
+                {featured.map((movie, index) => (
+                  <button
+                    key={`${getItemType(movie)}:${movie.id}:${index}`}
+                    type="button"
+                    onClick={() => setIdx(index)}
+                    aria-label={`Show ${getTitle(movie)}`}
+                    aria-current={index === idx}
+                    className={`relative h-1 overflow-hidden rounded-full transition-all duration-300 ${
+                      index === idx ? "w-8 bg-white/30" : "w-3 bg-white/20 hover:bg-white/40"
+                    }`}
+                  >
+                    {index === idx && (
+                      <motion.span
+                        key={`${type}:${current.id}-progress`}
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: paused ? 0.45 : 1 }}
+                        transition={{ duration: paused ? 0.25 : AUTOPLAY_MS / 1000, ease: "linear" }}
+                        className="absolute inset-0 origin-left rounded-full bg-primary"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPaused((value) => !value)}
+                className="inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.14em] text-white/40 transition-colors hover:text-white/80"
+                aria-label={paused ? "Resume featured slideshow" : "Pause featured slideshow"}
               >
-                <Shuffle className="w-5 h-5" />
-              </motion.button>
-            </motion.div>
+                {paused ? <Play className="h-2.5 w-2.5 fill-current" /> : <Pause className="h-2.5 w-2.5" />}
+                <span>{paused ? "Play" : "Pause"}</span>
+              </button>
+            </div>
           </motion.div>
-        </AnimatePresence>
-
-        {/* Progress indicators */}
-        <div className="flex gap-2 mt-10 pb-2">
-          {featured.map((m, i) => (
-            <button
-              key={m.id}
-              onClick={() => setIdx(i)}
-              aria-label={`Slide ${i + 1}`}
-              className={`relative h-1 rounded-full overflow-hidden transition-all duration-500 ${
-                i === idx ? "w-14 bg-white/20" : "w-5 bg-white/15 hover:bg-white/30"
-              }`}
-            >
-              {i === idx && (
-                <motion.span
-                  key={`progress-${idx}`}
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: AUTOPLAY_MS / 1000, ease: "linear" }}
-                  className="absolute inset-0 origin-left rounded-full bg-gradient-to-r from-sky-400 to-indigo-500"
-                />
-              )}
-            </button>
-          ))}
         </div>
-      </motion.div>
-    </div>
+      </div>
+
+      <div className="pointer-events-none absolute inset-y-0 left-0 right-0 z-20 hidden items-center md:flex">
+        <div className="section-shell flex w-full justify-between">
+          <button
+            type="button"
+            onClick={previous}
+            aria-label="Previous featured title"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.1] bg-black/30 text-white/60 opacity-0 backdrop-blur-md transition-all hover:bg-black/60 hover:text-white focus:opacity-100 group-hover/hero:opacity-100"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={next}
+            aria-label="Next featured title"
+            className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.1] bg-black/30 text-white/60 opacity-0 backdrop-blur-md transition-all hover:bg-black/60 hover:text-white focus:opacity-100 group-hover/hero:opacity-100"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </section>
   );
+}
+
+function getItemType(item: Movie): "movie" | "tv" {
+  return item.media_type === "tv" || (!item.title && item.name) ? "tv" : "movie";
 }

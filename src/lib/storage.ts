@@ -36,27 +36,34 @@ export function getWatchlist(): Movie[] {
   return read<Movie>(WATCHLIST_KEY);
 }
 
-export function isInWatchlist(id: number): boolean {
-  return getWatchlist().some((m) => m.id === id);
+function getMediaType(movie: Movie): "movie" | "tv" {
+  if (movie.media_type === "tv" || (!movie.title && movie.name)) return "tv";
+  return "movie";
+}
+
+export function isInWatchlist(id: number, type?: "movie" | "tv"): boolean {
+  return getWatchlist().some((movie) => movie.id === id && (!type || getMediaType(movie) === type));
 }
 
 export function toggleWatchlist(movie: Movie): boolean {
   const list = getWatchlist();
-  const idx = list.findIndex((m) => m.id === movie.id);
+  const type = getMediaType(movie);
+  const normalized = { ...movie, media_type: type };
+  const idx = list.findIndex((item) => item.id === movie.id && getMediaType(item) === type);
   let added: boolean;
   if (idx >= 0) {
     list.splice(idx, 1);
     added = false;
   } else {
-    list.unshift(movie);
+    list.unshift(normalized);
     added = true;
   }
   write(WATCHLIST_KEY, list);
   return added;
 }
 
-export function removeFromWatchlist(id: number) {
-  const remaining = getWatchlist().filter((m) => m.id !== id);
+export function removeFromWatchlist(id: number, type?: "movie" | "tv") {
+  const remaining = getWatchlist().filter((movie) => !(movie.id === id && (!type || getMediaType(movie) === type)));
   write(WATCHLIST_KEY, remaining);
 }
 
@@ -85,11 +92,11 @@ export function updateContinueWatching(item: ContinueItem) {
   write(CONTINUE_KEY, list.slice(0, 20));
 }
 
-export function removeContinueWatching(id: number, season?: number, episode?: number) {
+export function removeContinueWatching(id: number, type?: "movie" | "tv", season?: number, episode?: number) {
   write(
     CONTINUE_KEY,
     getContinueWatching().filter(
-      (c) => !(c.id === id && c.season === season && c.episode === episode)
+      (c) => !(c.id === id && (!type || c.type === type) && c.season === season && c.episode === episode)
     )
   );
 }

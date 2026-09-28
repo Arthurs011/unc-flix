@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { Movie, tmdb, imgUrl, getTitle, getYear } from "@/lib/tmdb";
+import { Link } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
+import { Compass, Play, Sparkles, Star } from "lucide-react";
+import { tmdb, getTitle, getYear, imgUrl, type Movie } from "@/lib/tmdb";
 import PageShell from "@/components/PageShell";
 import ContentRow from "@/components/ContentRow";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { RowSkeleton } from "@/components/LoadingSkeleton";
-import { motion, AnimatePresence } from "motion/react";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { fadeUp, staggerFast } from "@/lib/motion";
-import { Link } from "react-router-dom";
-import { Play, Star } from "lucide-react";
 
 const ANIME_GENRES = [
   { id: null as number | null, name: "All" },
@@ -24,7 +24,6 @@ const ANIME_GENRES = [
 
 export default function AnimeHub() {
   usePageTitle("Anime · UNCFLIX");
-
   const [animeTv, setAnimeTv] = useState<Movie[]>([]);
   const [animeMovies, setAnimeMovies] = useState<Movie[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
@@ -34,163 +33,69 @@ export default function AnimeHub() {
 
   useEffect(() => {
     Promise.allSettled([tmdb.animeTv(), tmdb.animeMovies()])
-      .then(([aTv, aM]) => {
-        const ok = <T,>(r: PromiseSettledResult<T>): T[] =>
-          r.status === "fulfilled" ? (r.value as { results?: Movie[] })?.results ?? [] : [];
-        setAnimeTv(ok(aTv));
-        setAnimeMovies(ok(aM));
+      .then(([tvResult, movieResult]) => {
+        const getResults = <T,>(result: PromiseSettledResult<T>): Movie[] => result.status === "fulfilled" ? ((result.value as { results?: Movie[] })?.results ?? []) : [];
+        setAnimeTv(getResults(tvResult).map((item) => ({ ...item, media_type: "tv" as const })));
+        setAnimeMovies(getResults(movieResult).map((item) => ({ ...item, media_type: "movie" as const })));
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    if (selectedGenre === null) { setGenreResults([]); return; }
+    if (selectedGenre === null) {
+      setGenreResults([]);
+      return;
+    }
     setLoadingGenre(true);
-    tmdb.animeTv(1)
-      .then((res) => {
-        const filtered = (res.results ?? []).filter((m) =>
-          m.genre_ids?.includes(selectedGenre!)
-        );
-        setGenreResults(filtered);
-      })
-      .catch(() => setGenreResults([]))
-      .finally(() => setLoadingGenre(false));
+    tmdb.animeTv().then((response) => setGenreResults((response.results ?? []).filter((item) => item.genre_ids?.includes(selectedGenre)))).catch(() => setGenreResults([])).finally(() => setLoadingGenre(false));
   }, [selectedGenre]);
 
   const featured = animeTv[0] ?? null;
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="h-[50vh] bg-white/[0.03] animate-pulse" />
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-12 pb-32">
-          <RowSkeleton /><RowSkeleton /><RowSkeleton />
-        </div>
-      </div>
-    );
+    return <div className="min-h-screen bg-background"><div className="h-[52svh] animate-pulse bg-white/[0.035]" /><div className="section-shell pb-28 pt-10"><RowSkeleton /><RowSkeleton /></div></div>;
   }
 
   return (
-    <PageShell className="bg-background min-h-screen">
-      {/* Compact hero — anime spotlight */}
+    <PageShell className="min-h-screen bg-background pb-28">
       {featured && (
-        <div className="relative w-full h-[45vh] sm:h-[55vh] overflow-hidden">
-          <img
-            src={imgUrl(featured.backdrop_path, "w1280")}
-            alt={getTitle(featured)}
-            loading="eager"
-            decoding="async"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent hidden sm:block" />
-
-          <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-12 lg:p-20 z-10 max-w-7xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="max-w-3xl"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <span className="rounded-full bg-gradient-to-r from-pink-500 to-violet-600 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-glow-sm">
-                  Anime Spotlight
-                </span>
-                <span className="flex items-center gap-1.5 text-xs font-bold text-white/80">
-                  <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                  {featured.vote_average.toFixed(1)}
-                </span>
-                <span className="w-1 h-1 rounded-full bg-white/25" />
-                <span className="text-xs font-semibold tracking-wider text-white/50 uppercase">
-                  {getYear(featured)}
-                </span>
-              </div>
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white mb-4 tracking-tighter leading-[0.95] drop-shadow-2xl">
-                {getTitle(featured)}
-              </h1>
-              <p className="text-sm sm:text-base text-white/60 max-w-xl mb-6 line-clamp-3 leading-relaxed">
-                {featured.overview}
-              </p>
-              <Link
-                to={`/watch/tv/${featured.id}/1/1`}
-                className="inline-flex items-center gap-2.5 h-12 px-7 rounded-full bg-gradient-to-r from-pink-500 to-violet-600 text-white font-bold text-sm shadow-glow-lg hover:shadow-glow hover:scale-105 active:scale-95 transition-all"
-              >
-                <Play className="w-5 h-5 fill-current" />
-                Watch Now
-              </Link>
+        <section className="relative h-[54svh] min-h-[34rem] max-h-[46rem] overflow-hidden">
+          {featured.backdrop_path && <img src={imgUrl(featured.backdrop_path, "w1280")} alt="" className="absolute inset-0 h-full w-full object-cover object-[center_22%]" loading="eager" />}
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,10,0.97),rgba(5,6,10,0.62)_48%,rgba(5,6,10,0.18))]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#05060a] via-transparent to-black/25" />
+          <div className="cinema-vignette absolute inset-0" />
+          <div className="section-shell relative z-10 flex h-full items-end pb-14 sm:pb-20 lg:pb-24">
+            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }} className="max-w-2xl">
+              <div className="mb-5 flex items-center gap-3 text-[9px] font-bold uppercase tracking-[0.24em] text-white/40"><span className="text-[#f0a4c8]">Anime spotlight</span><span className="h-1 w-1 rounded-full bg-white/20" /><span className="inline-flex items-center gap-1.5 text-amber-200/75"><Star className="h-3 w-3 fill-current" />{featured.vote_average.toFixed(1)}</span></div>
+              <h1 className="text-balance text-4xl font-black leading-[0.95] tracking-[-0.06em] text-white sm:text-6xl lg:text-7xl">{getTitle(featured)}</h1>
+              <p className="mt-5 line-clamp-3 max-w-xl text-sm leading-7 text-white/50">{featured.overview}</p>
+              <Link to={`/tv/${featured.id}`} className="mt-7 inline-flex h-12 items-center gap-2.5 rounded-lg bg-white px-5 text-sm font-bold text-[#080a0f] transition-colors hover:bg-[#f0a4c8]"><Play className="h-[18px] w-[18px] fill-current" />Explore series</Link>
             </motion.div>
           </div>
-        </div>
+        </section>
       )}
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-10 relative z-30 pb-32 sm:pb-28">
-        {/* Genre filter chips */}
-        <motion.div
-          variants={staggerFast}
-          initial="hidden"
-          animate="show"
-          className="flex gap-2 overflow-x-auto scrollbar-hide py-4 mb-6"
-        >
-          {ANIME_GENRES.map((g) => (
-            <motion.button
-              key={g.name}
-              variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setSelectedGenre(g.id)}
-              className={cn(
-                "px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all shrink-0 ring-1",
-                selectedGenre === g.id
-                  ? "bg-gradient-to-r from-pink-500 to-violet-600 text-white ring-transparent shadow-glow"
-                  : "bg-background/70 backdrop-blur-md text-white/45 ring-white/[0.08] hover:bg-white/[0.12] hover:text-white"
-              )}
-            >
-              {g.name}
-            </motion.button>
-          ))}
-        </motion.div>
+      <div className="section-shell relative z-20 -mt-5 sm:-mt-8">
+        <div className="flex flex-col gap-4 border-y border-white/[0.07] py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#f0a4c8]/20 bg-[#f0a4c8]/[0.07] text-[#f0a4c8]"><Sparkles className="h-4 w-4" /></span><div><p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#f0a4c8]">Animation archive</p><p className="mt-1 text-sm font-semibold text-white/78">Stories beyond the frame</p></div></div>
+          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {ANIME_GENRES.map((genre) => <button key={genre.name} type="button" onClick={() => setSelectedGenre(genre.id)} aria-pressed={selectedGenre === genre.id} className={cn("h-9 shrink-0 rounded-lg border px-3.5 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors", selectedGenre === genre.id ? "border-[#f0a4c8]/40 bg-[#f0a4c8] text-[#1b0d17]" : "border-white/[0.08] bg-white/[0.025] text-white/42 hover:bg-white/[0.06] hover:text-white/80")}>{genre.name}</button>)}
+          </div>
+        </div>
 
         <AnimatePresence mode="wait">
           {selectedGenre !== null ? (
-            <motion.div
-              key="genre-results"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14 }}
-              transition={{ duration: 0.35 }}
-            >
-              {loadingGenre ? (
-                <RowSkeleton />
-              ) : (
-                <ContentRow
-                  title={`${ANIME_GENRES.find((g) => g.id === selectedGenre)?.name} Anime`}
-                  kicker="Filtered results"
-                  movies={genreResults}
-                />
-              )}
+            <motion.div key="anime-filter" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3, ease: EASE }} className="pt-8">
+              {loadingGenre ? <RowSkeleton /> : <div className="-mx-4 sm:-mx-6 lg:-mx-10 xl:-mx-12"><ContentRow title={`${ANIME_GENRES.find((genre) => genre.id === selectedGenre)?.name} anime`} description="A focused shelf from the anime archive." results={genreResults} type="tv" /></div>}
             </motion.div>
           ) : (
-            <motion.div
-              key="all-sections"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ContentRow
-                title="Top Anime Series"
-                kicker="Trending now"
-                movies={animeTv}
-                type="tv"
-              />
-              <ContentRow
-                title="Anime Movies"
-                kicker="Theatrical releases"
-                movies={animeMovies}
-              />
+            <motion.div key="anime-all" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="-mx-4 sm:-mx-6 lg:-mx-10 xl:-mx-12">
+              <ContentRow title="Series in motion" description="Long-form stories with a world of their own." results={animeTv} type="tv" />
+              <ContentRow title="Anime films" description="One reel, fully committed." results={animeMovies} type="movie" />
             </motion.div>
           )}
         </AnimatePresence>
+        <div className="mt-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/22"><Compass className="h-3.5 w-3.5 text-[#f0a4c8]" />Curated from Japanese animation</div>
       </div>
     </PageShell>
   );

@@ -5,11 +5,15 @@ export function useFullscreenOrientation() {
     const handleFullscreenChange = async () => {
       const isFullscreen = !!document.fullscreenElement;
 
-      if (!screen.orientation?.lock) return;
+      const orientation = screen.orientation as ScreenOrientation & {
+        lock?: (orientation: string) => Promise<void>;
+      };
+
+      if (!orientation?.lock) return;
 
       if (isFullscreen) {
         try {
-          await screen.orientation.lock("landscape");
+          await orientation.lock("landscape");
         } catch {
           // Device may not support orientation lock — ignore
         }

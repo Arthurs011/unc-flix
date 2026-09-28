@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "motion/react";
 import { useAutoHideNav } from "@/hooks/useAutoHideNav";
+import { EASE } from "@/lib/motion";
 
 interface Props {
   to: string;
@@ -11,36 +12,56 @@ interface Props {
 }
 
 export default function WatchHeader({ to, label, title, badge }: Props) {
-  const hidden = useAutoHideNav();
+  const hidden = useAutoHideNav(120);
 
   return (
     <motion.header
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: hidden ? -90 : 0, opacity: 1 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed top-3 md:top-4 left-3 right-3 md:left-0 md:right-0 z-50 flex justify-center pointer-events-none"
+      transition={{ duration: 0.3, ease: EASE }}
+      className="pointer-events-none fixed inset-x-0 top-0 z-50"
     >
-      <div className="pointer-events-auto flex items-center gap-2 md:gap-3 h-14 md:h-16 pl-2 pr-4 md:pl-3 md:pr-5 rounded-full glass-strong ring-1 ring-white/10 shadow-card max-w-[92vw] md:max-w-none">
-        <Link
-          to={to}
-          aria-label="Back to details"
-          className="w-11 h-11 md:w-11 md:h-11 rounded-full bg-white/[0.06] hover:bg-primary hover:shadow-glow-sm transition-all flex items-center justify-center shrink-0 group active:bg-white/[0.12]"
-        >
-          <ArrowLeft className="w-5 h-5 text-white/80 group-hover:text-white transition-transform group-hover:-translate-x-0.5" />
-        </Link>
+      {/* Cinematic top gradient vignette for crystal clear legibility */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#06070a]/95 via-[#06070a]/60 to-transparent" />
 
-        <span className="hidden sm:block w-px h-6 bg-white/10" />
-
-        <div className="min-w-0">
-          <p className="text-[8px] md:text-[9px] font-bold uppercase tracking-[0.3em] text-primary leading-none mb-1">
-            {label}
-            {badge && <span className="text-white/40 ml-2">{badge}</span>}
-          </p>
-          <h1 className="text-xs md:text-sm font-semibold truncate tracking-tight text-white/90 leading-none">
-            {title}
-          </h1>
+      <div className="relative mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between px-4 sm:px-6">
+        <div className="pointer-events-auto flex items-center gap-3">
+          <Link
+            to={to}
+            aria-label="Back to title details"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-[#0c0d14]/70 text-white/70 shadow-lg backdrop-blur-md transition-all hover:border-white/20 hover:bg-white/[0.12] hover:text-white hover:scale-105 active:scale-95"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+                {label}
+              </span>
+              {badge && (
+                <>
+                  <span className="text-white/20">·</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">
+                    {badge}
+                  </span>
+                </>
+              )}
+            </div>
+            <h1 className="max-w-[18rem] truncate text-xs font-semibold text-white/85 sm:max-w-md md:max-w-xl md:text-sm">
+              {title}
+            </h1>
+          </div>
         </div>
+
+        <Link
+          to="/"
+          className="pointer-events-auto hidden items-center gap-2 text-xs font-black tracking-widest text-white/40 transition-colors hover:text-white sm:flex"
+        >
+          <span className="h-2 w-2 rounded-full bg-primary" />
+          UNCFLIX
+        </Link>
       </div>
     </motion.header>
   );
 }
+

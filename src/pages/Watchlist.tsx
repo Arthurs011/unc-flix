@@ -1,123 +1,167 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
+import { Bookmark, Check, Film, Library, Trash2, Tv } from "lucide-react";
 import { getWatchlist, removeFromWatchlist } from "@/lib/storage";
-import { Movie, getTitle, imgUrl } from "@/lib/tmdb";
-import { X, Bookmark, Film, Tv, Play } from "lucide-react";
+import type { Movie } from "@/lib/tmdb";
+import MovieCard from "@/components/MovieCard";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { motion, AnimatePresence } from "motion/react";
-import { fadeUp, staggerFast, springSnappy } from "@/lib/motion";
+import { EASE } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+
+type FilterType = "all" | "movie" | "tv";
 
 export default function Watchlist() {
   usePageTitle("My List");
   const [list, setList] = useState<Movie[]>([]);
+  const [filter, setFilter] = useState<FilterType>("all");
 
   useEffect(() => {
-    setList(getWatchlist() || []);
+    setList(getWatchlist());
   }, []);
 
-  const handleRemove = (id: number) => {
-    removeFromWatchlist(id);
+  const remove = (id: number, type: "movie" | "tv") => {
+    removeFromWatchlist(id, type);
     setList(getWatchlist());
   };
 
+  const seriesCount = list.filter((item) => item.media_type === "tv" || (!item.title && item.name)).length;
+  const movieCount = list.length - seriesCount;
+
+  const filteredList = list.filter((item) => {
+    const isTv = item.media_type === "tv" || (!item.title && item.name);
+    if (filter === "movie") return !isTv;
+    if (filter === "tv") return isTv;
+    return true;
+  });
+
   return (
-    <PageShell className="min-h-screen bg-background pt-28 md:pt-32 pb-32 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-[1600px] mx-auto">
-        <motion.header variants={fadeUp} initial="hidden" animate="show" className="mb-10 flex items-center justify-between gap-4">
+    <PageShell className="min-h-screen bg-background pb-32 pt-24 sm:pt-28 md:pt-32">
+      <div className="section-shell">
+        <header className="mb-8 flex flex-col justify-between gap-6 border-b border-white/[0.07] pb-8 md:flex-row md:items-end md:pb-10">
           <div>
-            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-2">
-              <Bookmark className="w-3.5 h-3.5 fill-current" />
-              Your Library
+            <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
+              <Bookmark className="h-3.5 w-3.5" />
+              My library
             </p>
-            <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter leading-none">Watchlist</h1>
+            <h1 className="text-4xl font-black leading-none tracking-[-0.05em] text-white sm:text-6xl">
+              Watchlist
+            </h1>
+            <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/40">
+              Keep the films and series you want to return to, all in one quiet place.
+            </p>
           </div>
-          <div className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/[0.04] ring-1 ring-white/[0.08]">
-            <Bookmark className="w-3.5 h-3.5 text-primary fill-current" />
-            <span className="text-xs font-bold text-white/70">
-              {list.length} {list.length === 1 ? "Item" : "Items"}
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-[#0c0d14] px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">
+              <Library className="h-3.5 w-3.5 text-primary" />
+              {list.length} saved
             </span>
           </div>
-        </motion.header>
+        </header>
 
         {list.length === 0 ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-28 rounded-3xl bg-white/[0.03] ring-1 ring-dashed ring-white/10"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: EASE }}
+            className="flex min-h-[26rem] flex-col items-center justify-center py-16 text-center"
           >
-            <Bookmark className="w-14 h-14 text-white/15 mx-auto mb-5" />
-            <h2 className="text-xl font-extrabold tracking-tight text-white/50 mb-2">Your watchlist is empty</h2>
-            <p className="text-white/30 text-sm max-w-xs mx-auto mb-8">
-              Start adding movies and TV shows to keep track of what you want to watch next.
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.025] text-white/30">
+              <Bookmark className="h-6 w-6" />
+            </div>
+            <h2 className="text-xl font-bold tracking-tight text-white/80">Your list is waiting</h2>
+            <p className="mt-2 max-w-sm text-sm leading-6 text-white/35">
+              Save any film or series to keep it handy for your next watch session.
             </p>
-            <Link
-              to="/"
-              className="inline-flex px-8 py-3 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow hover:scale-105 active:scale-95 transition-transform"
-            >
-              Browse Movies
-            </Link>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link
+                to="/movies"
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-xs font-bold text-[#080a0f] transition-colors hover:bg-sky-100"
+              >
+                <Film className="h-3.5 w-3.5" />
+                Browse films
+              </Link>
+              <Link
+                to="/tv"
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 text-xs font-semibold text-white/70 transition-colors hover:border-white/20 hover:text-white"
+              >
+                <Tv className="h-3.5 w-3.5" />
+                Explore series
+              </Link>
+            </div>
           </motion.div>
         ) : (
-          <motion.div layout variants={staggerFast} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-            <AnimatePresence mode="popLayout">
-              {list.map((m) => {
-                const type = m.media_type || (m.title ? "movie" : "tv");
-                const to = type === "tv" ? `/tv/${m.id}` : `/movie/${m.id}`;
+          <>
+            {/* Filter Pills */}
+            <div className="mb-6 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                className={cn(
+                  "h-8 rounded-lg px-3 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
+                  filter === "all"
+                    ? "bg-primary text-[#060e17]"
+                    : "border border-white/[0.08] bg-white/[0.025] text-white/45 hover:border-white/20 hover:text-white"
+                )}
+              >
+                All ({list.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("movie")}
+                className={cn(
+                  "h-8 rounded-lg px-3 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
+                  filter === "movie"
+                    ? "bg-primary text-[#060e17]"
+                    : "border border-white/[0.08] bg-white/[0.025] text-white/45 hover:border-white/20 hover:text-white"
+                )}
+              >
+                Films ({movieCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("tv")}
+                className={cn(
+                  "h-8 rounded-lg px-3 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
+                  filter === "tv"
+                    ? "bg-primary text-[#060e17]"
+                    : "border border-white/[0.08] bg-white/[0.025] text-white/45 hover:border-white/20 hover:text-white"
+                )}
+              >
+                Series ({seriesCount})
+              </button>
+            </div>
 
-                return (
-                  <motion.div
-                    key={m.id}
-                    layout
-                    variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
-                    exit={{ opacity: 0, scale: 0.85 }}
-                    transition={springSnappy}
-                    className="group relative"
-                  >
-                    <Link
-                      to={to}
-                      className="block aspect-[2/3] rounded-2xl overflow-hidden bg-card relative ring-1 ring-white/[0.08] group-hover:ring-primary/40 shadow-card transition-all duration-300"
-                    >
-                      <img
-                        src={imgUrl(m.poster_path, "w500")}
-                        alt={getTitle(m)}
-                        loading="lazy"
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-end p-4 pb-5 text-center">
-                        <motion.div
-                          initial={{ scale: 0.7, opacity: 0 }}
-                          whileHover={{ scale: 1 }}
-                          className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center mb-3 shadow-glow-lg"
-                        >
-                          <Play className="w-5 h-5 fill-current ml-0.5" />
-                        </motion.div>
-                        <p className="text-xs font-bold leading-tight line-clamp-2">{getTitle(m)}</p>
-                      </div>
+            <motion.div layout className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              <AnimatePresence mode="popLayout">
+                {filteredList.map((item) => {
+                  const type = item.media_type === "tv" || (!item.title && item.name) ? "tv" : "movie";
+                  return (
+                    <motion.div key={`${type}:${item.id}`} layout exit={{ opacity: 0, scale: 0.9 }} className="group relative min-w-0">
+                      <MovieCard movie={{ ...item, media_type: type }} type={type} />
+                      <button
+                        type="button"
+                        onClick={() => remove(item.id, type)}
+                        aria-label={`Remove ${item.name ?? item.title} from my list`}
+                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-black/60 text-white/50 opacity-0 backdrop-blur-md transition-all hover:border-red-400/40 hover:bg-red-950/80 hover:text-red-200 focus:opacity-100 group-hover:opacity-100"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </motion.div>
 
-                      <div className="absolute top-2.5 left-2.5 p-1.5 rounded-lg bg-black/60 backdrop-blur-md ring-1 ring-white/10 text-white/70">
-                        {type === "movie" ? <Film className="w-3 h-3" /> : <Tv className="w-3 h-3" />}
-                      </div>
-                    </Link>
-
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleRemove(m.id);
-                      }}
-                      aria-label="Remove from watchlist"
-                      className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 hover:bg-red-600 active:scale-90 transition-all z-10"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </motion.div>
+            <div className="mt-14 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25">
+              <Check className="h-3.5 w-3.5 text-emerald-400" />
+              Saved locally on this device
+            </div>
+          </>
         )}
       </div>
     </PageShell>
   );
 }
+

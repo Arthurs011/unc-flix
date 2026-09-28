@@ -1,3 +1,185 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 228 28% 4%;
+    --foreground: 210 20% 98%;
+    --card: 225 22% 7%;
+    --card-foreground: 210 20% 98%;
+    --popover: 225 22% 7%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 204 100% 55%;
+    --primary-foreground: 224 47% 8%;
+    --secondary: 226 18% 10%;
+    --secondary-foreground: 210 20% 96%;
+    --muted: 225 14% 14%;
+    --muted-foreground: 218 14% 60%;
+    --accent: 225 18% 12%;
+    --accent-foreground: 210 20% 98%;
+    --destructive: 0 72% 56%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 222 14% 14%;
+    --input: 222 14% 14%;
+    --ring: 204 100% 55%;
+    --radius: 0.75rem;
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply bg-background;
+    min-width: 320px;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-color: #06070a;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.3);
+    color: #ffffff;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.85);
+    outline-offset: 2px;
+  }
+
+  button,
+  a,
+  input {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  img {
+    color: transparent;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  #root {
+    min-height: 100vh;
+    isolation: isolate;
+  }
+}
+
+@layer utilities {
+  .section-shell {
+    @apply mx-auto w-full max-w-[1536px] px-4 sm:px-6 lg:px-10 xl:px-12;
+  }
+
+  .safe-bottom {
+    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .glass-strong {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(9, 11, 16, 0.88);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .glass-subtle {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background-color: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .glass-surface {
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background-color: rgba(12, 14, 20, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .cinema-surface {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background-color: #080a0f;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .mask-fade-x {
+    mask-image: linear-gradient(to right, transparent, black 2rem, black calc(100% - 2rem), transparent);
+  }
+
+  .cinema-vignette {
+    background: radial-gradient(circle at 50% 38%, transparent 20%, rgba(3, 4, 7, 0.4) 75%, rgba(3, 4, 7, 0.92) 100%);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #06070a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1c202a;
+  border: 2px solid #06070a;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a3040;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

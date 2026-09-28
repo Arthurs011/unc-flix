@@ -1,36 +1,33 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useSearchParams, Link } from "react-router-dom";
-import { Movie, tmdb, imgUrl } from "@/lib/tmdb";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
+import { ArrowRight, Loader2, Play, Star, Tv } from "lucide-react";
+import { imgUrl, tmdb, type Movie } from "@/lib/tmdb";
 import MovieCard from "@/components/MovieCard";
 import ContentRow from "@/components/ContentRow";
 import PageShell from "@/components/PageShell";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { GridSkeleton } from "@/components/LoadingSkeleton";
-import { motion, AnimatePresence } from "motion/react";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { fadeUp, staggerFast } from "@/lib/motion";
-import { Star, Play, Tv, Loader2 } from "lucide-react";
 
 const MOOD_PILLS = [
-  { id: 10759, name: "Action & Adventure" },
+  { id: 10759, name: "Action" },
   { id: 16, name: "Animation" },
   { id: 35, name: "Comedy" },
   { id: 80, name: "Crime" },
   { id: 18, name: "Drama" },
-  { id: 10765, name: "Sci-Fi & Fantasy" },
+  { id: 10765, name: "Sci-Fi" },
 ];
 
 export default function TvShowsPage() {
   usePageTitle("Series");
   const [searchParams, setSearchParams] = useSearchParams();
   const genreIdParam = searchParams.get("genre");
-
   const [shows, setShows] = useState<Movie[]>([]);
   const [trendingTv, setTrendingTv] = useState<Movie[]>([]);
   const [heroShow, setHeroShow] = useState<Movie | null>(null);
-  const [selectedGenre, setSelectedGenre] = useState<number | null>(
-    genreIdParam ? Number(genreIdParam) : null
-  );
+  const [selectedGenre, setSelectedGenre] = useState<number | null>(genreIdParam ? Number(genreIdParam) : null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -42,26 +39,17 @@ export default function TvShowsPage() {
   }, [genreIdParam]);
 
   useEffect(() => {
-    tmdb.tvTrending()
-      .then((d) => setTrendingTv((d.results ?? []).slice(0, 10)))
-      .catch(() => setTrendingTv([]));
+    tmdb.tvTrending().then((data) => setTrendingTv((data.results ?? []).slice(0, 10))).catch(() => setTrendingTv([]));
   }, []);
 
-  const fetchShows = useCallback(async (p: number, reset = false) => {
+  const fetchShows = useCallback(async (nextPage: number, reset = false) => {
+    if (reset) setLoading(true);
+    else setLoadingMore(true);
     try {
-      if (reset) setLoading(true);
-      else setLoadingMore(true);
-
-      const res = await tmdb.tvPopular(p, selectedGenre ?? undefined);
-
-      if (reset && res.results?.length) {
-        setHeroShow(res.results[0]);
-      }
-
-      setShows((prev) => (reset ? res.results ?? [] : [...prev, ...(res.results ?? [])]));
-      setTotalPages(res.total_pages ?? 1);
-    } catch (err) {
-      console.error(err);
+      const response = await tmdb.tvPopular(nextPage, selectedGenre ?? undefined);
+      if (reset && response.results?.length) setHeroShow(response.results[0]);
+      setShows((current) => (reset ? response.results ?? [] : [...current, ...(response.results ?? [])]));
+      setTotalPages(response.total_pages ?? 1);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -70,188 +58,117 @@ export default function TvShowsPage() {
 
   useEffect(() => {
     setPage(1);
-    fetchShows(1, true);
-  }, [selectedGenre, fetchShows]);
+    void fetchShows(1, true);
+  }, [fetchShows]);
 
   useEffect(() => {
-    if (page > 1) {
-      fetchShows(page, false);
-    }
-  }, [page, fetchShows]);
+    if (page > 1) void fetchShows(page);
+  }, [fetchShows, page]);
 
   useEffect(() => {
-    const el = observerRef.current;
-    if (!el) return;
+    const element = observerRef.current;
+    if (!element) return;
     const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !loading && !loadingMore && page < totalPages) {
-          setPage((p) => p + 1);
-        }
+      ([entry]) => {
+        if (entry.isIntersecting && !loading && !loadingMore && page < totalPages) setPage((current) => current + 1);
       },
       { rootMargin: "800px" }
     );
-    observer.observe(el);
+    observer.observe(element);
     return () => observer.disconnect();
   }, [loading, loadingMore, page, totalPages]);
 
-  const handleGenreSelect = (id: number | null) => {
-    if (id === null) {
-      searchParams.delete("genre");
-    } else {
-      searchParams.set("genre", id.toString());
-    }
-    setSearchParams(searchParams);
+  const selectGenre = (id: number | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (id === null) next.delete("genre");
+    else next.set("genre", String(id));
+    setSearchParams(next);
   };
+
+  const activeGenre = MOOD_PILLS.find((genre) => genre.id === selectedGenre)?.name;
 
   return (
     <PageShell className="min-h-screen bg-background pb-32">
-      {/* Hero spotlight */}
       <AnimatePresence mode="wait">
-        {heroShow && !genreIdParam && (
+        {heroShow && !selectedGenre && (
           <motion.section
             key={heroShow.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="relative w-full h-[62vh] sm:h-[70vh] overflow-hidden"
+            transition={{ duration: 0.45, ease: EASE }}
+            className="relative h-[64svh] min-h-[36rem] max-h-[48rem] overflow-hidden"
           >
-            <motion.img
-              initial={{ scale: 1.08 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 8, ease: "linear" }}
-              src={imgUrl(heroShow.backdrop_path, "w1280")}
-              className="absolute inset-0 w-full h-full object-cover"
-              alt=""
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent hidden sm:block" />
-
-            <motion.div
-              initial="hidden"
-              animate="show"
-              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08, delayChildren: 0.2 } } }}
-              className="absolute bottom-0 left-0 right-0 p-6 sm:p-12 lg:p-20 z-10 max-w-7xl mx-auto"
-            >
-              <motion.div
-                variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
-                className="flex items-center gap-3 mb-4"
-              >
-                <span className="rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-glow-sm">
-                  Trending Series
-                </span>
-                <span className="flex items-center gap-1.5 text-xs font-bold text-white/80">
-                  <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                  {heroShow.vote_average.toFixed(1)}
-                </span>
+            {heroShow.backdrop_path && <img src={imgUrl(heroShow.backdrop_path, "w1280")} alt="" className="absolute inset-0 h-full w-full object-cover object-[center_22%]" loading="eager" />}
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,10,0.96),rgba(5,6,10,0.62)_45%,rgba(5,6,10,0.2))]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#05060a] via-transparent to-black/25" />
+            <div className="cinema-vignette absolute inset-0" />
+            <div className="section-shell relative z-10 flex h-full items-end pb-14 sm:pb-20 lg:pb-24">
+              <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }} className="max-w-2xl">
+                <div className="mb-5 flex items-center gap-3 text-[9px] font-bold uppercase tracking-[0.24em] text-white/40">
+                  <span className="text-primary">Series spotlight</span>
+                  <span className="h-1 w-1 rounded-full bg-white/20" />
+                  <span className="inline-flex items-center gap-1.5 text-amber-200/75"><Star className="h-3 w-3 fill-current" />{heroShow.vote_average.toFixed(1)}</span>
+                </div>
+                <h1 className="text-balance text-4xl font-black leading-[0.96] tracking-[-0.06em] text-white sm:text-6xl lg:text-7xl">{heroShow.name ?? heroShow.title}</h1>
+                <p className="mt-5 line-clamp-3 max-w-xl text-sm leading-7 text-white/48">{heroShow.overview}</p>
+                <div className="mt-7 flex flex-wrap items-center gap-3">
+                  <Link to={`/tv/${heroShow.id}`} className="inline-flex h-12 items-center gap-2.5 rounded-lg bg-white px-5 text-sm font-bold text-[#080a0f] transition-colors hover:bg-sky-100"><Play className="h-[18px] w-[18px] fill-current" />View series</Link>
+                  <Link to={`/tv/${heroShow.id}`} className="group inline-flex items-center gap-2 text-xs font-semibold text-white/55 transition-colors hover:text-white">Explore episodes<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></Link>
+                </div>
               </motion.div>
-
-              <motion.h2
-                variants={{ hidden: { opacity: 0, y: 26 }, show: { opacity: 1, y: 0 } }}
-                className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tighter leading-[0.95] mb-7 max-w-3xl"
-              >
-                {heroShow.name}
-              </motion.h2>
-
-              <motion.div variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}>
-                <motion.button
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  className="flex items-center gap-2.5 h-13 pl-7 pr-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow-lg"
-                >
-                  <Link to={`/tv/${heroShow.id}`} className="flex items-center gap-2.5">
-                    <Play className="w-5 h-5 fill-current" />
-                    Start Series
-                  </Link>
-                </motion.button>
-              </motion.div>
-            </motion.div>
+            </div>
           </motion.section>
         )}
       </AnimatePresence>
 
-      <div className={cn("max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8", genreIdParam ? "pt-28 md:pt-32" : "-mt-4 relative z-10")}>
-        <motion.header
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="mb-8"
-        >
-          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-2">
-            <Tv className="w-3.5 h-3.5" />
-            Series Hub
-          </p>
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter leading-none mb-8">
-            {selectedGenre ? MOOD_PILLS.find((p) => p.id === selectedGenre)?.name ?? "Series" : "TV Shows"}
-          </h1>
-
-          {/* Genre pills */}
-          <motion.div
-            variants={staggerFast}
-            initial="hidden"
-            animate="show"
-            className="flex gap-2 overflow-x-auto scrollbar-hide py-1"
-          >
-            {[{ id: null as number | null, name: "All Series" }, ...MOOD_PILLS].map((g) => (
-              <motion.button
-                key={g.name}
-                variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => handleGenreSelect(g.id)}
+      <div className={cn("section-shell", genreIdParam ? "pt-24 sm:pt-28 md:pt-32" : "relative z-20 -mt-6 sm:-mt-8")}>
+        <header className="mb-7 border-b border-white/[0.07] pb-7">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <p className="mb-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.28em] text-primary"><Tv className="h-3.5 w-3.5" />Series archive</p>
+              <h1 className="text-3xl font-black leading-none tracking-[-0.055em] text-white sm:text-5xl">{activeGenre ?? "TV shows"}</h1>
+            </div>
+            <span className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25 sm:block">Binge responsibly</span>
+          </div>
+          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {[{ id: null as number | null, name: "All series" }, ...MOOD_PILLS].map((genre) => (
+              <button
+                key={genre.name}
+                type="button"
+                onClick={() => selectGenre(genre.id)}
+                aria-pressed={selectedGenre === genre.id}
                 className={cn(
-                  "px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all shrink-0 ring-1",
-                  selectedGenre === g.id
-                    ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white ring-transparent shadow-glow"
-                    : "bg-white/[0.04] text-white/45 ring-white/[0.08] hover:bg-white/[0.08] hover:text-white"
+                  "h-9 shrink-0 rounded-lg border px-3.5 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
+                  selectedGenre === genre.id ? "border-primary/40 bg-primary text-[#071019]" : "border-white/[0.08] bg-white/[0.025] text-white/42 hover:bg-white/[0.06] hover:text-white/80"
                 )}
               >
-                {g.name}
-              </motion.button>
+                {genre.name}
+              </button>
             ))}
-          </motion.div>
-        </motion.header>
+          </div>
+        </header>
 
         {!selectedGenre && trendingTv.length > 0 && (
-          <ContentRow
-            title="Trending Series This Week"
-            kicker="Top 10 on TV"
-            movies={trendingTv}
-            type="tv"
-            showRank
-            className="mb-12"
-          />
+          <div className="-mx-4 sm:-mx-6 lg:-mx-10 xl:-mx-12">
+            <ContentRow title="Trending series" description="The shows everyone is talking about." results={trendingTv} type="tv" />
+          </div>
         )}
 
-        <main>
+        <main aria-label="Series results">
           {loading ? (
             <GridSkeleton count={12} />
           ) : (
-            <motion.div
-              key={selectedGenre ?? "all"}
-              variants={staggerFast}
-              initial="hidden"
-              animate="show"
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6"
-            >
-              {shows.map((m) => (
-                <motion.div key={m.id} variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}>
-                  <MovieCard movie={m} type="tv" />
-                </motion.div>
-              ))}
+            <motion.div layout className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {shows.map((show) => <MovieCard key={show.id} movie={{ ...show, media_type: "tv" }} type="tv" />)}
             </motion.div>
           )}
-
-          <div ref={observerRef} className="py-16 flex flex-col items-center justify-center gap-3">
-            {loadingMore && (
-              <>
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/25">Loading more</span>
-              </>
-            )}
-            {!loading && page >= totalPages && (
-              <span className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/20">End of library</span>
-            )}
+          <div ref={observerRef} className="flex min-h-28 items-center justify-center py-10">
+            {loadingMore ? (
+              <div className="flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.22em] text-white/28"><Loader2 className="h-4 w-4 animate-spin text-primary" />Loading more</div>
+            ) : !loading && page >= totalPages && shows.length > 0 ? (
+              <span className="text-[9px] font-bold uppercase tracking-[0.24em] text-white/18">End of collection</span>
+            ) : null}
           </div>
         </main>
       </div>
