@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Play, Plus, Check, Star, ArrowLeft, X, Film, Clock } from "lucide-react";
-import { tmdb, Movie, Review, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
-import { isInWatchlist, toggleWatchlist, addRecentlyViewed } from "@/lib/storage";
+import { tmdb, Movie, Review, Episode, SeasonDetails, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
+import { isInWatchlist, toggleWatchlist, addRecentlyViewed, getContinueWatching } from "@/lib/storage";
+import { cn } from "@/lib/utils";
 import PageShell from "@/components/PageShell";
 import ScrollProgress from "@/components/ScrollProgress";
 import { DetailSkeleton } from "@/components/LoadingSkeleton";
@@ -20,6 +21,9 @@ export default function TvDetailsPage() {
   const [inWL, setInWL] = useState(false);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [seasonNum, setSeasonNum] = useState<number | null>(null);
+  const [seasonData, setSeasonData] = useState<SeasonDetails | null>(null);
+  const [epsLoading, setEpsLoading] = useState(false);
 
   const backdropRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: backdropRef, offset: ["start start", "end start"] });
@@ -48,6 +52,31 @@ export default function TvDetailsPage() {
       .catch(() => setReviews([]));
   }, [id]);
 
+  // Default to the season the user last watched, else the newest season.
+  useEffect(() => {
+    if (!show) return;
+    const list = (show.seasons ?? []).filter((x) => x.season_number > 0);
+    if (list.length === 0) { setSeasonNum(null); return; }
+    const resume = getContinueWatching().find((c) => c.type === "tv" && c.id === show.id);
+    const target =
+      resume?.season && list.some((x) => x.season_number === resume.season)
+        ? resume.season
+        : list[list.length - 1].season_number;
+    setSeasonNum(target);
+  }, [show]);
+
+  // Load the episode list for the selected season.
+  useEffect(() => {
+    if (!show?.id || !seasonNum) { setSeasonData(null); return; }
+    let cancelled = false;
+    setEpsLoading(true);
+    tmdb.tvSeason(show.id, seasonNum)
+      .then((d) => { if (!cancelled) setSeasonData(d); })
+      .catch(() => { if (!cancelled) setSeasonData(null); })
+      .finally(() => { if (!cancelled) setEpsLoading(false); });
+    return () => { cancelled = true; };
+  }, [show?.id, seasonNum]);
+
   if (loading) return <DetailSkeleton />;
   if (!show) return (
     <div className="min-h-screen flex items-center justify-center pt-20">
@@ -60,6 +89,8 @@ export default function TvDetailsPage() {
 
   const cast = show.credits?.cast?.slice(0, 15) ?? [];
   const seasons = show.seasons?.filter((s) => s.season_number > 0) ?? [];
+  const resumeItem = getContinueWatching().find((c) => c.type === "tv" && c.id === show.id);
+  const episodes = seasonData?.episodes ?? [];
 
   return (
     <PageShell className="min-h-screen pb-32">
@@ -233,7 +264,7 @@ export default function TvDetailsPage() {
           </motion.div>
         </div>
 
-        {/* Seasons */}
+        {/* Episodes */}
         {seasons.length > 0 && (
           <motion.section
             variants={fadeUp}
@@ -243,25 +274,97 @@ export default function TvDetailsPage() {
             className="mt-16"
           >
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-1.5">Browse</p>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-6">Seasons</h2>
-            <motion.div variants={staggerFast} initial="hidden" whileInView="show" viewport={viewportOnce} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-5">Episodes</h2>
+
+            {/* Season tabs */}
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-3 mb-5">
               {seasons.map((s) => (
-                <motion.div key={s.season_number} variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}>
-                  <Link
-                    to={`/watch/tv/${show.id}/${s.season_number}/1`}
-                    className="group flex items-center justify-between rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.07] hover:ring-primary/40 hover:bg-white/[0.05] px-5 py-4 transition-all"
-                  >
-                    <div>
-                      <p className="text-sm font-bold text-white group-hover:text-primary transition-colors">{s.name}</p>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35 mt-0.5">
-                        {s.episode_count} Episode{s.episode_count !== 1 ? "s" : ""}
-                      </p>
-                    </div>
-                    <Play className="w-4 h-4 text-white/25 group-hover:text-primary transition-colors" />
-                  </Link>
-                </motion.div>
+                <button
+                  key={s.season_number}
+                  type="button"
+                  onClick={() => setSeasonNum(s.season_number)}
+                  className={cn(
+                    "px-3.5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 transition-all whitespace-nowrap active:scale-95",
+                    s.season_number === seasonNum
+                      ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white ring-transparent shadow-glow-sm"
+                      : "bg-white/[0.04] text-white/45 ring-white/[0.08] hover:bg-white/[0.08] hover:text-white"
+                  )}
+                >
+                  S{s.season_number}
+                </button>
               ))}
-            </motion.div>
+            </div>
+
+            {epsLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex gap-3 p-2 rounded-2xl ring-1 ring-white/[0.06] animate-pulse">
+                    <div className="w-32 aspect-video rounded-xl bg-white/[0.05] shrink-0" />
+                    <div className="flex-1 py-1 space-y-2">
+                      <div className="h-2.5 w-10 rounded bg-white/[0.07]" />
+                      <div className="h-3 w-full rounded bg-white/[0.07]" />
+                      <div className="h-2 w-16 rounded bg-white/[0.05]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : episodes.length > 0 ? (
+              <motion.div variants={staggerFast} initial="hidden" whileInView="show" viewport={viewportOnce} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {episodes.map((ep: Episode) => {
+                  const isResume =
+                    resumeItem?.season === seasonNum && resumeItem?.episode === ep.episode_number;
+                  return (
+                    <motion.div key={ep.id} variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}>
+                      <Link
+                        to={`/watch/tv/${show.id}/${seasonNum}/${ep.episode_number}`}
+                        className={cn(
+                          "group flex gap-3 p-2 rounded-2xl ring-1 transition-all",
+                          isResume
+                            ? "bg-primary/[0.09] ring-primary/40"
+                            : "bg-white/[0.03] ring-white/[0.07] hover:ring-primary/30 hover:bg-white/[0.05]"
+                        )}
+                      >
+                        <div className="relative w-32 aspect-video rounded-xl overflow-hidden shrink-0 bg-zinc-900 ring-1 ring-white/[0.08]">
+                          <img
+                            src={imgUrl(ep.still_path ?? null, "w300")}
+                            alt=""
+                            loading="lazy"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            onError={(ev) => { (ev.target as HTMLImageElement).style.visibility = "hidden"; }}
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            {isResume ? (
+                              <span className="rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 px-2 py-0.5 text-[7px] font-bold uppercase tracking-widest text-white shadow-glow-sm">
+                                Resume
+                              </span>
+                            ) : (
+                              <Play className="w-5 h-5 fill-current text-white/85 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col justify-center min-w-0 flex-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className={cn("text-[10px] font-black tabular-nums", isResume ? "text-primary" : "text-white/35")}>
+                              E{String(ep.episode_number).padStart(2, "0")}
+                            </span>
+                            <p className="text-xs font-bold text-white/90 line-clamp-2 leading-snug">
+                              {ep.name || "Episode"}
+                            </p>
+                          </div>
+                          <p className="text-[9px] font-medium uppercase tracking-wider text-white/30 mt-1">
+                            {ep.air_date || "TBA"}{ep.runtime ? ` · ${ep.runtime}m` : ""}
+                          </p>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            ) : (
+              <div className="p-10 text-center rounded-2xl ring-1 ring-dashed ring-white/10 text-white/25 text-[10px] font-bold uppercase tracking-[0.3em]">
+                No Episodes Listed
+              </div>
+            )}
           </motion.section>
         )}
 

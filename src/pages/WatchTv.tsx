@@ -31,9 +31,11 @@ export default function WatchTv() {
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
     window.scrollTo({ top: 0 });
 
     tmdb.tvDetails(Number(id)).then((d) => {
+      if (cancelled) return;
       setShow(d);
       document.title = `Watch ${getTitle(d)} · UNCFLIX`;
       updateContinueWatching({
@@ -49,13 +51,21 @@ export default function WatchTv() {
       });
     }).catch(() => {});
 
-    tmdb.tvEpisode(Number(id), s, e).then(setCurrentEp).catch(() => {});
-    tmdb.tvSeason(Number(id), s).then(setSeasonData).catch(() => setSeasonData(null));
-    tmdb.tvEpisode(Number(id), s, e + 1).then(setNextEp).catch(() => {
-      tmdb.tvEpisode(Number(id), s + 1, 1).then(setNextEp).catch(() => setNextEp(null));
-    });
+    tmdb.tvEpisode(Number(id), s, e)
+      .then((ep) => { if (!cancelled) setCurrentEp(ep); })
+      .catch(() => { if (!cancelled) setCurrentEp(null); });
+    tmdb.tvSeason(Number(id), s)
+      .then((d) => { if (!cancelled) setSeasonData(d); })
+      .catch(() => { if (!cancelled) setSeasonData(null); });
+    tmdb.tvEpisode(Number(id), s, e + 1)
+      .then((ep) => { if (!cancelled) setNextEp(ep); })
+      .catch(() => {
+        tmdb.tvEpisode(Number(id), s + 1, 1)
+          .then((ep) => { if (!cancelled) setNextEp(ep); })
+          .catch(() => { if (!cancelled) setNextEp(null); });
+      });
 
-    return () => { document.title = "UNCFLIX"; };
+    return () => { cancelled = true; document.title = "UNCFLIX"; };
   }, [id, s, e]);
 
   // CineSrc player events: progress sync + out-of-player episode navigation
@@ -83,7 +93,8 @@ export default function WatchTv() {
         });
       }
 
-      if (data.type === "cinesrc:nextepisode" && data.internalNavigation === false && data.source !== "internal") {
+      const internal = data.internalNavigation === true || data.source === "internal";
+      if (data.type === "cinesrc:nextepisode" && !internal) {
         const ns = Number(data.season), ne = Number(data.episode);
         if (ns && ne && (ns !== s || ne !== e)) {
           navigate(`/watch/tv/${id}/${ns}/${ne}`, { replace: true });
