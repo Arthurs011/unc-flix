@@ -11,7 +11,7 @@ interface Props {
   eyebrow?: string;
 }
 
-export default function ContentRow({ title, results, type = "movie", description, eyebrow }: Props) {
+export default function ContentRow({ title, results, type, description, eyebrow }: Props) {
   const rowRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: 1 | -1) => {
@@ -75,7 +75,7 @@ export default function ContentRow({ title, results, type = "movie", description
         >
           {results.map((movie, index) => (
             <MovieCard
-              key={`${movie.media_type ?? type}:${movie.id}:${index}`}
+              key={`${movie.media_type ?? type ?? "m"}:${movie.id}:${index}`}
               movie={movie}
               type={type}
               className="w-[150px] shrink-0 snap-start sm:w-[172px] md:w-[188px] lg:w-[200px]"

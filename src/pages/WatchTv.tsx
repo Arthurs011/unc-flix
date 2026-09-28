@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { Check, Play, Server, Share2, Star, ThumbsDown, ThumbsUp } from "lucide-react";
-import { getContinueWatching, updateContinueWatching } from "@/lib/storage";
+import { getContinueWatching, getRatingVote, setRatingVote, updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, type Episode, type MovieDetails, type SeasonDetails, imgUrl, formatCount } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { SOURCES, getPreferredSourceIndex, setPreferredSourceIndex } from "@/lib/servers";
@@ -25,8 +25,8 @@ export default function WatchTv() {
   const [currentEp, setCurrentEp] = useState<Episode | null>(null);
   const [nextEp, setNextEp] = useState<Episode | null>(null);
   const [seasonData, setSeasonData] = useState<SeasonDetails | null>(null);
-  const [liked, setLiked] = useState(false);
-  const [disliked, setDisliked] = useState(false);
+  const [liked, setLiked] = useState(() => (id ? getRatingVote(Number(id), "tv") === "like" : false));
+  const [disliked, setDisliked] = useState(() => (id ? getRatingVote(Number(id), "tv") === "dislike" : false));
   const [copied, setCopied] = useState(false);
   const lastSaveRef = useRef(0);
   const lastProgressRef = useRef<{ currentTime: number; duration: number } | null>(null);
@@ -51,11 +51,30 @@ export default function WatchTv() {
     setPreferredSourceIndex(index);
   };
 
+  const handleLike = () => {
+    if (!id) return;
+    const next = !liked;
+    setLiked(next);
+    setDisliked(false);
+    setRatingVote(Number(id), "tv", next ? "like" : null);
+  };
+
+  const handleDislike = () => {
+    if (!id) return;
+    const next = !disliked;
+    setDisliked(next);
+    setLiked(false);
+    setRatingVote(Number(id), "tv", next ? "dislike" : null);
+  };
+
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
     setLoading(true);
     setHasError(false);
+    const vote = getRatingVote(Number(id), "tv");
+    setLiked(vote === "like");
+    setDisliked(vote === "dislike");
     window.scrollTo({ top: 0 });
     tmdb.tvDetails(Number(id)).then((data) => {
       if (cancelled) return;
@@ -220,7 +239,7 @@ export default function WatchTv() {
                   <div className="flex items-center rounded-lg border border-white/[0.08] bg-[#0c0d14]/70 p-1 backdrop-blur-md">
                     <button
                       type="button"
-                      onClick={() => { setLiked((value) => !value); setDisliked(false); }}
+                      onClick={handleLike}
                       aria-label={liked ? "Remove like" : "Like"}
                       aria-pressed={liked}
                       className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors ${liked ? "bg-primary text-[#060e17] font-semibold" : "text-white/60 hover:bg-white/[0.08] hover:text-white"}`}
@@ -231,7 +250,7 @@ export default function WatchTv() {
                     <span className="mx-1 h-3.5 w-px bg-white/10" />
                     <button
                       type="button"
-                      onClick={() => { setDisliked((value) => !value); setLiked(false); }}
+                      onClick={handleDislike}
                       aria-label={disliked ? "Remove dislike" : "Dislike"}
                       aria-pressed={disliked}
                       className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors ${disliked ? "bg-red-400 text-red-950 font-semibold" : "text-white/60 hover:bg-white/[0.08] hover:text-white"}`}

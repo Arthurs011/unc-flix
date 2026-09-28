@@ -156,7 +156,7 @@ export default function Watchlist() {
                           type="button"
                           onClick={() => remove(item.id, type)}
                           aria-label={`Remove ${item.name ?? item.title} from my list`}
-                          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-black/60 text-white/50 opacity-0 backdrop-blur-md transition-all hover:border-red-400/40 hover:bg-red-950/80 hover:text-red-200 focus:opacity-100 group-hover:opacity-100"
+                          className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-black/60 text-white/50 backdrop-blur-md transition-all hover:border-red-400/40 hover:bg-red-950/80 hover:text-red-200 focus:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>

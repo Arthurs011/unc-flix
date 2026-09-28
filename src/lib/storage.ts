@@ -111,8 +111,34 @@ export function removeContinueWatching(id: number, type?: "movie" | "tv", season
   );
 }
 
+// ---------- Likes / Votes ----------
+const VOTES_KEY = "uncflix_votes";
+
+export type VoteType = "like" | "dislike";
+
+export interface VoteRecord {
+  id: number;
+  type: "movie" | "tv";
+  vote: VoteType;
+}
+
+export function getRatingVote(id: number, type: "movie" | "tv"): VoteType | null {
+  const votes = read<VoteRecord>(VOTES_KEY);
+  const found = votes.find((v) => v.id === id && v.type === type);
+  return found ? found.vote : null;
+}
+
+export function setRatingVote(id: number, type: "movie" | "tv", vote: VoteType | null) {
+  const votes = read<VoteRecord>(VOTES_KEY).filter((v) => !(v.id === id && v.type === type));
+  if (vote) {
+    votes.unshift({ id, type, vote });
+  }
+  write(VOTES_KEY, votes.slice(0, 200));
+}
+
 export function clearLocalUserData() {
   localStorage.removeItem(WATCHLIST_KEY);
   localStorage.removeItem(CONTINUE_KEY);
   localStorage.removeItem(RECENT_KEY);
+  localStorage.removeItem(VOTES_KEY);
 }

@@ -14,7 +14,7 @@ interface Props {
 
 export default function MovieCard({ movie, type, rank, className }: Props) {
   const reduceMotion = useReducedMotion();
-  const isTv = type === "tv" || movie.media_type === "tv";
+  const isTv = type === "tv" || movie.media_type === "tv" || (!movie.title && Boolean(movie.name));
   const title = getTitle(movie);
   const year = getYear(movie);
   const image = movie.poster_path ?? movie.backdrop_path;
@@ -79,6 +79,8 @@ export default function MovieCard({ movie, type, rank, className }: Props) {
       <div className="mt-2 min-w-0 px-0.5">
         <Link
           to={href}
+          tabIndex={-1}
+          aria-hidden="true"
           className="block truncate text-[13px] font-medium text-white/88 transition-colors hover:text-white"
         >
           {title}

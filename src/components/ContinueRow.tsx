@@ -110,7 +110,7 @@ function ContinueCard({ item, onRemove }: { item: ContinueItem; onRemove: (item:
         type="button"
         onClick={() => onRemove(item)}
         aria-label={`Remove ${item.title} from continue watching`}
-        className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-black/50 text-white/45 opacity-0 backdrop-blur-md transition-all hover:border-red-300/30 hover:bg-red-950/70 hover:text-red-200 focus:opacity-100 group-hover:opacity-100"
+        className="absolute right-2.5 top-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-black/50 text-white/45 backdrop-blur-md transition-all hover:border-red-300/30 hover:bg-red-950/70 hover:text-red-200 focus:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>

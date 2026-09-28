@@ -58,35 +58,33 @@ export default function SearchPage() {
   }, [input, navigate, query]);
 
   useEffect(() => {
-    if (!query.trim()) {
+    const q = query.trim();
+    if (!q) {
       setResults([]);
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    const timer = window.setTimeout(() => {
-      tmdb
-        .search(query.trim())
-        .then((response) => {
-          if (!cancelled) {
-            setResults(
-              (response.results ?? []).filter(
-                (item) => (item.media_type === "movie" || item.media_type === "tv") && item.poster_path
-              )
-            );
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setResults([]);
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
-    }, 380);
+    tmdb
+      .search(q)
+      .then((response) => {
+        if (!cancelled) {
+          setResults(
+            (response.results ?? []).filter(
+              (item) => (item.media_type === "movie" || item.media_type === "tv") && item.poster_path
+            )
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setResults([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
     };
   }, [query]);
 

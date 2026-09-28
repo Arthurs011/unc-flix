@@ -49,6 +49,11 @@ export default function SearchDropdown({
   const visibleResults = results.slice(0, 6);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onSelect();
+      return;
+    }
     if (visibleResults.length === 0) return;
     if (event.key === "ArrowDown") {
       event.preventDefault();
