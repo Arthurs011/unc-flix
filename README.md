@@ -102,6 +102,29 @@ src/
 
 Deploys to Vercel on push to `main`. No server component — everything runs client-side against TMDB and CineSrc.
 
+### Environment variables
+
+Set these in Vercel under **Project → Settings → Environment Variables** for all three environments, then redeploy. Vite inlines `VITE_*` values at build time, so a rebuild is required for changes to take effect.
+
+| Variable | Required | Where to get it |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | yes | Supabase → Project Settings → API → Project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | yes | Supabase → Project Settings → API → Publishable key |
+| `VITE_SUPABASE_PROJECT_ID` | no | Same screen, for tooling that uses the ref directly |
+
+For local development, copy `.env.example` to `.env` and fill in the same values.
+
+If these are missing the app still loads, but accounts, sign-in, and cross-device sync stay disabled and the sign-in form explains why. Never put the Supabase **secret** key (`sb_secret_`) or a service-role key in a `VITE_` variable — anything prefixed `VITE_` is shipped to every visitor.
+
+### Database
+
+Schema and migrations live in `supabase/`. Run these in the Supabase SQL editor, in order:
+
+1. `supabase/ensure_schema.sql` — `continue_watching` table, indexes, and RLS. Required for synced resume positions.
+2. `supabase/account_area.sql` — `account_profiles` table for display name, avatar colour, and playback preferences.
+
+Both are idempotent, so re-running is safe. Sign-ups require **Authentication → Providers → Email** with *Confirm email* enabled unless you are deliberately testing.
+
 ---
 
 Built with React, Tailwind CSS, and Motion.
