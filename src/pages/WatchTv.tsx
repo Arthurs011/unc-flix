@@ -24,10 +24,21 @@ export default function WatchTv() {
   const [seasonData, setSeasonData] = useState<SeasonDetails | null>(null);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
+  const [liveEp, setLiveEp] = useState<{ season: number; episode: number } | null>(null);
   const lastSaveRef = useRef(0);
 
   const s = Number(season) || 1;
   const e = Number(episode) || 1;
+
+  // The embed switches episodes by itself (autonext / its own selector) and
+  // always flags that as internalNavigation, so the URL params go stale.
+  // `ds`/`de` are what the UI shows; `s`/`e` stay pinned to the URL so the
+  // iframe is never remounted, which would restart playback mid-advance.
+  const ds = liveEp?.season ?? s;
+  const de = liveEp?.episode ?? e;
+
+  // A real URL change means the user picked an episode ourselves.
+  useEffect(() => { setLiveEp(null); }, [s, e]);
 
   useEffect(() => {
     if (!id) return;
@@ -45,28 +56,28 @@ export default function WatchTv() {
         poster_path: d.poster_path,
         backdrop_path: d.backdrop_path,
         progress: 0,
-        season: s,
-        episode: e,
+        season: ds,
+        episode: de,
         timestamp: Date.now(),
       });
     }).catch(() => {});
 
-    tmdb.tvEpisode(Number(id), s, e)
+    tmdb.tvEpisode(Number(id), ds, de)
       .then((ep) => { if (!cancelled) setCurrentEp(ep); })
       .catch(() => { if (!cancelled) setCurrentEp(null); });
-    tmdb.tvSeason(Number(id), s)
+    tmdb.tvSeason(Number(id), ds)
       .then((d) => { if (!cancelled) setSeasonData(d); })
       .catch(() => { if (!cancelled) setSeasonData(null); });
-    tmdb.tvEpisode(Number(id), s, e + 1)
+    tmdb.tvEpisode(Number(id), ds, de + 1)
       .then((ep) => { if (!cancelled) setNextEp(ep); })
       .catch(() => {
-        tmdb.tvEpisode(Number(id), s + 1, 1)
+        tmdb.tvEpisode(Number(id), ds + 1, 1)
           .then((ep) => { if (!cancelled) setNextEp(ep); })
           .catch(() => { if (!cancelled) setNextEp(null); });
       });
 
     return () => { cancelled = true; document.title = "UNCFLIX"; };
-  }, [id, s, e]);
+  }, [id, ds, de]);
 
   // CineSrc player events: progress sync + out-of-player episode navigation
   useEffect(() => {
@@ -87,23 +98,43 @@ export default function WatchTv() {
           poster_path: show?.poster_path,
           backdrop_path: show?.backdrop_path,
           progress: Math.min(100, Math.round((data.currentTime / data.duration) * 100)),
-          season: s,
-          episode: e,
+          season: ds,
+          episode: de,
           timestamp: now,
         });
       }
 
-      const internal = data.internalNavigation === true || data.source === "internal";
-      if (data.type === "cinesrc:nextepisode" && !internal) {
+      if (data.type === "cinesrc:nextepisode") {
         const ns = Number(data.season), ne = Number(data.episode);
-        if (ns && ne && (ns !== s || ne !== e)) {
+        if (!ns || !ne || (ns === ds && ne === de)) return;
+
+        if (data.internalNavigation === true) {
+          // The embed already switched its own stream and history. Mirror that
+          // in our UI and URL only - re-navigating would remount the iframe and
+          // restart the episode that is currently playing.
+          setLiveEp({ season: ns, episode: ne });
+          window.history.replaceState(null, "", `/watch/tv/${id}/${ns}/${ne}`);
+          if (id) {
+            updateContinueWatching({
+              id: Number(id),
+              type: "tv",
+              title: getTitle(show),
+              poster_path: show?.poster_path,
+              backdrop_path: show?.backdrop_path,
+              progress: 0,
+              season: ns,
+              episode: ne,
+              timestamp: Date.now(),
+            });
+          }
+        } else {
           navigate(`/watch/tv/${id}/${ns}/${ne}`, { replace: true });
         }
       }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [id, s, e, show, navigate]);
+  }, [id, ds, de, show, navigate]);
 
   const embedSrc = SOURCES[0].build("tv", id || "", s, e);
   const seasons = show?.seasons?.filter((se) => se.season_number > 0) ?? [];
@@ -127,7 +158,7 @@ export default function WatchTv() {
       <WatchHeader
         to={`/tv/${id}`}
         label="Series"
-        badge={`S${s} · E${e}`}
+        badge={`S${ds} · E${de}`}
         title={show ? getTitle(show) : "Loading..."}
       />
 
@@ -225,7 +256,7 @@ export default function WatchTv() {
               </div>
 
               <h2 className="text-3xl sm:text-4xl font-black tracking-tighter leading-[0.95] mb-5">
-                S{s} E{e} · {currentEp?.name || "Episode"}
+                S{ds} E{de} · {currentEp?.name || "Episode"}
               </h2>
 
               <p className="text-base text-white/55 leading-relaxed max-w-2xl">
@@ -303,7 +334,7 @@ export default function WatchTv() {
 
                 <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1 -mr-1">
                   {seasonData.episodes.map((ep) => {
-                    const active = ep.episode_number === e;
+                    const active = ep.episode_number === de;
                     return (
                       <Link
                         key={ep.id}

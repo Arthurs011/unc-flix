@@ -52,16 +52,17 @@ export default function TvDetailsPage() {
       .catch(() => setReviews([]));
   }, [id]);
 
-  // Default to the season the user last watched, else the newest season.
+  // Open on the season the viewer last watched, otherwise the first season.
   useEffect(() => {
     if (!show) return;
     const list = (show.seasons ?? []).filter((x) => x.season_number > 0);
     if (list.length === 0) { setSeasonNum(null); return; }
     const resume = getContinueWatching().find((c) => c.type === "tv" && c.id === show.id);
+    const firstSeason = list.reduce((min, x) => Math.min(min, x.season_number), Infinity);
     const target =
       resume?.season && list.some((x) => x.season_number === resume.season)
         ? resume.season
-        : list[list.length - 1].season_number;
+        : firstSeason;
     setSeasonNum(target);
   }, [show]);
 
