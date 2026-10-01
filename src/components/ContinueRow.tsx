@@ -102,7 +102,7 @@ export default function ContinueRow() {
                 className="block aspect-video rounded-2xl overflow-hidden bg-card relative ring-1 ring-white/[0.08] shadow-card group-hover:ring-primary/40 transition-all duration-300"
               >
                 <img
-                  src={imgUrl(item.backdrop_path || item.poster_path, "w780")}
+                  src={imgUrl(item.backdrop_path || item.poster_path, "w780", true)}
                   alt={item.title}
                   loading="lazy"
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"

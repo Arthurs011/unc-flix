@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader2, Film, Tv, SearchX } from "lucide-react";
-import { tmdb, imgUrl, getTitle, getYear, Movie } from "@/lib/tmdb";
+import { tmdb, posterUrl, getTitle, getYear, Movie } from "@/lib/tmdb";
 
 interface Props {
   query: string;
@@ -109,7 +109,7 @@ export default function SearchDropdown({ query, onSelect }: Props) {
                     <div className="flex-shrink-0 w-9 h-[54px] rounded-lg overflow-hidden bg-white/[0.06]">
                       {item.poster_path ? (
                         <img
-                          src={imgUrl(item.poster_path, "w92")}
+                          src={posterUrl(item, "w92")}
                           alt={getTitle(item)}
                           className="w-full h-full object-cover"
                         />

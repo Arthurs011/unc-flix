@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Play, Plus, Check, Star, ArrowLeft, X, Film, Clock } from "lucide-react";
-import { tmdb, Movie, Review, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
+import { tmdb, Movie, Review, MovieDetails as MD, imgUrl, posterUrl, getTitle, getYear } from "@/lib/tmdb";
 import { addRecentlyViewed } from "@/lib/storage";
 import { useWatchlistItem } from "@/hooks/useWatchlist";
 import PageShell from "@/components/PageShell";
@@ -105,7 +105,7 @@ export default function MovieDetailsPage() {
       {/* Backdrop */}
       <div ref={backdropRef} className="relative h-[52vh] sm:h-[62vh] overflow-hidden">
         <motion.div style={{ y: bgY }} className="absolute inset-0 scale-110">
-          <img src={imgUrl(show.backdrop_path, "w1280")} alt="" className="w-full h-full object-cover" />
+          <img src={imgUrl(show.backdrop_path, "w1280", true)} alt="" className="w-full h-full object-cover" />
         </motion.div>
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-transparent" />
         <Link
@@ -126,7 +126,7 @@ export default function MovieDetailsPage() {
             className="flex-shrink-0 w-44 sm:w-60 mx-auto sm:mx-0"
           >
             <img
-              src={imgUrl(show.poster_path, "w500")}
+              src={posterUrl(show, "w500")}
               alt={getTitle(show)}
               className="w-full rounded-3xl shadow-card-lg ring-1 ring-white/10"
             />

@@ -132,14 +132,34 @@ export const tmdb = {
     get<SeasonDetails>(`/tv/${tvId}/season/${season}`),
 };
 
-export function imgUrl(path: string | null, size = "w500") {
-  return path ? `${IMG}/${size}${path}` : "/placeholder.svg";
+/**
+ * Neutral placeholder for artwork TMDB has no path for. Inline so it needs no
+ * network request and, unlike the old /placeholder.svg, it is not a 150x39
+ * logo banner: stretched into a poster slot that asset rendered as a blank
+ * card, and because it loaded successfully the onError fallback never fired.
+ */
+function blankImg(wide: boolean) {
+  const [w, h] = wide ? [1280, 720] : [342, 513];
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='0 0 ${w} ${h}'><rect width='100%' height='100%' fill='#12141d'/></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+export function imgUrl(path: string | null, size = "w500", wide = false) {
+  return path ? `${IMG}/${size}${path}` : blankImg(wide);
 }
 
 export function posterFallback(name?: string | null): string {
   const letter = (name?.trim()?.[0] ?? "?").toUpperCase();
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='342' height='513'><rect width='100%' height='100%' fill='#12141d'/><rect x='1' y='1' width='340' height='511' rx='16' fill='none' stroke='#ffffff14'/><text x='50%' y='50%' fill='#3b82f6' font-family='Arial,sans-serif' font-size='128' font-weight='800' text-anchor='middle' dominant-baseline='central'>${letter}</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * Poster URL that degrades to a title initial rather than a blank rectangle,
+ * so a show or film without a TMDB poster still shows a recognisable card.
+ */
+export function posterUrl(item: Movie, size = "w500") {
+  return item.poster_path ? `${IMG}/${size}${item.poster_path}` : posterFallback(getTitle(item));
 }
 
 export function getTitle(item: Movie) {

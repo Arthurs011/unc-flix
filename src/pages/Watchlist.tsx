@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { removeFromWatchlist } from "@/lib/storage";
 import { useWatchlist, useWatchlistPersistent } from "@/hooks/useWatchlist";
-import { Movie, getTitle, imgUrl, posterFallback } from "@/lib/tmdb";
+import { Movie, getTitle, posterUrl } from "@/lib/tmdb";
 import { titleType } from "@/lib/watchlistSync";
 import { X, Bookmark, Film, Tv, Play, TriangleAlert } from "lucide-react";
 import PageShell from "@/components/PageShell";
@@ -90,7 +90,7 @@ export default function Watchlist() {
                       className="block aspect-[2/3] rounded-2xl overflow-hidden bg-card relative ring-1 ring-white/[0.08] group-hover:ring-primary/40 shadow-card transition-all duration-300"
                     >
                       <img
-                        src={imgUrl(m.poster_path, "w500")}
+                        src={posterUrl(m, "w500")}
                         alt={getTitle(m)}
                         loading="lazy"
                         onError={(e) => {

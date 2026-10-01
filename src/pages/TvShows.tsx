@@ -120,7 +120,7 @@ export default function TvShowsPage() {
               initial={{ scale: 1.08 }}
               animate={{ scale: 1 }}
               transition={{ duration: 8, ease: "linear" }}
-              src={imgUrl(heroShow.backdrop_path, "w1280")}
+              src={imgUrl(heroShow.backdrop_path, "w1280", true)}
               className="absolute inset-0 w-full h-full object-cover"
               alt=""
             />

@@ -3,7 +3,7 @@ import { Star, ThumbsUp, ThumbsDown, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { updateContinueWatching } from "@/lib/storage";
-import { tmdb, getTitle, imgUrl, Movie, MovieDetails, formatCount, getYear } from "@/lib/tmdb";
+import { tmdb, getTitle, imgUrl, posterUrl, Movie, MovieDetails, formatCount, getYear } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { SOURCES } from "@/lib/servers";
 import PageShell from "@/components/PageShell";
@@ -72,7 +72,7 @@ export default function WatchMovie() {
       <div className="fixed inset-0 -z-10">
         {movie?.backdrop_path && (
           <img
-            src={imgUrl(movie.backdrop_path, "w1280")}
+            src={imgUrl(movie.backdrop_path, "w1280", true)}
             alt=""
             className="w-full h-full object-cover opacity-20 scale-110 blur-2xl"
           />
@@ -225,7 +225,7 @@ export default function WatchMovie() {
                     className="flex gap-3.5 p-2 rounded-xl bg-white/[0.03] ring-1 ring-transparent hover:ring-primary/30 hover:bg-white/[0.05] transition-colors text-left w-full"
                   >
                     <div className="w-12 h-[72px] rounded-lg overflow-hidden shrink-0 ring-1 ring-white/[0.08] bg-card">
-                      <img src={imgUrl(rec.poster_path, "w200")} alt="" loading="lazy" className="w-full h-full object-cover" />
+                      <img src={posterUrl(rec, "w200")} alt="" loading="lazy" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex flex-col justify-center min-w-0 pr-1">
                       <p className="text-xs font-bold line-clamp-2 leading-snug">{getTitle(rec)}</p>

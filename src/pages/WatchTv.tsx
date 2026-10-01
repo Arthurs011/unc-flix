@@ -148,7 +148,7 @@ export default function WatchTv() {
       <div className="fixed inset-0 -z-10">
         {show?.backdrop_path && (
           <img
-            src={imgUrl(show.backdrop_path, "w1280")}
+            src={imgUrl(show.backdrop_path, "w1280", true)}
             alt=""
             className="w-full h-full object-cover opacity-20 scale-110 blur-2xl"
           />

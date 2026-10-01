@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { Star, Play } from "lucide-react";
-import { Movie, imgUrl, posterFallback, getTitle, getYear } from "@/lib/tmdb";
+import { Movie, posterUrl, posterFallback, getTitle, getYear } from "@/lib/tmdb";
 import { motion, useMotionValue, useSpring } from "motion/react";
 import { springSoft, springSnappy } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -53,7 +53,7 @@ export default function MovieCard({ movie, type, rank, className }: Props) {
         className="block relative aspect-[2/3] rounded-2xl overflow-hidden bg-card ring-1 ring-white/[0.08] shadow-card group-hover:ring-primary/40 transition-[box-shadow,border-color] duration-300"
       >
         <img
-          src={imgUrl(movie.poster_path, "w342")}
+          src={posterUrl(movie, "w342")}
           alt={getTitle(movie)}
           loading="lazy"
           decoding="async"
