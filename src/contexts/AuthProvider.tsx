@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { setRemoteUser, syncContinueWatchingForUser } from "@/lib/storage";
+import {
+  setRemoteUser,
+  resetSyncedCaches,
+  syncContinueWatchingForUser,
+  syncWatchlistForUser,
+} from "@/lib/storage";
 import { loadProfile, clearProfile } from "@/lib/profile";
 import { AuthContext, type AuthContextValue } from "@/contexts/auth";
 
@@ -53,11 +58,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!userId) {
       setRemoteUser(null);
+      // Don't leave the previous account's library in memory for a signed-out
+      // visitor or the next person to sign in on this device.
+      resetSyncedCaches();
       return;
     }
     let cancelled = false;
-    syncContinueWatchingForUser(userId)
-      .catch((e) => console.error("continue-watching sync failed", e))
+    // Enable remote writes first so toggles made during the sync aren't lost.
+    setRemoteUser(userId);
+    Promise.all([
+      syncContinueWatchingForUser(userId),
+      syncWatchlistForUser(userId),
+    ])
+      .catch((e) => console.error("account sync failed", e))
       .finally(() => {
         if (!cancelled) setRemoteUser(userId);
       });

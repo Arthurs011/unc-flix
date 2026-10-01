@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Play, Plus, Check, Star, ArrowLeft, X, Film, Clock } from "lucide-react";
 import { tmdb, Movie, Review, Episode, SeasonDetails, MovieDetails as MD, imgUrl, getTitle, getYear } from "@/lib/tmdb";
-import { isInWatchlist, toggleWatchlist, addRecentlyViewed } from "@/lib/storage";
+import { addRecentlyViewed } from "@/lib/storage";
+import { useWatchlistItem } from "@/hooks/useWatchlist";
 import { useContinueWatching } from "@/hooks/useContinueWatching";
 import { cn } from "@/lib/utils";
 import PageShell from "@/components/PageShell";
@@ -19,7 +20,6 @@ export default function TvDetailsPage() {
   const [similar, setSimilar] = useState<Movie[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [inWL, setInWL] = useState(false);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [showTrailer, setShowTrailer] = useState(false);
   const [seasonNum, setSeasonNum] = useState<number | null>(null);
@@ -29,6 +29,9 @@ export default function TvDetailsPage() {
   const backdropRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: backdropRef, offset: ["start start", "end start"] });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
+
+  const showForList: Movie | null = show ? { ...show, media_type: "tv" } : null;
+  const { saved: inWL, toggle } = useWatchlistItem(showForList);
 
   const continueItems = useContinueWatching();
   const resumeItem = show
@@ -42,7 +45,6 @@ export default function TvDetailsPage() {
     tmdb.tvDetails(Number(id))
       .then((d) => {
         setShow(d);
-        setInWL(isInWatchlist(d.id));
         addRecentlyViewed({ ...d, media_type: "tv" });
         const videos = d.videos?.results ?? [];
         const trailer = videos.find((v) => v.site === "YouTube" && v.type === "Trailer")
@@ -262,7 +264,7 @@ export default function TvDetailsPage() {
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 transition={springSnappy}
-                onClick={() => setInWL(toggleWatchlist(show))}
+                onClick={toggle}
                 aria-label={inWL ? "Remove from watchlist" : "Add to watchlist"}
                 className="w-13 h-13 rounded-full glass ring-1 ring-white/15 flex items-center justify-center text-white hover:bg-white/10 transition-colors"
               >

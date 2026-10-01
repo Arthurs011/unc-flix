@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Play, Plus, Check, ChevronLeft, ChevronRight, Star, Shuffle } from "lucide-react";
 import { Movie, imgUrl, getTitle, getYear } from "@/lib/tmdb";
-import { isInWatchlist, toggleWatchlist } from "@/lib/storage";
+import { useWatchlistItem } from "@/hooks/useWatchlist";
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from "motion/react";
 import { EASE, springSnappy } from "@/lib/motion";
 
@@ -14,7 +14,6 @@ const AUTOPLAY_MS = 8000;
 
 export default function HeroBanner({ movies }: Props) {
   const [idx, setIdx] = useState(0);
-  const [inWatchlist, setInWatchlist] = useState(false);
   const safeMovies = useMemo(() => movies ?? [], [movies]);
   const featured = useMemo(() => safeMovies.slice(0, 8), [safeMovies]);
   const current = featured[idx] ?? null;
@@ -25,6 +24,8 @@ export default function HeroBanner({ movies }: Props) {
     offset: ["start start", "end start"],
   });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+
+  const { saved: inWatchlist, toggle } = useWatchlistItem(current);
   const contentOpacity = useTransform(scrollYProgress, [0, 0.42], [1, 0]);
   const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "16%"]);
 
@@ -48,7 +49,7 @@ export default function HeroBanner({ movies }: Props) {
   }, [next, idx, featured.length]);
 
   useEffect(() => {
-    if (current) setInWatchlist(isInWatchlist(current.id));
+
   }, [current]);
 
   const handleShuffle = () => {
@@ -185,7 +186,7 @@ export default function HeroBanner({ movies }: Props) {
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 transition={springSnappy}
-                onClick={() => setInWatchlist(toggleWatchlist(current))}
+                onClick={toggle}
                 className="flex items-center gap-2.5 h-13 px-7 rounded-full glass ring-1 ring-white/15 text-white font-bold text-sm hover:bg-white/10 transition-colors"
               >
                 {inWatchlist ? <Check className="w-5 h-5 text-emerald-400" /> : <Plus className="w-5 h-5" />}

@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getWatchlist, removeFromWatchlist } from "@/lib/storage";
-import { Movie, getTitle, imgUrl } from "@/lib/tmdb";
+import { removeFromWatchlist } from "@/lib/storage";
+import { useWatchlist } from "@/hooks/useWatchlist";
+import { Movie, getTitle, imgUrl, posterFallback } from "@/lib/tmdb";
+import { titleType } from "@/lib/watchlistSync";
 import { X, Bookmark, Film, Tv, Play } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -10,16 +11,9 @@ import { fadeUp, staggerFast, springSnappy } from "@/lib/motion";
 
 export default function Watchlist() {
   usePageTitle("My List");
-  const [list, setList] = useState<Movie[]>([]);
+  const list = useWatchlist();
 
-  useEffect(() => {
-    setList(getWatchlist() || []);
-  }, []);
-
-  const handleRemove = (id: number) => {
-    removeFromWatchlist(id);
-    setList(getWatchlist());
-  };
+  const handleRemove = (m: Movie) => removeFromWatchlist(m.id, titleType(m));
 
   return (
     <PageShell className="min-h-screen bg-background pt-28 md:pt-32 pb-32 px-4 sm:px-6 lg:px-8">
@@ -62,12 +56,12 @@ export default function Watchlist() {
           <motion.div layout variants={staggerFast} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
             <AnimatePresence mode="popLayout">
               {list.map((m) => {
-                const type = m.media_type || (m.title ? "movie" : "tv");
+                const type = titleType(m);
                 const to = type === "tv" ? `/tv/${m.id}` : `/movie/${m.id}`;
 
                 return (
                   <motion.div
-                    key={m.id}
+                    key={`${type}:${m.id}`}
                     layout
                     variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
                     exit={{ opacity: 0, scale: 0.85 }}
@@ -82,6 +76,9 @@ export default function Watchlist() {
                         src={imgUrl(m.poster_path, "w500")}
                         alt={getTitle(m)}
                         loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.src = posterFallback(getTitle(m));
+                        }}
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-end p-4 pb-5 text-center">
@@ -104,7 +101,7 @@ export default function Watchlist() {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        handleRemove(m.id);
+                        handleRemove(m);
                       }}
                       aria-label="Remove from watchlist"
                       className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 hover:bg-red-600 active:scale-90 transition-all z-10"

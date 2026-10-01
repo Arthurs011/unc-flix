@@ -5,6 +5,14 @@ import {
   upsertRemoteContinueBatch,
   deleteRemoteContinue,
 } from "./continueSync";
+import {
+  fetchRemoteWatchlist,
+  upsertRemoteWatchlist,
+  upsertRemoteWatchlistBatch,
+  deleteRemoteWatchlist,
+  sameTitle,
+  titleType,
+} from "./watchlistSync";
 
 const WATCHLIST_KEY = "uncflix_watchlist";
 const RECENT_KEY = "uncflix_recent";
@@ -33,21 +41,56 @@ function read<T>(key: string): T[] {
 }
 
 function write<T>(key: string, data: T[]) {
-  localStorage.setItem(key, JSON.stringify(data));
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    // iOS Safari private browsing and full quotas throw here. The in-memory
+    // cache still works, so a failed write must not break the UI.
+  }
 }
 
-// ---------- Watchlist (stays device-local) ----------
+// ---------- Watchlist (local cache + account sync) ----------
+
+let watchlistCache: Movie[] | null = null;
+const watchlistListeners = new Set<() => void>();
+
+function watchlistCacheValue(): Movie[] {
+  if (watchlistCache === null) watchlistCache = read<Movie>(WATCHLIST_KEY);
+  return watchlistCache;
+}
+
+function commitWatchlist(items: Movie[], notify = true) {
+  watchlistCache = items;
+  write(WATCHLIST_KEY, items);
+  if (notify) watchlistListeners.forEach((l) => l());
+}
+
+/** Subscribe to watchlist changes. Returns an unsubscribe function. */
+export function subscribeWatchlist(listener: () => void) {
+  watchlistListeners.add(listener);
+  return () => {
+    watchlistListeners.delete(listener);
+  };
+}
+
 export function getWatchlist(): Movie[] {
-  return read<Movie>(WATCHLIST_KEY);
+  return watchlistCacheValue();
 }
 
-export function isInWatchlist(id: number): boolean {
-  return getWatchlist().some((m) => m.id === id);
+/**
+ * TMDB ids repeat across media types, so membership has to consider the type
+ * too. Passing only an id checks the movie and the show with that id.
+ */
+export function isInWatchlist(id: number, type?: "movie" | "tv"): boolean {
+  const list = getWatchlist();
+  if (!type) return list.some((m) => m.id === id);
+  return list.some((m) => sameTitle(m, id, type));
 }
 
 export function toggleWatchlist(movie: Movie): boolean {
+  const type = titleType(movie);
   const list = getWatchlist();
-  const idx = list.findIndex((m) => m.id === movie.id);
+  const idx = list.findIndex((m) => sameTitle(m, movie.id, type));
   let added: boolean;
   if (idx >= 0) {
     list.splice(idx, 1);
@@ -56,13 +99,29 @@ export function toggleWatchlist(movie: Movie): boolean {
     list.unshift(movie);
     added = true;
   }
-  write(WATCHLIST_KEY, list);
+  commitWatchlist(list);
+
+  if (!remoteUserId) return added;
+
+  const call = added
+    ? upsertRemoteWatchlist(remoteUserId, movie)
+    : deleteRemoteWatchlist(remoteUserId, type, movie.id);
+  call.catch((e) => console.error("watchlist sync failed", e));
   return added;
 }
 
-export function removeFromWatchlist(id: number) {
-  const remaining = getWatchlist().filter((m) => m.id !== id);
-  write(WATCHLIST_KEY, remaining);
+export function removeFromWatchlist(id: number, type?: "movie" | "tv") {
+  const list = getWatchlist();
+  const target = list.find((m) => (type ? sameTitle(m, id, type) : m.id === id));
+  commitWatchlist(
+    type ? list.filter((m) => !sameTitle(m, id, type)) : list.filter((m) => m.id !== id),
+  );
+
+  if (remoteUserId && target) {
+    deleteRemoteWatchlist(remoteUserId, titleType(target), target.id).catch((e) => {
+      console.error("watchlist delete failed", e);
+    });
+  }
 }
 
 // ---------- Recently Viewed (stays device-local) ----------
@@ -139,6 +198,33 @@ export function setRemoteUser(userId: string | null) {
 }
 
 /**
+ * Union this device's watchlist with the account's. Additive on purpose: a
+ * saved title is never dropped by signing in, so a phone's library and a
+ * laptop's library end up merged rather than one overwriting the other.
+ * Uploads are upserts against the unique (user, media_type, media_id) index.
+ */
+export async function syncWatchlistForUser(userId: string): Promise<void> {
+  remoteUserId = userId;
+
+  const local = getWatchlist();
+  const remote = await fetchRemoteWatchlist();
+
+  const merged = [...remote];
+  const toUpload: Movie[] = [];
+
+  for (const movie of local) {
+    if (!merged.some((m) => sameTitle(m, movie.id, titleType(movie)))) {
+      merged.push(movie);
+      toUpload.push(movie);
+    }
+  }
+
+  commitWatchlist(merged, false);
+  if (toUpload.length) await upsertRemoteWatchlistBatch(userId, toUpload);
+  watchlistListeners.forEach((l) => l());
+}
+
+/**
  * Pull the account's continue-watching down, then push anything this device
  * has that the account is missing or is behind on. Where both sides have an
  * entry, the more recently updated one wins. Uploads are upserts against the
@@ -174,9 +260,19 @@ export async function syncContinueWatchingForUser(userId: string): Promise<void>
   listeners.forEach((l) => l());
 }
 
+/**
+ * Clears every signed-out user's cached copies without touching their data in
+ * the account, so the next sign-in can re-pull it from the server.
+ */
+export function resetSyncedCaches() {
+  continueCache = null;
+  watchlistCache = null;
+}
+
 export function clearLocalUserData() {
   localStorage.removeItem(WATCHLIST_KEY);
   localStorage.removeItem(CONTINUE_KEY);
   localStorage.removeItem(RECENT_KEY);
   continueCache = null;
+  watchlistCache = null;
 }
