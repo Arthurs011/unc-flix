@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { getWatchlist, isInWatchlist, subscribeWatchlist, toggleWatchlist } from "@/lib/storage";
+import {
+  getWatchlist,
+  isInWatchlist,
+  isWatchlistPersistent,
+  subscribeWatchlist,
+  subscribeWatchlistPersistence,
+  toggleWatchlist,
+} from "@/lib/storage";
 import { Movie } from "@/lib/tmdb";
 import { titleType } from "@/lib/watchlistSync";
 
@@ -42,4 +49,20 @@ export function useWatchlist(): Movie[] {
   }, []);
 
   return list;
+}
+
+/**
+ * False when this browser cannot persist the watchlist, so the library can say
+ * so instead of silently rendering empty after a reload.
+ */
+export function useWatchlistPersistent(): boolean {
+  const [persistent, setPersistent] = useState(isWatchlistPersistent());
+
+  useEffect(() => {
+    const read = () => setPersistent(isWatchlistPersistent());
+    read();
+    return subscribeWatchlistPersistence(read);
+  }, []);
+
+  return persistent;
 }

@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 import { removeFromWatchlist } from "@/lib/storage";
-import { useWatchlist } from "@/hooks/useWatchlist";
+import { useWatchlist, useWatchlistPersistent } from "@/hooks/useWatchlist";
 import { Movie, getTitle, imgUrl, posterFallback } from "@/lib/tmdb";
 import { titleType } from "@/lib/watchlistSync";
-import { X, Bookmark, Film, Tv, Play } from "lucide-react";
+import { X, Bookmark, Film, Tv, Play, TriangleAlert } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { motion, AnimatePresence } from "motion/react";
@@ -12,6 +12,7 @@ import { fadeUp, staggerFast, springSnappy } from "@/lib/motion";
 export default function Watchlist() {
   usePageTitle("My List");
   const list = useWatchlist();
+  const persistent = useWatchlistPersistent();
 
   const handleRemove = (m: Movie) => removeFromWatchlist(m.id, titleType(m));
 
@@ -33,6 +34,22 @@ export default function Watchlist() {
             </span>
           </div>
         </motion.header>
+
+        {!persistent && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            role="status"
+            className="mb-8 flex items-start gap-3 rounded-2xl bg-amber-500/10 ring-1 ring-amber-500/30 px-5 py-4"
+          >
+            <TriangleAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-100/90 leading-relaxed">
+              This browser is not saving your library, so titles added here disappear when you
+              close the tab. Private browsing and full storage both cause this. Sign in to keep
+              your watchlist on your account, or clear this site's data in your browser settings.
+            </p>
+          </motion.div>
+        )}
 
         {list.length === 0 ? (
           <motion.div

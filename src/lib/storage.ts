@@ -40,12 +40,64 @@ function read<T>(key: string): T[] {
   }
 }
 
+let persistenceOk = true;
+let persistenceProbed = false;
+const persistenceListeners = new Set<() => void>();
+
+/**
+ * Whether this browser can persist at all. iOS Safari private browsing and a
+ * full quota make setItem throw, so the save appears to work in memory and the
+ * next page load renders an empty library with no explanation.
+ *
+ * Probed once up front rather than inferred from a failed write, because the
+ * failure happens on the page where the user taps save: by the time they open
+ * the library, a write has not been attempted in that session and the flag would
+ * still read healthy.
+ */
+function probePersistence() {
+  if (persistenceProbed) return;
+  persistenceProbed = true;
+  const key = "uncflix_persist_probe";
+  try {
+    localStorage.setItem(key, "1");
+    localStorage.removeItem(key);
+    setPersistence(true);
+  } catch {
+    setPersistence(false);
+  }
+}
+
+/**
+ * True when this browser can actually persist the watchlist.
+ */
+export function isWatchlistPersistent(): boolean {
+  probePersistence();
+  return persistenceOk;
+}
+
+export function subscribeWatchlistPersistence(listener: () => void) {
+  persistenceListeners.add(listener);
+  return () => {
+    persistenceListeners.delete(listener);
+  };
+}
+
+function setPersistence(ok: boolean) {
+  if (persistenceOk === ok) return;
+  persistenceOk = ok;
+  persistenceListeners.forEach((l) => l());
+}
+
 function write<T>(key: string, data: T[]) {
+  probePersistence();
   try {
     localStorage.setItem(key, JSON.stringify(data));
+    setPersistence(true);
   } catch {
-    // iOS Safari private browsing and full quotas throw here. The in-memory
-    // cache still works, so a failed write must not break the UI.
+    // The in-memory cache still works, so a failed write must not break the UI,
+    // but it must not be silent either: the caller surfaces a warning so a saved
+    // title isn't silently lost on the next page load.
+    setPersistence(false);
   }
 }
 
@@ -91,15 +143,20 @@ export function toggleWatchlist(movie: Movie): boolean {
   const type = titleType(movie);
   const list = getWatchlist();
   const idx = list.findIndex((m) => sameTitle(m, movie.id, type));
+  // Build a new array. Mutating the cached one in place left React comparing the
+  // next state against the identical reference it already holds, so it bailed
+  // out of the re-render and the saved item never appeared in the library even
+  // though it was stored correctly.
   let added: boolean;
+  let next: Movie[];
   if (idx >= 0) {
-    list.splice(idx, 1);
+    next = list.filter((_, i) => i !== idx);
     added = false;
   } else {
-    list.unshift(movie);
+    next = [movie, ...list];
     added = true;
   }
-  commitWatchlist(list);
+  commitWatchlist(next);
 
   if (!remoteUserId) return added;
 
@@ -267,6 +324,10 @@ export async function syncContinueWatchingForUser(userId: string): Promise<void>
 export function resetSyncedCaches() {
   continueCache = null;
   watchlistCache = null;
+  // Re-probe on the next read: storage health can differ between sessions, and
+  // a private-browsing tab is a different situation each time it opens.
+  persistenceProbed = false;
+  persistenceOk = true;
 }
 
 export function clearLocalUserData() {
