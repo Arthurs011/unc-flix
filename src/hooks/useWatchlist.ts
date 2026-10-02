@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import {
   getWatchlist,
   isInWatchlist,
@@ -11,27 +11,39 @@ import { Movie } from "@/lib/tmdb";
 import { titleType } from "@/lib/watchlistSync";
 
 /**
- * Watchlist state for one title, kept in step with the store so a merge that
- * lands while the page is open still updates the button.
+ * The library, read through useSyncExternalStore.
+ *
+ * These hooks used to seed themselves with useState([]) and fill in from an
+ * effect. That guaranteed a first render of the empty state, so on a
+ * client-side route change the library swapped branches after mount, and a
+ * mount like that never resolved the animation label its grid was waiting on.
+ * The result was a correct item count above an invisible grid until a reload.
+ *
+ * useSyncExternalStore reads the snapshot during render, so the value on
+ * screen is always the value in the store. There is no window in which the
+ * component can render a stale empty library.
+ */
+export function useWatchlist(): Movie[] {
+  return useSyncExternalStore(subscribeWatchlist, getWatchlist, getWatchlist);
+}
+
+/**
+ * Whether one title is saved, kept in step with the store so a merge that lands
+ * while the page is open still updates the button. Same rendering guarantee as
+ * useWatchlist: the initial render already reflects the store.
  */
 export function useWatchlistItem(movie: Movie | null | undefined) {
   const movieId = movie?.id;
   const movieType = movie ? titleType(movie) : null;
 
-  const [saved, setSaved] = useState(() =>
-    movieId && movieType ? isInWatchlist(movieId, movieType) : false,
+  // Memoised so the snapshot function keeps its identity across renders.
+  // Without this, every render would look like a store change.
+  const readSaved = useCallback(
+    () => (movieId && movieType ? isInWatchlist(movieId, movieType) : false),
+    [movieId, movieType],
   );
 
-  useEffect(() => {
-    if (!movieId || !movieType) {
-      setSaved(false);
-      return;
-    }
-    // Same reason as useWatchlist: read on first render so a client-side
-    // navigation shows the correct saved state immediately.
-    setSaved(isInWatchlist(movieId, movieType));
-    return subscribeWatchlist(() => setSaved(isInWatchlist(movieId, movieType)));
-  }, [movieId, movieType]);
+  const saved = useSyncExternalStore(subscribeWatchlist, readSaved, () => false);
 
   const toggle = useCallback(() => {
     if (!movie) return false;
@@ -41,35 +53,16 @@ export function useWatchlistItem(movie: Movie | null | undefined) {
   return { saved, toggle };
 }
 
-/** The whole library, kept in step with the store. */
-export function useWatchlist(): Movie[] {
-  // Read during the first render, not in an effect. On a client-side route
-  // change the store already holds the saved titles, but an effect-based read
-  // still renders one frame of the empty state and, because nothing else
-  // notifies, the library sat on "empty" until a reload rebuilt it.
-  const [list, setList] = useState<Movie[]>(getWatchlist);
-
-  useEffect(() => {
-    // Catch up on anything that landed between render and subscribe.
-    setList(getWatchlist());
-    return subscribeWatchlist(() => setList(getWatchlist()));
-  }, []);
-
-  return list;
-}
-
 /**
  * False when this browser cannot persist the watchlist, so the library can say
  * so instead of silently rendering empty after a reload.
  */
 export function useWatchlistPersistent(): boolean {
-  const [persistent, setPersistent] = useState(isWatchlistPersistent());
-
-  useEffect(() => {
-    const read = () => setPersistent(isWatchlistPersistent());
-    read();
-    return subscribeWatchlistPersistence(read);
-  }, []);
-
-  return persistent;
+  return useSyncExternalStore(
+    subscribeWatchlistPersistence,
+    isWatchlistPersistent,
+    // Assume it works until proven otherwise, so the warning never flashes
+    // during the first paint.
+    () => true,
+  );
 }

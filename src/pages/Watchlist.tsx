@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
-import { removeFromWatchlist } from "@/lib/storage";
-import { useWatchlist, useWatchlistPersistent } from "@/hooks/useWatchlist";
-import { Movie, getTitle, posterUrl } from "@/lib/tmdb";
-import { titleType } from "@/lib/watchlistSync";
-import { X, Bookmark, Film, Tv, Play, TriangleAlert } from "lucide-react";
+import { Bookmark, TriangleAlert } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import PageShell from "@/components/PageShell";
+import WatchlistCard from "@/components/WatchlistCard";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { motion, AnimatePresence } from "motion/react";
-import { fadeUp, springSnappy } from "@/lib/motion";
+import { useWatchlist, useWatchlistPersistent } from "@/hooks/useWatchlist";
+import { Movie } from "@/lib/tmdb";
+import { titleType } from "@/lib/watchlistSync";
+import { removeFromWatchlist } from "@/lib/storage";
+import { springSnappy } from "@/lib/motion";
 
 export default function Watchlist() {
   usePageTitle("My List");
@@ -19,13 +20,20 @@ export default function Watchlist() {
   return (
     <PageShell className="min-h-screen bg-background pt-28 md:pt-32 pb-32 px-4 sm:px-6 lg:px-8">
       <div className="max-w-[1600px] mx-auto">
-        <motion.header variants={fadeUp} initial="hidden" animate="show" className="mb-10 flex items-center justify-between gap-4">
+        <motion.header
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={springSnappy}
+          className="mb-10 flex items-center justify-between gap-4"
+        >
           <div>
             <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-2">
               <Bookmark className="w-3.5 h-3.5 fill-current" />
               Your Library
             </p>
-            <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter leading-none">Watchlist</h1>
+            <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter leading-none">
+              Watchlist
+            </h1>
           </div>
           <div className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/[0.04] ring-1 ring-white/[0.08]">
             <Bookmark className="w-3.5 h-3.5 text-primary fill-current" />
@@ -36,9 +44,7 @@ export default function Watchlist() {
         </motion.header>
 
         {!persistent && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
+          <div
             role="status"
             className="mb-8 flex items-start gap-3 rounded-2xl bg-amber-500/10 ring-1 ring-amber-500/30 px-5 py-4"
           >
@@ -48,17 +54,15 @@ export default function Watchlist() {
               close the tab. Private browsing and full storage both cause this. Sign in to keep
               your watchlist on your account, or clear this site's data in your browser settings.
             </p>
-          </motion.div>
+          </div>
         )}
 
         {list.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-28 rounded-3xl bg-white/[0.03] ring-1 ring-dashed ring-white/10"
-          >
+          <div className="text-center py-28 rounded-3xl bg-white/[0.03] ring-1 ring-dashed ring-white/10">
             <Bookmark className="w-14 h-14 text-white/15 mx-auto mb-5" />
-            <h2 className="text-xl font-extrabold tracking-tight text-white/50 mb-2">Your watchlist is empty</h2>
+            <h2 className="text-xl font-extrabold tracking-tight text-white/50 mb-2">
+              Your watchlist is empty
+            </h2>
             <p className="text-white/30 text-sm max-w-xs mx-auto mb-8">
               Start adding movies and TV shows to keep track of what you want to watch next.
             </p>
@@ -68,81 +72,24 @@ export default function Watchlist() {
             >
               Browse Movies
             </Link>
-          </motion.div>
+          </div>
         ) : (
           <motion.div
-            layout
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            // Stagger without a variant label. A label-driven animate can fail
-            // to fire when the grid mounts during a client-side route change,
-            // which left the whole library at opacity 0 until a reload.
-            transition={{ staggerChildren: 0.03, delayChildren: 0.02 }}
+            transition={springSnappy}
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6"
           >
-            <AnimatePresence mode="popLayout">
-              {list.map((m) => {
-                const type = titleType(m);
-                const to = type === "tv" ? `/tv/${m.id}` : `/movie/${m.id}`;
-
-                return (
-                  <motion.div
-                    key={`${type}:${m.id}`}
-                    layout
-                    // Animate explicitly instead of relying on a `show` variant.
-                    // A child that declares its own variants while the parent
-                    // also staggers children can be left stranded on the
-                    // parent's hidden state, which pinned every card at opacity
-                    // 0 and rendered a blank page under a correct item count.
-                    initial={{ opacity: 0, y: 18 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.85 }}
-                    transition={springSnappy}
-                    className="group relative"
-                  >
-                    <Link
-                      to={to}
-                      className="block aspect-[2/3] rounded-2xl overflow-hidden bg-card relative ring-1 ring-white/[0.08] group-hover:ring-primary/40 shadow-card transition-all duration-300"
-                    >
-                      <img
-                        src={posterUrl(m, "w500")}
-                        alt={getTitle(m)}
-                        loading="lazy"
-                        onError={(e) => {
-                          e.currentTarget.src = posterFallback(getTitle(m));
-                        }}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-end p-4 pb-5 text-center">
-                        <motion.div
-                          initial={{ scale: 0.7, opacity: 0 }}
-                          whileHover={{ scale: 1 }}
-                          className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center mb-3 shadow-glow-lg"
-                        >
-                          <Play className="w-5 h-5 fill-current ml-0.5" />
-                        </motion.div>
-                        <p className="text-xs font-bold leading-tight line-clamp-2">{getTitle(m)}</p>
-                      </div>
-
-                      <div className="absolute top-2.5 left-2.5 p-1.5 rounded-lg bg-black/60 backdrop-blur-md ring-1 ring-white/10 text-white/70">
-                        {type === "movie" ? <Film className="w-3 h-3" /> : <Tv className="w-3 h-3" />}
-                      </div>
-                    </Link>
-
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleRemove(m);
-                      }}
-                      aria-label="Remove from watchlist"
-                      className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 hover:bg-red-600 active:scale-90 transition-all z-10"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                );
-              })}
+            <AnimatePresence mode="popLayout" initial={false}>
+              {list.map((m, i) => (
+                <WatchlistCard
+                  key={`${titleType(m)}:${m.id}`}
+                  movie={m}
+                  type={titleType(m)}
+                  index={i}
+                  onRemove={handleRemove}
+                />
+              ))}
             </AnimatePresence>
           </motion.div>
         )}
