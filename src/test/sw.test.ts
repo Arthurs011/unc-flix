@@ -22,9 +22,17 @@ describe("service worker caching policy", () => {
   it("never caches the worker script or the manifest", () => {
     // Caching /sw.js pins the worker itself, so updates never reach clients.
     expect(source).toMatch(/url\.pathname === "\/sw\.js"/);
-    const workerGuard = source.indexOf('/sw.js');
+    // Match the guard code, not a mention in a comment.
+    const workerGuard = source.indexOf('url.pathname === "/sw.js"');
     const fetchHandler = source.indexOf('addEventListener("fetch"');
     expect(workerGuard).toBeGreaterThan(fetchHandler);
+    // The guard must come before the first cache lookup in that handler,
+    // otherwise /sw.js would be answered from cache.
+    const cacheFirst = source.indexOf("caches.match(e.request)");
+    expect(workerGuard).toBeLessThan(cacheFirst);
+    // And it must return rather than fall through to the cache-first branch.
+    const afterGuard = source.slice(workerGuard, cacheFirst);
+    expect(afterGuard).toMatch(/return;/);
   });
 
   it("keeps hashed build assets cache-first", () => {
@@ -32,8 +40,15 @@ describe("service worker caching policy", () => {
   });
 
   it("bumps the cache version so old caches are dropped on activate", () => {
-    expect(source).toMatch(/const CACHE = "aplmov-v4"/);
+    expect(source).toMatch(/const CACHE = "aplmov-v5"/);
     expect(source).toMatch(/k !== CACHE/);
+  });
+
+  it("exposes a CLEAR_CACHES escape hatch for pinned clients", () => {
+    // A worker that cached /sw.js can never discover a newer one, so the page
+    // needs a way to make it drop everything.
+    expect(source).toMatch(/CLEAR_CACHES/);
+    expect(source).toMatch(/caches\.delete\(k\)/);
   });
 
   it("leaves cross-origin requests to the browser", () => {

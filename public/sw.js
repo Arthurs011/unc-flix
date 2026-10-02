@@ -1,5 +1,5 @@
 // Bump version to force old caches to be cleared
-const CACHE = "aplmov-v4";
+const CACHE = "aplmov-v5";
 const PRECACHE = ["/manifest.json", "/favicon.svg", "/icon-192.svg", "/icon-512.svg"];
 
 self.addEventListener("install", (e) => {
@@ -16,9 +16,15 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// Allow page to trigger immediate activation of a new SW
+// Allow the page to trigger immediate activation of a new worker, and to ask for
+// a clean slate. A device stuck on an older worker cannot discover this file on
+// its own, because that worker cached /sw.js and answered its own update check
+// from cache. CLEAR_CACHES is the escape hatch for that case.
 self.addEventListener("message", (e) => {
   if (e.data === "SKIP_WAITING") self.skipWaiting();
+  if (e.data === "CLEAR_CACHES") {
+    e.waitUntil(caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))));
+  }
 });
 
 self.addEventListener("fetch", (e) => {
@@ -97,3 +103,5 @@ self.addEventListener("fetch", (e) => {
     })
   );
 });
+
+

@@ -6,7 +6,26 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("/sw.js")
-      .then((reg) => {
+      .then(async (reg) => {
+        // Escape hatch for devices pinned to a worker that caches /sw.js, which
+        // can never discover a newer one. Those clients sit on an old bundle
+        // indefinitely, so drop every cache and take the network copy instead.
+        // Once per session, so a worker that keeps re-creating an old cache
+        // cannot put the page in a reload loop.
+        const RECOVERED = "uncflix_cache_recovered";
+        try {
+          const names = await caches.keys();
+          const stale = names.filter((n) => !n.startsWith("aplmov-v5"));
+          if (stale.length && !sessionStorage.getItem(RECOVERED)) {
+            sessionStorage.setItem(RECOVERED, "1");
+            reg.active?.postMessage("CLEAR_CACHES");
+            await Promise.all(stale.map((n) => caches.delete(n)));
+            window.location.reload();
+            return;
+          }
+        } catch {
+          // No Cache Storage support: nothing to clear.
+        }
         // When a new SW takes control, reload once so users see fresh code immediately
         let refreshing = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
