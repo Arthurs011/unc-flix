@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 import { Film, Play, Tv, X } from "lucide-react";
 import { motion } from "motion/react";
@@ -20,13 +21,22 @@ interface Props {
  * `animate` depends on a parent resolving the matching variant, and that
  * dependency failed to hold when the grid mounted mid-session, which left the
  * whole library at opacity 0 under a correct item count.
+ *
+ * Forwards its ref because the grid renders these inside AnimatePresence with
+ * mode="popLayout", which measures each child to take it out of flow while it
+ * animates out. Without the ref, popLayout could not measure the card and
+ * React warned about the ref on every mount.
  */
-export default function WatchlistCard({ movie, type, index, onRemove }: Props) {
+const WatchlistCard = forwardRef<HTMLDivElement, Props>(function WatchlistCard(
+  { movie, type, index, onRemove },
+  ref,
+) {
   const to = type === "tv" ? `/tv/${movie.id}` : `/movie/${movie.id}`;
   const title = getTitle(movie);
 
   return (
     <motion.div
+      ref={ref}
       layout
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
@@ -93,4 +103,6 @@ export default function WatchlistCard({ movie, type, index, onRemove }: Props) {
       </button>
     </motion.div>
   );
-}
+});
+
+export default WatchlistCard;

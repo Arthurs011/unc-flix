@@ -51,6 +51,15 @@ describe("library is painted rather than left on an unresolved variant label", (
     // ReferenceError the type checker never saw.
     expect(card).toMatch(/import .*posterFallback.* from "@\/lib\/tmdb"/);
   });
+
+  it("forwards its ref, because the grid renders it under popLayout", () => {
+    // AnimatePresence mode="popLayout" measures each child to take it out of
+    // flow while it animates out. A function component that does not forward
+    // the ref cannot be measured, and React warns on every mount.
+    expect(page).toMatch(/mode="popLayout"/);
+    expect(card).toMatch(/forwardRef<HTMLDivElement, Props>/);
+    expect(card).toMatch(/ref=\{ref\}/);
+  });
 });
 
 describe("useWatchlist reports the saved library on the first render", () => {
