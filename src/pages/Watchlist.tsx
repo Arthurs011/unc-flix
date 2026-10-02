@@ -7,7 +7,7 @@ import { X, Bookmark, Film, Tv, Play, TriangleAlert } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { motion, AnimatePresence } from "motion/react";
-import { fadeUp, staggerFast, springSnappy } from "@/lib/motion";
+import { fadeUp, springSnappy } from "@/lib/motion";
 
 export default function Watchlist() {
   usePageTitle("My List");
@@ -70,7 +70,16 @@ export default function Watchlist() {
             </Link>
           </motion.div>
         ) : (
-          <motion.div layout variants={staggerFast} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+          <motion.div
+            layout
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            // Stagger without a variant label. A label-driven animate can fail
+            // to fire when the grid mounts during a client-side route change,
+            // which left the whole library at opacity 0 until a reload.
+            transition={{ staggerChildren: 0.03, delayChildren: 0.02 }}
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6"
+          >
             <AnimatePresence mode="popLayout">
               {list.map((m) => {
                 const type = titleType(m);

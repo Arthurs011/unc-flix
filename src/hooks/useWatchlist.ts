@@ -15,19 +15,22 @@ import { titleType } from "@/lib/watchlistSync";
  * lands while the page is open still updates the button.
  */
 export function useWatchlistItem(movie: Movie | null | undefined) {
-  const [saved, setSaved] = useState(false);
-
   const movieId = movie?.id;
   const movieType = movie ? titleType(movie) : null;
+
+  const [saved, setSaved] = useState(() =>
+    movieId && movieType ? isInWatchlist(movieId, movieType) : false,
+  );
 
   useEffect(() => {
     if (!movieId || !movieType) {
       setSaved(false);
       return;
     }
-    const read = () => setSaved(isInWatchlist(movieId, movieType));
-    read();
-    return subscribeWatchlist(read);
+    // Same reason as useWatchlist: read on first render so a client-side
+    // navigation shows the correct saved state immediately.
+    setSaved(isInWatchlist(movieId, movieType));
+    return subscribeWatchlist(() => setSaved(isInWatchlist(movieId, movieType)));
   }, [movieId, movieType]);
 
   const toggle = useCallback(() => {
@@ -40,12 +43,16 @@ export function useWatchlistItem(movie: Movie | null | undefined) {
 
 /** The whole library, kept in step with the store. */
 export function useWatchlist(): Movie[] {
-  const [list, setList] = useState<Movie[]>([]);
+  // Read during the first render, not in an effect. On a client-side route
+  // change the store already holds the saved titles, but an effect-based read
+  // still renders one frame of the empty state and, because nothing else
+  // notifies, the library sat on "empty" until a reload rebuilt it.
+  const [list, setList] = useState<Movie[]>(getWatchlist);
 
   useEffect(() => {
-    const read = () => setList(getWatchlist());
-    read();
-    return subscribeWatchlist(read);
+    // Catch up on anything that landed between render and subscribe.
+    setList(getWatchlist());
+    return subscribeWatchlist(() => setList(getWatchlist()));
   }, []);
 
   return list;
