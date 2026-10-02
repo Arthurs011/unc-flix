@@ -80,7 +80,13 @@ export default function Watchlist() {
                   <motion.div
                     key={`${type}:${m.id}`}
                     layout
-                    variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
+                    // Animate explicitly instead of relying on a `show` variant.
+                    // A child that declares its own variants while the parent
+                    // also staggers children can be left stranded on the
+                    // parent's hidden state, which pinned every card at opacity
+                    // 0 and rendered a blank page under a correct item count.
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.85 }}
                     transition={springSnappy}
                     className="group relative"
