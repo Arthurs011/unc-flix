@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { EASE, springSnappy } from "@/lib/motion";
-import SearchDropdown from "@/components/SearchDropdown";
+import SearchBox from "@/components/SearchBox";
 import AccountMenu from "@/components/AccountMenu";
 
 const DOCK_LINKS = [
@@ -23,10 +23,11 @@ const QUICK_GENRES = [
 
 export default function MobileNav() {
   const [searchOpen, setSearchOpen] = useState(false);
+  // Held here, not inside SearchBox, so the quick-genre chips can hide as soon
+  // as the field has text in it.
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSearchOpen(false);
@@ -39,15 +40,6 @@ export default function MobileNav() {
       document.body.style.overflow = "";
     };
   }, [searchOpen]);
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
-      setSearchOpen(false);
-      setQuery("");
-    }
-  };
 
   return (
     <>
@@ -136,17 +128,15 @@ export default function MobileNav() {
                   <span className="w-10 h-1 rounded-full bg-white/20" />
                 </div>
 
-                <form onSubmit={submit} className="px-4 pb-4 flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/35 pointer-events-none" />
-                    <input
-                      ref={inputRef}
+                <div className="px-4 pb-4 flex items-center gap-3">
+                  <div className="flex-1">
+                    <SearchBox
+                      variant="sheet"
                       autoFocus
-                      enterKeyHint="search"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Movies, series, people..."
-                      className="w-full h-13 rounded-2xl bg-white/[0.06] ring-1 ring-white/10 text-base text-white placeholder:text-white/30 pl-12 pr-4 outline-none focus:ring-primary/60 transition-all"
+                      query={query}
+                      onQueryChange={setQuery}
+                      onSubmitted={() => setSearchOpen(false)}
+                      onDismiss={() => setSearchOpen(false)}
                     />
                   </div>
                   <button
@@ -157,7 +147,7 @@ export default function MobileNav() {
                   >
                     <X className="w-5 h-5" />
                   </button>
-                </form>
+                </div>
 
                 {!query && (
                   <div className="px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-hide">
@@ -175,9 +165,7 @@ export default function MobileNav() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pb-safe">
-                <SearchDropdown query={query} onSelect={() => { setQuery(""); setSearchOpen(false); }} />
-              </div>
+              <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pb-safe" />
             </motion.div>
           </motion.div>
         )}

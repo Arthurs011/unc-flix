@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
 import { springSnappy } from "@/lib/motion";
-import SearchDropdown from "@/components/SearchDropdown";
+import SearchBox from "@/components/SearchBox";
 import { useAutoHideNav } from "@/hooks/useAutoHideNav";
 import MobileNav from "@/components/MobileNav";
 import AccountMenu from "@/components/AccountMenu";
@@ -28,20 +28,17 @@ const LINKS = [
 export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
-  const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
 
   const searchWrapRef = useRef<HTMLDivElement>(null);
   const browseRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setSearchOpen(true);
-        searchInputRef.current?.focus();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -52,7 +49,6 @@ export default function Navbar() {
     const handler = (e: MouseEvent) => {
       if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) {
         setSearchOpen(false);
-        setQuery("");
       }
       if (browseRef.current && !browseRef.current.contains(e.target as Node)) {
         setBrowseOpen(false);
@@ -63,7 +59,6 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    setQuery("");
     setSearchOpen(false);
     setBrowseOpen(false);
   }, [location.pathname]);
@@ -76,15 +71,6 @@ export default function Navbar() {
     [0, 180],
     ["0 8px 32px rgba(0,0,0,0.25)", "0 16px 48px rgba(0,0,0,0.55)"]
   );
-
-  const submit = (e: React.FormEvent, q: string) => {
-    e.preventDefault();
-    if (q.trim()) {
-      navigate(`/search?q=${encodeURIComponent(q.trim())}`);
-      setSearchOpen(false);
-      setQuery("");
-    }
-  };
 
   if (location.pathname.startsWith("/watch/") || /^\/watch\/?$/.test(location.pathname)) return null;
 
@@ -189,29 +175,20 @@ export default function Navbar() {
           <div className="flex items-center gap-1 ml-3 relative" ref={searchWrapRef}>
             <AnimatePresence>
               {searchOpen && (
-                <motion.form
+                <motion.div
                   initial={{ width: 0, opacity: 0 }}
                   animate={{ width: 300, opacity: 1 }}
                   exit={{ width: 0, opacity: 0 }}
                   transition={{ type: "spring", stiffness: 320, damping: 32 }}
-                  onSubmit={(e) => submit(e, query)}
                   className="overflow-visible relative"
                 >
-                  <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35 pointer-events-none" />
-                    <input
-                      ref={searchInputRef}
-                      autoFocus
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search titles..."
-                      className="w-full h-11 rounded-full bg-white/[0.06] ring-1 ring-white/10 text-sm text-white placeholder:text-white/30 pl-11 pr-4 outline-none focus:ring-primary/60 transition-all"
-                    />
-                  </div>
-                  <div className="absolute top-full right-0 left-0">
-                    <SearchDropdown query={query} onSelect={() => { setSearchOpen(false); setQuery(""); }} />
-                  </div>
-                </motion.form>
+                  <SearchBox
+                    variant="pill"
+                    autoFocus
+                    onSubmitted={() => setSearchOpen(false)}
+                    onDismiss={() => setSearchOpen(false)}
+                  />
+                </motion.div>
               )}
             </AnimatePresence>
 

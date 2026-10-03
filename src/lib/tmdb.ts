@@ -2,11 +2,20 @@ const API_KEY = import.meta.env.VITE_TMDB_API_KEY || "06b3db8d25d0fc3c7fe63120d5
 const BASE = "https://api.themoviedb.org/3";
 export const IMG = "https://image.tmdb.org/t/p";
 
-async function get<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+/**
+ * Accepts an AbortSignal so react-query can cancel a request whose query has
+ * moved on. Without it a slow response for an old query could land after a
+ * faster one for the current query and overwrite it.
+ */
+async function get<T>(
+  path: string,
+  params: Record<string, string> = {},
+  signal?: AbortSignal,
+): Promise<T> {
   const url = new URL(`${BASE}${path}`);
   url.searchParams.set("api_key", API_KEY);
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url.toString());
+  const res = await fetch(url.toString(), { signal });
   if (!res.ok) throw new Error(`TMDB error: ${res.status}`);
   return res.json();
 }
@@ -80,9 +89,11 @@ export interface CastMember {
   profile_path: string | null;
 }
 
-interface ListResponse {
+export interface ListResponse {
   results: Movie[];
   total_pages: number;
+  page?: number;
+  total_results?: number;
 }
 
 export interface Genre {
@@ -111,7 +122,16 @@ export const tmdb = {
       page: String(page),
       ...(genreId ? { with_genres: String(genreId) } : {}),
     }),
-  search: (query: string) => get<ListResponse>("/search/multi", { query }),
+  /**
+   * /search/multi returns movies, shows and people together. Callers narrow it
+   * with lib/search.ts. Paged, and cancellable via `signal`.
+   */
+  search: (query: string, page = 1, signal?: AbortSignal) =>
+    get<ListResponse>(
+      "/search/multi",
+      { query, page: String(page), include_adult: "false" },
+      signal,
+    ),
   movieGenres: () => get<GenreResponse>("/genre/movie/list"),
   tvGenres: () => get<GenreResponse>("/genre/tv/list"),
   movieDetails: (id: number) =>
