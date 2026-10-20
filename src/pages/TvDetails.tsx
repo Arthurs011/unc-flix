@@ -244,9 +244,14 @@ export default function TvDetailsPage() {
                 transition={springSnappy}
                 className="flex items-center gap-2.5 h-13 pl-7 pr-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow-lg"
               >
-                <Link to={`/watch/tv/${show.id}/1/1`} className="flex items-center gap-2.5">
+                <Link
+                  to={`/watch/tv/${show.id}/${resumeItem?.season || 1}/${resumeItem?.episode || 1}`}
+                  className="flex items-center gap-2.5"
+                >
                   <Play className="w-5 h-5 fill-current" />
-                  Play S1 E1
+                  {resumeItem
+                    ? `Resume S${resumeItem.season} E${resumeItem.episode}`
+                    : "Play S1 E1"}
                 </Link>
               </motion.button>
 
