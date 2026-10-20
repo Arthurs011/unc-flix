@@ -13,8 +13,17 @@ import { SlidersHorizontal, Check, Clapperboard, Loader2 } from "lucide-react";
 
 export default function MoviesPage() {
   usePageTitle("Movies");
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const genreIdParam = searchParams.get("genre");
+
+  const handleGenreSelect = (id: number | null) => {
+    if (id === null) {
+      searchParams.delete("genre");
+    } else {
+      searchParams.set("genre", id.toString());
+    }
+    setSearchParams(searchParams);
+  };
 
   const [movies, setMovies] = useState<Movie[]>([]);
   const [trending, setTrending] = useState<Movie[]>([]);
@@ -153,7 +162,7 @@ export default function MoviesPage() {
                   {[{ id: null as number | null, name: "All Categories" }, ...genres].map((g) => (
                     <button
                       key={g.name}
-                      onClick={() => setSelectedGenre(g.id)}
+                      onClick={() => handleGenreSelect(g.id)}
                       className={cn(
                         "flex items-center justify-between px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wide transition-all",
                         selectedGenre === g.id
@@ -184,7 +193,7 @@ export default function MoviesPage() {
                 <Clapperboard className="w-14 h-14 text-white/15 mx-auto mb-5" />
                 <h2 className="text-xl font-extrabold tracking-tight text-white/40 mb-6">No matches found</h2>
                 <button
-                  onClick={() => setSelectedGenre(null)}
+                  onClick={() => handleGenreSelect(null)}
                   className="text-primary font-bold uppercase tracking-widest text-xs hover:underline"
                 >
                   Clear all filters

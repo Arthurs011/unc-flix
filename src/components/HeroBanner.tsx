@@ -62,7 +62,7 @@ export default function HeroBanner({ movies }: Props) {
   const words = getTitle(current).split(" ");
 
   return (
-    <div ref={heroRef} className="relative w-full h-[82vh] sm:h-[88vh] overflow-hidden">
+    <div ref={heroRef} className="group/hero relative w-full h-[82vh] sm:h-[88vh] overflow-hidden">
       {/* Backdrop with parallax */}
       <motion.div style={{ y: bgY }} className="absolute inset-0">
         <AnimatePresence>

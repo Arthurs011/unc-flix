@@ -5,22 +5,25 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { HeroSkeleton } from "@/components/LoadingSkeleton";
 import Navbar from "@/components/Navbar";
 import BackToTop from "@/components/BackToTop";
 import { AuthProvider } from "@/contexts/AuthProvider";
 
-import Index from "./pages/Index";
-import MovieDetails from "./pages/MovieDetails";
-import TvDetails from "./pages/TvDetails";
-import WatchMovie from "./pages/WatchMovie";
-import WatchTv from "./pages/WatchTv";
-import SearchPage from "./pages/SearchPage";
-import Watchlist from "./pages/Watchlist";
-import TvShows from "./pages/TvShows";
-import Movies from "./pages/Movies";
-import NotFound from "./pages/NotFound";
-import Auth from "./pages/Auth";
-import Account from "./pages/Account";
+import { lazy, Suspense } from "react";
+
+const Index = lazy(() => import("./pages/Index"));
+const MovieDetails = lazy(() => import("./pages/MovieDetails"));
+const TvDetails = lazy(() => import("./pages/TvDetails"));
+const WatchMovie = lazy(() => import("./pages/WatchMovie"));
+const WatchTv = lazy(() => import("./pages/WatchTv"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
+const Watchlist = lazy(() => import("./pages/Watchlist"));
+const TvShows = lazy(() => import("./pages/TvShows"));
+const Movies = lazy(() => import("./pages/Movies"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Account = lazy(() => import("./pages/Account"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,8 +89,16 @@ const App = () => {
           <BrowserRouter>
             <AuthProvider>
               <ErrorBoundaryWithReset>
+                <a
+                  href="#main-content"
+                  className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-full focus:bg-primary focus:text-white focus:shadow-glow"
+                >
+                  Skip to content
+                </a>
                 <Navbar />
-                <AnimatedRoutes />
+                <Suspense fallback={<HeroSkeleton />}>
+                  <AnimatedRoutes />
+                </Suspense>
                 <BackToTop />
               </ErrorBoundaryWithReset>
             </AuthProvider>

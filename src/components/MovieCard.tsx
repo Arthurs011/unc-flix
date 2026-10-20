@@ -11,9 +11,10 @@ interface Props {
   type?: "movie" | "tv";
   rank?: number;
   className?: string;
+  priority?: boolean;
 }
 
-export default function MovieCard({ movie, type, rank, className }: Props) {
+export default function MovieCard({ movie, type, rank, className, priority = false }: Props) {
   const mediaType = type || movie.media_type || "movie";
   const to = mediaType === "tv" ? `/tv/${movie.id}` : `/movie/${movie.id}`;
   const ref = useRef<HTMLDivElement>(null);
@@ -55,7 +56,7 @@ export default function MovieCard({ movie, type, rank, className }: Props) {
         <img
           src={posterUrl(movie, "w342")}
           alt={getTitle(movie)}
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
           decoding="async"
           onError={(e) => {
             (e.target as HTMLImageElement).src = posterFallback(getTitle(movie));

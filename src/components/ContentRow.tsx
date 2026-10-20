@@ -117,13 +117,14 @@ export default function ContentRow({ title, kicker, movies, type, showRank, expl
                 >
                   {i + 1}
                 </span>
-                <MovieCard movie={m} type={type} className="w-[136px] sm:w-[160px]" />
+                <MovieCard movie={m} type={type} priority={i < 5} className="w-[136px] sm:w-[160px]" />
               </div>
             ) : (
               <MovieCard
                 key={`${m.id}-${i}`}
                 movie={m}
                 type={type}
+                priority={i < 5}
                 className="flex-shrink-0 w-[136px] sm:w-[172px] snap-start"
               />
             )

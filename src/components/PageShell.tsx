@@ -13,6 +13,7 @@ export default function PageShell({ children, className }: Props) {
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       exit={{ opacity: 0, y: -14, filter: "blur(8px)" }}
       transition={{ duration: 0.4, ease: EASE }}
+      id="main-content"
       className={className}
     >
       {children}

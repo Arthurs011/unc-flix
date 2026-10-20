@@ -30,3 +30,7 @@ dist-ssr
 .opencode/
 
 *.tsbuildinfo
+
+# Supabase agent skills: installed content, not source
+.agents/
+.claude/

@@ -19,6 +19,7 @@ export default function WatchTv() {
   const navigate = useNavigate();
   useFullscreenOrientation();
   const [show, setShow] = useState<MovieDetails | null>(null);
+  const [loading, setLoading] = useState(true);
   const [currentEp, setCurrentEp] = useState<Episode | null>(null);
   const [nextEp, setNextEp] = useState<Episode | null>(null);
   const [seasonData, setSeasonData] = useState<SeasonDetails | null>(null);
@@ -49,8 +50,6 @@ export default function WatchTv() {
       if (cancelled) return;
       setShow(d);
       document.title = `Watch ${getTitle(d)} · UNCFLIX`;
-      // Keep any progress already recorded - opening the page shouldn't reset
-      // it, otherwise every visit would wipe the synced value on the account.
       const prior = getContinueWatching().find((c) => c.type === "tv" && c.id === d.id);
       updateContinueWatching({
         id: d.id,
@@ -63,7 +62,8 @@ export default function WatchTv() {
         episode: de,
         timestamp: Date.now(),
       });
-    }).catch(() => {});
+    }).catch(() => { if (!cancelled) setShow(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
 
     tmdb.tvEpisode(Number(id), ds, de)
       .then((ep) => { if (!cancelled) setCurrentEp(ep); })
@@ -140,6 +140,17 @@ export default function WatchTv() {
   }, [id, ds, de, show, navigate]);
 
   const embedSrc = SOURCES[0].build("tv", id || "", s, e);
+
+  if (!loading && !show) {
+    return (
+      <PageShell className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-extrabold tracking-tight text-white mb-3">Title not found</h2>
+          <Link to="/" className="text-primary font-bold uppercase tracking-widest text-xs hover:underline">Go Home</Link>
+        </div>
+      </PageShell>
+    );
+  }
   const seasons = show?.seasons?.filter((se) => se.season_number > 0) ?? [];
 
   return (
@@ -187,6 +198,7 @@ export default function WatchTv() {
                       allowFullScreen
                       allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                       referrerPolicy="no-referrer-when-downgrade"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
                       title={`S${s} E${e} player`}
                       loading="eager"
                     />
@@ -194,10 +206,10 @@ export default function WatchTv() {
                 </div>
 
                 {/* Action dock */}
-                <div className="hidden sm:flex absolute -bottom-7 left-1/2 -translate-x-1/2 z-20 items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg">
+                <div className="hidden sm:flex absolute -bottom-7 left-1/2 -translate-x-1/2 z-20 items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg pointer-events-none">
                   <button
                     onClick={() => { setLiked(!liked); setDisliked(false); }}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${liked ? "bg-primary text-white shadow-glow-sm" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
+                    className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${liked ? "bg-primary text-white shadow-glow-sm" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
                   >
                     <ThumbsUp className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
                     {formatCount(likes(show, liked))}
@@ -205,7 +217,7 @@ export default function WatchTv() {
                   <span className="w-px h-5 bg-white/10" />
                   <button
                     onClick={() => { setDisliked(!disliked); setLiked(false); }}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
+                    className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
                   >
                     <ThumbsDown className={`w-4 h-4 ${disliked ? "fill-current" : ""}`} />
                     {formatCount(dislikes(show, disliked))}
@@ -214,7 +226,7 @@ export default function WatchTv() {
                   <button
                     onClick={() => navigator.clipboard?.writeText(window.location.href)}
                     aria-label="Share"
-                    className="flex items-center px-4 py-3 rounded-full text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
+                    className="pointer-events-auto flex items-center px-4 py-3 rounded-full text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
                   >
                     <Share2 className="w-4 h-4" />
                   </button>
@@ -324,7 +336,7 @@ export default function WatchTv() {
                         to={`/watch/tv/${id}/${se.season_number}/1`}
                         className={cn(
                           "px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 transition-all whitespace-nowrap active:scale-95",
-                          se.season_number === s
+                          se.season_number === ds
                             ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white ring-transparent shadow-glow-sm"
                             : "bg-white/[0.04] text-white/45 ring-white/[0.08] hover:bg-white/[0.08] hover:text-white"
                         )}
@@ -341,7 +353,7 @@ export default function WatchTv() {
                     return (
                       <Link
                         key={ep.id}
-                        to={`/watch/tv/${id}/${s}/${ep.episode_number}`}
+                        to={`/watch/tv/${id}/${ds}/${ep.episode_number}`}
                         className={cn(
                           "group flex items-center gap-3 p-2 pr-3.5 rounded-xl ring-1 transition-all",
                           active
@@ -403,7 +415,7 @@ export default function WatchTv() {
                       to={`/watch/tv/${id}/${se.season_number}/1`}
                       className={cn(
                         "flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all",
-                        se.season_number === s
+                        se.season_number === ds
                           ? "bg-primary/15 text-primary ring-1 ring-primary/30"
                           : "text-white/50 hover:text-white hover:bg-white/[0.05]"
                       )}

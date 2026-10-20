@@ -17,6 +17,7 @@ export default function WatchMovie() {
   const { id } = useParams();
   useFullscreenOrientation();
   const [movie, setMovie] = useState<MovieDetails | null>(null);
+  const [loading, setLoading] = useState(true);
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
@@ -29,7 +30,8 @@ export default function WatchMovie() {
     tmdb.movieDetails(Number(id)).then((m) => {
       setMovie(m);
       document.title = `Watch ${getTitle(m)} · UNCFLIX`;
-    }).catch(() => {});
+    }).catch(() => setMovie(null))
+      .finally(() => setLoading(false));
 
     tmdb.movieRecommendations(Number(id)).then((res) => {
       setRecommendations((res.results ?? []).slice(0, 10));
@@ -65,6 +67,17 @@ export default function WatchMovie() {
   }, [id, movie]);
 
   const embedSrc = SOURCES[0].build("movie", id || "");
+
+  if (!loading && !movie) {
+    return (
+      <PageShell className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-extrabold tracking-tight text-white mb-3">Title not found</h2>
+          <Link to="/" className="text-primary font-bold uppercase tracking-widest text-xs hover:underline">Go Home</Link>
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell className="min-h-screen text-white pb-32 overflow-x-hidden">
@@ -111,6 +124,7 @@ export default function WatchMovie() {
                       allowFullScreen
                       allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                       referrerPolicy="no-referrer-when-downgrade"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
                       title={movie ? `${getTitle(movie)} player` : "Streaming player"}
                       loading="eager"
                     />
@@ -118,10 +132,10 @@ export default function WatchMovie() {
                 </div>
 
                 {/* Action dock */}
-                <div className="hidden sm:flex absolute -bottom-7 left-1/2 -translate-x-1/2 z-20 items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg">
+                <div className="hidden sm:flex absolute -bottom-7 left-1/2 -translate-x-1/2 z-20 items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg pointer-events-none">
                   <button
                     onClick={() => { setLiked(!liked); setDisliked(false); }}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${liked ? "bg-primary text-white shadow-glow-sm" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
+                    className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${liked ? "bg-primary text-white shadow-glow-sm" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
                   >
                     <ThumbsUp className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
                     {formatCount(likes(movie, liked))}
@@ -129,7 +143,7 @@ export default function WatchMovie() {
                   <span className="w-px h-5 bg-white/10" />
                   <button
                     onClick={() => { setDisliked(!disliked); setLiked(false); }}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
+                    className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
                   >
                     <ThumbsDown className={`w-4 h-4 ${disliked ? "fill-current" : ""}`} />
                     {formatCount(dislikes(movie, disliked))}
@@ -138,7 +152,7 @@ export default function WatchMovie() {
                   <button
                     onClick={() => navigator.clipboard?.writeText(window.location.href)}
                     aria-label="Share"
-                    className="flex items-center px-4 py-3 rounded-full text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
+                    className="pointer-events-auto flex items-center px-4 py-3 rounded-full text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
                   >
                     <Share2 className="w-4 h-4" />
                   </button>
@@ -218,23 +232,27 @@ export default function WatchMovie() {
               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/25 mb-4">More Like This</p>
               <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1 -mr-1">
                 {recommendations.map((rec) => (
-                  <motion.button
+                  <motion.div
                     key={rec.id}
                     whileHover={{ x: 4 }}
                     transition={springSnappy}
-                    className="flex gap-3.5 p-2 rounded-xl bg-white/[0.03] ring-1 ring-transparent hover:ring-primary/30 hover:bg-white/[0.05] transition-colors text-left w-full"
                   >
-                    <div className="w-12 h-[72px] rounded-lg overflow-hidden shrink-0 ring-1 ring-white/[0.08] bg-card">
-                      <img src={posterUrl(rec, "w200")} alt="" loading="lazy" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="flex flex-col justify-center min-w-0 pr-1">
-                      <p className="text-xs font-bold line-clamp-2 leading-snug">{getTitle(rec)}</p>
-                      <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mt-1">
-                        {getYear(rec)}
-                        {rec.vote_average ? ` · ★ ${rec.vote_average.toFixed(1)}` : ""}
-                      </span>
-                    </div>
-                  </motion.button>
+                    <Link
+                      to={`/movie/${rec.id}`}
+                      className="flex gap-3.5 p-2 rounded-xl bg-white/[0.03] ring-1 ring-transparent hover:ring-primary/30 hover:bg-white/[0.05] transition-colors text-left w-full"
+                    >
+                      <div className="w-12 h-[72px] rounded-lg overflow-hidden shrink-0 ring-1 ring-white/[0.08] bg-card">
+                        <img src={posterUrl(rec, "w200")} alt="" loading="lazy" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex flex-col justify-center min-w-0 pr-1">
+                        <p className="text-xs font-bold line-clamp-2 leading-snug">{getTitle(rec)}</p>
+                        <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mt-1">
+                          {getYear(rec)}
+                          {rec.vote_average ? ` · ★ ${rec.vote_average.toFixed(1)}` : ""}
+                        </span>
+                      </div>
+                    </Link>
+                  </motion.div>
                 ))}
               </div>
             </motion.aside>

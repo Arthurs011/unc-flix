@@ -104,7 +104,7 @@ export default function ContinueRow() {
                 <img
                   src={imgUrl(item.backdrop_path || item.poster_path, "w780", true)}
                   alt={item.title}
-                  loading="lazy"
+                  loading="eager"
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
                 />
 
