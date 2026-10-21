@@ -5,14 +5,13 @@ import { tmdb, Movie, Review, Episode, SeasonDetails, MovieDetails as MD, imgUrl
 import { addRecentlyViewed } from "@/lib/storage";
 import { useWatchlistItem } from "@/hooks/useWatchlist";
 import { useContinueWatching } from "@/hooks/useContinueWatching";
-import { cn } from "@/lib/utils";
 import PageShell from "@/components/PageShell";
 import ScrollProgress from "@/components/ScrollProgress";
 import { DetailSkeleton } from "@/components/LoadingSkeleton";
 import ContentRow from "@/components/ContentRow";
 import ReviewsSection from "@/components/ReviewsSection";
-import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
-import { EASE, springSnappy, fadeUp, staggerFast, viewportOnce } from "@/lib/motion";
+import { revealNow, revealOnView, revealStagger, prefersReducedMotion } from "@/lib/anim";
+import "@/styles/details.css";
 
 export default function TvDetailsPage() {
   const { id } = useParams();
@@ -27,8 +26,13 @@ export default function TvDetailsPage() {
   const [epsLoading, setEpsLoading] = useState(false);
 
   const backdropRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: backdropRef, offset: ["start start", "end start"] });
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
+  const backdropImgRef = useRef<HTMLImageElement>(null);
+  const posterRef = useRef<HTMLDivElement>(null);
+  const infoRef = useRef<HTMLDivElement>(null);
+  const episodesRef = useRef<HTMLElement>(null);
+  const castRef = useRef<HTMLElement>(null);
+
+  const showId = show?.id;
 
   const showForList: Movie | null = show ? { ...show, media_type: "tv" } : null;
   const { saved: inWL, toggle } = useWatchlistItem(showForList);
@@ -88,12 +92,57 @@ export default function TvDetailsPage() {
     return () => { cancelled = true; };
   }, [show?.id, seasonNum]);
 
+  // Backdrop parallax: rAF-throttled scroll listener writing translate3d on the
+  // <img> directly. Fully skipped under prefers-reduced-motion.
+  useEffect(() => {
+    if (!showId || prefersReducedMotion()) return;
+    const wrap = backdropRef.current;
+    const img = backdropImgRef.current;
+    if (!wrap || !img) return;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const rect = wrap.getBoundingClientRect();
+      const h = rect.height || 1;
+      const progress = Math.min(Math.max(-rect.top / h, 0), 1);
+      img.style.transform = `translate3d(0, ${progress * 25}%, 0)`;
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    update();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [showId]);
+
+  // Hero entrance: poster rise + staggered info items.
+  useEffect(() => {
+    if (!showId) return;
+    revealNow(posterRef.current, { y: 30, duration: 600 });
+    if (infoRef.current) {
+      revealStagger(Array.from(infoRef.current.children), { step: 70, y: 16, duration: 500 });
+    }
+  }, [showId]);
+
+  // Episodes + cast sections reveal the first time they scroll into view.
+  useEffect(() => {
+    if (!showId) return;
+    return revealOnView(episodesRef.current);
+  }, [showId]);
+  useEffect(() => {
+    if (!showId) return;
+    return revealOnView(castRef.current);
+  }, [showId]);
+
   if (loading) return <DetailSkeleton />;
   if (!show) return (
-    <div className="min-h-screen flex items-center justify-center pt-20">
+    <div className="min-vh-100 d-flex align-items-center justify-content-center pt-5">
       <div className="text-center">
-        <h2 className="text-2xl font-extrabold tracking-tight text-white mb-3">Show not found</h2>
-        <Link to="/" className="text-primary font-bold uppercase tracking-widest text-xs hover:underline">Go Home</Link>
+        <h2 className="fs-3 fw-extrabold text-white mb-3">Show not found</h2>
+        <Link to="/" className="text-primary fw-bold text-uppercase text-decoration-none uf-ghost-link">Go Home</Link>
       </div>
     </div>
   );
@@ -103,210 +152,154 @@ export default function TvDetailsPage() {
   const episodes = seasonData?.episodes ?? [];
 
   return (
-    <PageShell className="min-h-screen pb-32">
+    <PageShell className="min-vh-100" style={{ paddingBottom: "8rem" }}>
       <ScrollProgress />
       {/* Trailer modal */}
-      <AnimatePresence>
-        {showTrailer && trailerKey && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Trailer"
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-xl p-4"
-            onClick={() => setShowTrailer(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.92, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.94, opacity: 0 }}
-              transition={springSnappy}
-              className="relative w-full max-w-4xl aspect-video rounded-3xl overflow-hidden ring-1 ring-white/15 shadow-card-lg"
-              onClick={(e) => e.stopPropagation()}
+      {showTrailer && trailerKey && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Trailer"
+          className="uf-trailer-overlay"
+          onClick={() => setShowTrailer(false)}
+        >
+          <div className="uf-trailer-frame" onClick={(e) => e.stopPropagation()}>
+            <iframe
+              src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`}
+              title="Trailer"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+              className="w-100 h-100"
+              style={{ border: 0 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowTrailer(false)}
+              aria-label="Close trailer"
+              className="uf-trailer-close glass"
             >
-              <iframe
-                src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`}
-                title="Trailer"
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-                className="w-full h-full"
-              />
-              <button
-                onClick={() => setShowTrailer(false)}
-                aria-label="Close trailer"
-                className="absolute -top-12 right-0 p-2 rounded-full glass text-white/70 hover:text-white transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Backdrop */}
-      <div ref={backdropRef} className="relative h-[52vh] sm:h-[62vh] overflow-hidden">
-        <motion.div style={{ y: bgY }} className="absolute inset-0 scale-110">
-          <img src={imgUrl(show.backdrop_path, "w1280", true)} alt="" className="w-full h-full object-cover" />
-        </motion.div>
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/55 to-transparent" />
-        <Link
-          to="/"
-          aria-label="Back to home"
-          className="absolute top-20 left-4 sm:left-8 p-3 rounded-full glass ring-1 ring-white/10 text-white hover:bg-white/10 transition-colors z-10"
-        >
-          <ArrowLeft className="w-5 h-5" />
+      <div ref={backdropRef} className="uf-details-hero">
+        <div className="uf-details-hero-imgwrap">
+          <img
+            ref={backdropImgRef}
+            src={imgUrl(show.backdrop_path, "w1280", true)}
+            alt=""
+            className="uf-details-hero-img"
+          />
+        </div>
+        <div className="uf-details-hero-scrim" />
+        <Link to="/" aria-label="Back to home" className="uf-details-back glass">
+          <ArrowLeft size={20} />
         </Link>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 -mt-36 sm:-mt-44 relative z-10">
-        <div className="flex flex-col sm:flex-row gap-8 sm:gap-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: EASE }}
-            className="flex-shrink-0 w-44 sm:w-60 mx-auto sm:mx-0"
-          >
+      <div className="uf-details-body">
+        <div className="uf-details-grid">
+          <div ref={posterRef} className="uf-details-poster-col">
             <img
               src={posterUrl(show, "w500")}
               alt={getTitle(show)}
-              className="w-full rounded-3xl shadow-card-lg ring-1 ring-white/10"
+              className="uf-details-poster"
             />
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } } }}
-            className="flex-1 pt-2 text-center sm:text-left"
-          >
-            <motion.p
-              variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}
-              className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-2"
-            >
+          <div ref={infoRef} className="uf-details-info">
+            <p className="kicker uf-kicker-block">
               Series Hub
-            </motion.p>
+            </p>
 
-            <motion.h1
-              variants={{ hidden: { opacity: 0, y: 22 }, show: { opacity: 1, y: 0 } }}
-              className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tighter leading-[0.95] mb-5"
-            >
+            <h1 className="uf-details-title">
               {getTitle(show)}
-            </motion.h1>
+            </h1>
 
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
-              className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-2 text-xs font-semibold text-white/45 mb-6"
-            >
+            <div className="uf-details-meta">
               {show.vote_average > 0 && (
-                <span className="flex items-center gap-1.5 text-white">
-                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                <span className="uf-meta-rating">
+                  <Star size={16} className="uf-star" />
                   {show.vote_average.toFixed(1)}
                 </span>
               )}
               {getYear(show) && (
                 <>
-                  <span className="w-1 h-1 rounded-full bg-white/20" />
+                  <span className="uf-meta-dot" />
                   <span>{getYear(show)}</span>
                 </>
               )}
               {show.number_of_seasons ? (
                 <>
-                  <span className="w-1 h-1 rounded-full bg-white/20" />
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" />
+                  <span className="uf-meta-dot" />
+                  <span className="uf-meta-runtime">
+                    <Clock size={14} />
                     {show.number_of_seasons} Season{show.number_of_seasons > 1 ? "s" : ""}
                   </span>
                 </>
               ) : null}
               {show.genres?.slice(0, 3).map((g) => (
-                <span key={g.id} className="rounded-full bg-white/[0.06] ring-1 ring-white/[0.08] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/55">
+                <span key={g.id} className="uf-genre-chip">
                   {g.name}
                 </span>
               ))}
-            </motion.div>
+            </div>
 
-            <motion.p
-              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
-              className="text-white/60 leading-relaxed mb-8 max-w-2xl text-sm sm:text-base mx-auto sm:mx-0"
-            >
+            <p className="uf-details-overview">
               {show.overview}
-            </motion.p>
+            </p>
 
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }}
-              className="flex flex-wrap justify-center sm:justify-start items-center gap-3"
-            >
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                transition={springSnappy}
-                className="flex items-center gap-2.5 h-13 pl-7 pr-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow-lg"
+            <div className="uf-details-actions">
+              <Link
+                to={`/watch/tv/${show.id}/${resumeItem?.season || 1}/${resumeItem?.episode || 1}`}
+                className="uf-btn uf-btn-lg btn-gradient shadow-glow-lg uf-btn-pill uf-fill-icon"
               >
-                <Link
-                  to={`/watch/tv/${show.id}/${resumeItem?.season || 1}/${resumeItem?.episode || 1}`}
-                  className="flex items-center gap-2.5"
-                >
-                  <Play className="w-5 h-5 fill-current" />
-                  {resumeItem
-                    ? `Resume S${resumeItem.season} E${resumeItem.episode}`
-                    : "Play S1 E1"}
-                </Link>
-              </motion.button>
+                <Play size={20} />
+                {resumeItem
+                  ? `Resume S${resumeItem.season} E${resumeItem.episode}`
+                  : "Play S1 E1"}
+              </Link>
 
               {trailerKey && (
-                <motion.button
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  transition={springSnappy}
+                <button
+                  type="button"
                   onClick={() => setShowTrailer(true)}
-                  className="flex items-center gap-2.5 h-13 px-7 rounded-full glass ring-1 ring-white/15 text-white font-bold text-sm hover:bg-white/10 transition-colors"
+                  className="uf-btn uf-btn-lg uf-btn-glass uf-btn-pill"
                 >
-                  <Film className="w-5 h-5" />
+                  <Film size={20} />
                   Trailer
-                </motion.button>
+                </button>
               )}
 
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                transition={springSnappy}
+              <button
+                type="button"
                 onClick={toggle}
                 aria-label={inWL ? "Remove from watchlist" : "Add to watchlist"}
-                className="w-13 h-13 rounded-full glass ring-1 ring-white/15 flex items-center justify-center text-white hover:bg-white/10 transition-colors"
+                className="uf-btn uf-btn-glass uf-btn-round"
               >
-                {inWL ? <Check className="w-5 h-5 text-emerald-400" /> : <Plus className="w-5 h-5" />}
-              </motion.button>
-            </motion.div>
-          </motion.div>
+                {inWL ? <Check size={20} className="uf-check" /> : <Plus size={20} />}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Episodes */}
         {seasons.length > 0 && (
-          <motion.section
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={viewportOnce}
-            className="mt-16"
-          >
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-1.5">Browse</p>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-5">Episodes</h2>
+          <section ref={episodesRef} className="uf-episodes-section">
+            <p className="kicker uf-kicker-block">Browse</p>
+            <h2 className="uf-section-title mb-3">Episodes</h2>
 
             {/* Season tabs */}
-            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-3 mb-5">
+            <div className="uf-season-rail scrollbar-hide">
               {seasons.map((s) => (
                 <button
                   key={s.season_number}
                   type="button"
                   onClick={() => setSeasonNum(s.season_number)}
-                  className={cn(
-                    "px-3.5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest ring-1 transition-all whitespace-nowrap active:scale-95",
-                    s.season_number === seasonNum
-                      ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white ring-transparent shadow-glow-sm"
-                      : "bg-white/[0.04] text-white/45 ring-white/[0.08] hover:bg-white/[0.08] hover:text-white"
-                  )}
+                  className={`uf-chip uf-chip-sm${s.season_number === seasonNum ? " active" : ""}`}
                 >
                   S{s.season_number}
                 </button>
@@ -314,113 +307,101 @@ export default function TvDetailsPage() {
             </div>
 
             {epsLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="uf-episode-grid">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex gap-3 p-2 rounded-2xl ring-1 ring-white/[0.06] animate-pulse">
-                    <div className="w-32 aspect-video rounded-xl bg-white/[0.05] shrink-0" />
-                    <div className="flex-1 py-1 space-y-2">
-                      <div className="h-2.5 w-10 rounded bg-white/[0.07]" />
-                      <div className="h-3 w-full rounded bg-white/[0.07]" />
-                      <div className="h-2 w-16 rounded bg-white/[0.05]" />
+                  <div key={i} className="uf-ep-skel">
+                    <div className="uf-ep-skel-thumb" />
+                    <div className="uf-ep-skel-body">
+                      <div className="uf-ep-skel-bar" style={{ width: "2.5rem" }} />
+                      <div className="uf-ep-skel-bar w-100" />
+                      <div className="uf-ep-skel-bar" style={{ width: "4rem" }} />
                     </div>
                   </div>
                 ))}
               </div>
             ) : episodes.length > 0 ? (
-              <motion.div variants={staggerFast} initial="hidden" whileInView="show" viewport={viewportOnce} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {episodes.map((ep: Episode) => {
+              <div className="uf-episode-grid">
+                {episodes.map((ep: Episode, i: number) => {
                   const isResume =
                     resumeItem?.season === seasonNum && resumeItem?.episode === ep.episode_number;
                   return (
-                    <motion.div key={ep.id} variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0 } }}>
+                    <div key={ep.id} className="content-card" style={{ animationDelay: `${i * 40}ms` }}>
                       <Link
                         to={`/watch/tv/${show.id}/${seasonNum}/${ep.episode_number}`}
-                        className={cn(
-                          "group flex gap-3 p-2 rounded-2xl ring-1 transition-all",
-                          isResume
-                            ? "bg-primary/[0.09] ring-primary/40"
-                            : "bg-white/[0.03] ring-white/[0.07] hover:ring-primary/30 hover:bg-white/[0.05]"
-                        )}
+                        className={`uf-episode-card${isResume ? " is-resume" : ""}`}
                       >
-                        <div className="relative w-32 aspect-video rounded-xl overflow-hidden shrink-0 bg-zinc-900 ring-1 ring-white/[0.08]">
+                        <div className="uf-episode-still">
                           <img
                             src={imgUrl(ep.still_path ?? null, "w300")}
                             alt=""
                             loading="lazy"
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             onError={(ev) => { (ev.target as HTMLImageElement).style.visibility = "hidden"; }}
                           />
-                          <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="uf-episode-overlay">
                             {isResume ? (
-                              <span className="rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 px-2 py-0.5 text-[7px] font-bold uppercase tracking-widest text-white shadow-glow-sm">
+                              <span className="uf-episode-resume-badge">
                                 Resume
                               </span>
                             ) : (
-                              <Play className="w-5 h-5 fill-current text-white/85 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <Play size={20} className="uf-episode-play" />
                             )}
                           </div>
                         </div>
-                        <div className="flex flex-col justify-center min-w-0 flex-1">
-                          <div className="flex items-baseline gap-2">
-                            <span className={cn("text-[10px] font-black tabular-nums", isResume ? "text-primary" : "text-white/35")}>
+                        <div className="uf-episode-body">
+                          <div className="uf-episode-head">
+                            <span className="uf-episode-num">
                               E{String(ep.episode_number).padStart(2, "0")}
                             </span>
-                            <p className="text-xs font-bold text-white/90 line-clamp-2 leading-snug">
+                            <p className="uf-episode-title line-clamp-2">
                               {ep.name || "Episode"}
                             </p>
                           </div>
-                          <p className="text-[9px] font-medium uppercase tracking-wider text-white/30 mt-1">
+                          <p className="uf-episode-meta">
                             {ep.air_date || "TBA"}{ep.runtime ? ` · ${ep.runtime}m` : ""}
                           </p>
                         </div>
                       </Link>
-                    </motion.div>
+                    </div>
                   );
                 })}
-              </motion.div>
+              </div>
             ) : (
-              <div className="p-10 text-center rounded-2xl ring-1 ring-dashed ring-white/10 text-white/25 text-[10px] font-bold uppercase tracking-[0.3em]">
+              <div className="uf-episodes-empty">
                 No Episodes Listed
               </div>
             )}
-          </motion.section>
+          </section>
         )}
 
         {/* Cast */}
         {cast.length > 0 && (
-          <motion.section
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="show"
-            viewport={viewportOnce}
-            className="mt-16 mb-8"
-          >
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-1.5">Starring</p>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-6">Top Cast</h2>
-            <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-3">
-              {cast.map((c) => (
-                <div key={c.id} className="flex-shrink-0 w-24 text-center group">
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden bg-card mb-3 ring-1 ring-white/[0.08] group-hover:ring-primary/50 transition-all duration-300">
+          <section ref={castRef} className="uf-details-section">
+            <p className="kicker uf-kicker-block">Starring</p>
+            <h2 className="uf-section-title mb-4">Top Cast</h2>
+            <div className="uf-cast-rail scrollbar-hide">
+              {cast.map((c, i) => (
+                <div key={c.id} className="uf-cast-card content-card" style={{ animationDelay: `${i * 40}ms` }}>
+                  <div className="uf-cast-photo">
                     <img
                       src={imgUrl(c.profile_path, "w185")}
                       alt={c.name}
                       loading="lazy"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      className="uf-cast-img"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                     />
                   </div>
-                  <p className="text-[11px] font-bold text-white line-clamp-1">{c.name}</p>
-                  <p className="text-[9px] font-medium uppercase tracking-wider text-white/35 line-clamp-1 mt-0.5">{c.character}</p>
+                  <p className="uf-cast-name line-clamp-1">{c.name}</p>
+                  <p className="uf-cast-role line-clamp-1">{c.character}</p>
                 </div>
               ))}
             </div>
-          </motion.section>
+          </section>
         )}
 
         <ReviewsSection reviews={reviews} />
 
         {similar.length > 0 && (
-          <section className="mb-8">
+          <section className="mb-5">
             <ContentRow title="More Like This" kicker="If you liked this" movies={similar} type="tv" />
           </section>
         )}

@@ -6,10 +6,10 @@ import ContentRow from "@/components/ContentRow";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { GridSkeleton } from "@/components/LoadingSkeleton";
-import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { fadeUp, staggerFast, scaleIn } from "@/lib/motion";
+import { revealNow, revealStagger } from "@/lib/anim";
 import { SlidersHorizontal, Check, Clapperboard, Loader2 } from "lucide-react";
+import "@/styles/browse.css";
 
 export default function MoviesPage() {
   usePageTitle("Movies");
@@ -37,6 +37,8 @@ export default function MoviesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const observerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     tmdb.movieGenres()
@@ -94,47 +96,68 @@ export default function MoviesPage() {
     return () => observer.disconnect();
   }, [loading, loadingMore, page, totalPages]);
 
+  // Header entrance on mount.
+  useEffect(() => revealNow(headerRef.current, { y: 18, duration: 500 }), []);
+
+  // Card stagger when a fresh grid mounts (initial load or genre change).
+  // Appending a page does not re-trigger it, so loaded cards never re-fade.
+  useEffect(() => {
+    if (loading || !gridRef.current) return;
+    revealStagger(Array.from(gridRef.current.children), { step: 40, y: 18, duration: 450 });
+  }, [loading, selectedGenre]);
+
   return (
-    <PageShell className="min-h-screen bg-background pt-28 md:pt-32 pb-28 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-[1600px] mx-auto">
-        <motion.header
-          variants={fadeUp}
-          initial="hidden"
-          animate="show"
-          className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6"
+    <PageShell className="min-vh-100 uf-browse-top" style={{ paddingBottom: "7rem" }}>
+      <div className="page-container" style={{ maxWidth: "100rem" }}>
+        <header
+          ref={headerRef}
+          className="mb-5 d-flex flex-column flex-md-row align-items-md-end justify-content-between gap-4"
         >
           <div>
-            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-2">
-              <Clapperboard className="w-3.5 h-3.5" />
+            <p className="kicker d-flex align-items-center gap-2 mb-2">
+              <Clapperboard size={14} />
               Cinema Hub
             </p>
-            <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter leading-none mb-3">
+            <h1
+              className="fw-black text-white mb-3"
+              style={{ fontSize: "clamp(2.25rem, 6vw, 3.75rem)", letterSpacing: "-0.05em", lineHeight: 1 }}
+            >
               Movies
             </h1>
-            <p className="text-white/35 uppercase tracking-[0.25em] text-[10px] font-bold">
+            <p
+              className="text-uppercase fw-bold mb-0"
+              style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.35)" }}
+            >
               Exploring {selectedGenre ? genres.find((g) => g.id === selectedGenre)?.name ?? "Everything" : "Everything"}
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
+          <div className="d-flex align-items-center gap-3">
+            <button
               onClick={() => setShowFilters(!showFilters)}
               className={cn(
-                "flex items-center gap-2 px-6 py-3 rounded-full font-bold uppercase text-[11px] tracking-widest transition-all ring-1",
-                showFilters
-                  ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white ring-transparent shadow-glow"
-                  : "bg-white/[0.04] text-white/60 ring-white/[0.08] hover:bg-white/[0.08] hover:text-white"
+                "uf-btn uf-btn-md rounded-pill text-uppercase",
+                showFilters ? "btn-gradient" : "uf-btn-ghost"
               )}
+              style={{ fontSize: "11px", letterSpacing: "0.12em" }}
             >
-              <SlidersHorizontal className="w-4 h-4" />
+              <SlidersHorizontal size={16} />
               Filters
-            </motion.button>
-            <div className="hidden sm:flex items-center gap-2 px-5 py-3 rounded-full bg-white/[0.04] ring-1 ring-white/[0.08] text-[11px] font-bold uppercase tracking-widest text-white/40">
+            </button>
+            <div
+              className="d-none d-sm-flex align-items-center gap-2 rounded-pill px-4 py-2 text-uppercase fw-bold flex-shrink-0"
+              style={{
+                fontSize: "11px",
+                letterSpacing: "0.12em",
+                color: "rgba(255,255,255,0.4)",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
               {movies.length} Results
             </div>
           </div>
-        </motion.header>
+        </header>
 
         {!selectedGenre && trending.length > 0 && (
           <ContentRow
@@ -142,84 +165,88 @@ export default function MoviesPage() {
             kicker="Top 10 in Cinema"
             movies={trending}
             showRank
-            className="mb-12"
+            className="mb-5"
           />
         )}
 
-        <div className="flex flex-col lg:flex-row gap-10">
+        <div className="d-flex flex-column flex-lg-row gap-4 gap-lg-5">
           {/* Filter sidebar */}
-          <AnimatePresence>
-            {showFilters && (
-              <motion.aside
-                initial={{ opacity: 0, x: -24 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -24 }}
-                transition={{ duration: 0.3 }}
-                className="w-full lg:w-72 shrink-0"
+          {showFilters && (
+            <aside className="uf-filter-aside uf-panel-in">
+              <h3 className="kicker mb-3" style={{ color: "rgba(255,255,255,0.3)" }}>
+                Genres
+              </h3>
+              <div
+                className="row row-cols-2 row-cols-lg-1 g-2 scrollbar-hide"
+                style={{ maxHeight: "60vh", overflowY: "auto", paddingRight: "0.25rem" }}
               >
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/30 mb-4">Genres</h3>
-                <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 max-h-[60vh] overflow-y-auto scrollbar-hide pr-1">
-                  {[{ id: null as number | null, name: "All Categories" }, ...genres].map((g) => (
+                {[{ id: null as number | null, name: "All Categories" }, ...genres].map((g) => (
+                  <div className="col" key={g.name}>
                     <button
-                      key={g.name}
                       onClick={() => handleGenreSelect(g.id)}
                       className={cn(
-                        "flex items-center justify-between px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wide transition-all",
-                        selectedGenre === g.id
-                          ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-glow-sm"
-                          : "bg-white/[0.04] text-white/55 hover:bg-white/[0.08] hover:text-white"
+                        "uf-chip uf-chip-sm w-100 justify-content-between text-start",
+                        selectedGenre === g.id && "active"
                       )}
+                      style={{ fontSize: "0.75rem", letterSpacing: "0.05em" }}
                     >
                       {g.name}
-                      <Check className={cn("w-4 h-4", selectedGenre === g.id ? "opacity-100" : "opacity-0")} />
+                      <Check size={16} className={selectedGenre === g.id ? undefined : "invisible"} />
                     </button>
-                  ))}
-                </div>
-              </motion.aside>
-            )}
-          </AnimatePresence>
+                  </div>
+                ))}
+              </div>
+            </aside>
+          )}
 
           {/* Grid */}
-          <main className="flex-1 min-w-0">
+          <main className="flex-grow-1" style={{ minWidth: 0 }}>
             {loading ? (
               <GridSkeleton />
             ) : movies.length === 0 ? (
-              <motion.div
-                variants={scaleIn}
-                initial="hidden"
-                animate="show"
-                className="text-center py-28 rounded-3xl bg-white/[0.03] ring-1 ring-dashed ring-white/10"
+              <div
+                className="text-center rounded-4"
+                style={{ padding: "7rem 1rem", background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.1)" }}
               >
-                <Clapperboard className="w-14 h-14 text-white/15 mx-auto mb-5" />
-                <h2 className="text-xl font-extrabold tracking-tight text-white/40 mb-6">No matches found</h2>
+                <Clapperboard size={56} style={{ color: "rgba(255,255,255,0.15)" }} className="mx-auto mb-4" />
+                <h2
+                  className="fw-extrabold mb-5"
+                  style={{ fontSize: "1.25rem", letterSpacing: "-0.02em", color: "rgba(255,255,255,0.4)" }}
+                >
+                  No matches found
+                </h2>
                 <button
                   onClick={() => handleGenreSelect(null)}
-                  className="text-primary font-bold uppercase tracking-widest text-xs hover:underline"
+                  className="btn btn-link p-0 text-uppercase fw-bold text-primary text-decoration-none uf-link-underline"
+                  style={{ fontSize: "0.75rem", letterSpacing: "0.1em" }}
                 >
                   Clear all filters
                 </button>
-              </motion.div>
+              </div>
             ) : (
-              <motion.div
+              <div
                 key={selectedGenre ?? "all"}
-                variants={staggerFast}
-                initial="hidden"
-                animate="show"
-                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6"
+                ref={gridRef}
+                className="row g-3 g-sm-4 row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6"
               >
                 {movies.map((m) => (
-                  <motion.div key={m.id} variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}>
+                  <div className="col" key={m.id}>
                     <MovieCard movie={m} />
-                  </motion.div>
+                  </div>
                 ))}
-              </motion.div>
+              </div>
             )}
 
-            <div ref={observerRef} className="py-16 flex justify-center">
+            <div ref={observerRef} className="py-5 d-flex justify-content-center">
               {loadingMore && (
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                  <span className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/25">Loading more</span>
+                <div className="d-flex flex-column align-items-center gap-3">
+                  <Loader2 size={32} className="text-primary spin" />
+                  <span
+                    className="text-uppercase fw-bold"
+                    style={{ fontSize: "10px", letterSpacing: "0.35em", color: "rgba(255,255,255,0.25)" }}
+                  >
+                    Loading more
+                  </span>
                 </div>
               )}
             </div>

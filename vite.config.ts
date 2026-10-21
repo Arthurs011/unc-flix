@@ -17,9 +17,10 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           react: ["react", "react-dom", "react-router-dom"],
-          motion: ["motion"],
           query: ["@tanstack/react-query"],
-          ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-toast"],
+          anim: ["animejs"],
+          motion: ["motion", "framer-motion"],
+          ui: ["sonner", "lucide-react"],
         },
       },
     },

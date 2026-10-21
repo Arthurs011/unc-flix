@@ -1,5 +1,3 @@
-import { useId } from "react";
-import { AnimatePresence, motion } from "motion/react";
 import { Film, Loader2, SearchX, Tv, WifiOff } from "lucide-react";
 import { getTitle, getYear, posterUrl, type Movie } from "@/lib/tmdb";
 import { searchResultKey, titleType } from "@/lib/search";
@@ -33,37 +31,34 @@ export default function SearchDropdown({
   const showIdle = !showSkeleton && !showError && items.length === 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -6, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.16 }}
-      className="z-50 overflow-hidden rounded-2xl bg-background/95 backdrop-blur-2xl ring-1 ring-white/10 shadow-card-lg"
-    >
+    <div className="uf-suggestions z-50">
       {showSkeleton && (
         <div
           role="status"
-          className="flex items-center gap-2.5 px-4 py-4 text-xs font-semibold uppercase tracking-widest text-white/40"
+          className="d-flex align-items-center gap-2 px-4 py-4 text-uppercase small fw-bold"
+          style={{ letterSpacing: "0.12em", color: "rgba(255,255,255,0.4)", fontSize: "0.75rem" }}
         >
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <Loader2 className="spin text-primary" size={16} />
           Searching
         </div>
       )}
 
       {showError && (
-        <p
-          role="status"
-          className="flex items-center gap-2.5 px-4 py-4 text-sm text-amber-200/90"
-        >
-          <WifiOff className="h-4 w-4 shrink-0" />
+        <p role="status" className="d-flex align-items-center gap-2 px-4 py-4 mb-0 small" style={{ color: "#fde68a" }}>
+          <WifiOff size={16} className="flex-shrink-0" />
           Could not reach search. Check your connection and try again.
         </p>
       )}
 
-      {showIdle && <p className="px-4 py-4 text-sm text-white/35">Keep typing to search.</p>}
+      {showIdle && (
+        <p className="px-4 py-4 mb-0 small" style={{ color: "rgba(255,255,255,0.35)" }}>
+          Keep typing to search.
+        </p>
+      )}
 
       {showEmpty && (
-        <p className="flex items-center gap-3 px-4 py-4 text-sm text-white/40">
-          <SearchX className="h-4 w-4 shrink-0" />
+        <p className="d-flex align-items-center gap-2 px-4 py-4 mb-0 small" style={{ color: "rgba(255,255,255,0.4)" }}>
+          <SearchX size={16} className="flex-shrink-0" />
           No results for &ldquo;{query.trim()}&rdquo;
         </p>
       )}
@@ -73,7 +68,8 @@ export default function SearchDropdown({
           id={listboxId}
           role="listbox"
           aria-label="Search suggestions"
-          className="max-h-[min(60vh,26rem)] overflow-y-auto overscroll-contain p-1.5"
+          className="list-unstyled m-0 p-2 overflow-y-auto"
+          style={{ maxHeight: "min(60vh, 26rem)", overscrollBehavior: "contain" }}
         >
           {items.map((item, i) => {
             const isTV = titleType(item) === "tv";
@@ -84,7 +80,7 @@ export default function SearchDropdown({
                 id={optionDomId(listboxId, item)}
                 role="option"
                 aria-selected={selected}
-                className={selected ? "rounded-xl bg-white/[0.06]" : undefined}
+                className="rounded-3"
               >
                 <button
                   // Without type="button" this submits the search form on tap,
@@ -96,37 +92,40 @@ export default function SearchDropdown({
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => onSelect(item)}
                   onPointerEnter={() => onHover(i)}
-                  className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left"
+                  data-active={selected ? "true" : undefined}
+                  className="uf-suggestion-row rounded-3 border-0"
                 >
-                  <span className="flex h-[54px] w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/[0.06]">
+                  <span
+                    className="d-flex align-items-center justify-content-center overflow-hidden rounded-2 flex-shrink-0"
+                    style={{ width: "2.25rem", height: "3.25rem", background: "rgba(255,255,255,0.06)" }}
+                  >
                     {item.poster_path ? (
-                      <img
-                        src={posterUrl(item, "w92")}
-                        alt=""
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={posterUrl(item, "w92")} alt="" loading="lazy" className="uf-suggestion-poster" />
                     ) : isTV ? (
-                      <Tv className="h-4 w-4 text-white/30" />
+                      <Tv size={16} style={{ color: "rgba(255,255,255,0.3)" }} />
                     ) : (
-                      <Film className="h-4 w-4 text-white/30" />
+                      <Film size={16} style={{ color: "rgba(255,255,255,0.3)" }} />
                     )}
                   </span>
 
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-white">
-                      {getTitle(item)}
-                    </span>
-                    <span className="mt-1 flex items-center gap-2">
+                  <span className="flex-grow-1" style={{ minWidth: 0 }}>
+                    <span className="d-block text-truncate small fw-semibold text-white">{getTitle(item)}</span>
+                    <span className="d-flex align-items-center gap-2 mt-1">
                       {getYear(item) && (
-                        <span className="text-[10px] font-medium tracking-wide text-white/40">
+                        <span style={{ fontSize: "10px", fontWeight: 500, color: "rgba(255,255,255,0.4)" }}>
                           {getYear(item)}
                         </span>
                       )}
                       <span
-                        className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-                          isTV ? "bg-indigo-500/15 text-indigo-300" : "bg-sky-500/15 text-sky-300"
-                        }`}
+                        className="rounded-2 text-uppercase"
+                        style={{
+                          fontSize: "9px",
+                          fontWeight: 700,
+                          letterSpacing: "0.1em",
+                          padding: "0.2rem 0.4rem",
+                          background: isTV ? "rgba(99,102,241,0.15)" : "rgba(14,165,233,0.15)",
+                          color: isTV ? "#a5b4fc" : "#7dd3fc",
+                        }}
                       >
                         {isTV ? "Series" : "Movie"}
                       </span>
@@ -138,6 +137,6 @@ export default function SearchDropdown({
           })}
         </ul>
       )}
-    </motion.div>
+    </div>
   );
 }

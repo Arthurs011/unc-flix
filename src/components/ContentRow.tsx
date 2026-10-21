@@ -4,8 +4,7 @@ import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { Movie } from "@/lib/tmdb";
 import MovieCard from "./MovieCard";
 import { cn } from "@/lib/utils";
-import { motion } from "motion/react";
-import { fadeUp, viewportOnce } from "@/lib/motion";
+import { revealOnView } from "@/lib/anim";
 
 interface Props {
   title: string;
@@ -19,6 +18,7 @@ interface Props {
 
 export default function ContentRow({ title, kicker, movies, type, showRank, exploreTo, className }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
   const safeMovies = useMemo(() => movies ?? [], [movies]);
@@ -37,6 +37,15 @@ export default function ContentRow({ title, kicker, movies, type, showRank, expl
     return () => window.removeEventListener("resize", updateArrows);
   }, [safeMovies, updateArrows]);
 
+  // Scroll reveal: the section is visible by default; when it first enters
+  // the viewport anime.js plays the entrance. A missed animation can never
+  // leave the row invisible.
+  useEffect(() => revealOnView(sectionRef.current, { y: 24, duration: 600 }), [safeMovies]);
+
+  // Per-card stagger as a CSS animation (also used as fallback for cards
+  // below the fold before the section reveals).
+  const cardDelay = (i: number) => ({ animationDelay: `${Math.min(i * 0.04, 0.4)}s` });
+
   const scroll = (dir: number) => {
     if (scrollRef.current) {
       const { clientWidth } = scrollRef.current;
@@ -47,99 +56,68 @@ export default function ContentRow({ title, kicker, movies, type, showRank, expl
   if (!safeMovies.length) return null;
 
   return (
-    <motion.section
-      variants={fadeUp}
-      initial="hidden"
-      whileInView="show"
-      viewport={viewportOnce}
-      className={cn("mb-14 last:mb-8", className)}
-    >
-      <div className="flex items-end justify-between mb-5 px-4 sm:px-0">
+    <section ref={sectionRef} className={cn("mb-5", className)} style={{ marginBottom: "3.5rem" }}>
+      <div className="d-flex align-items-end justify-content-between mb-4 px-3 px-sm-0">
         <div>
-          {kicker && (
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-1.5">
-              {kicker}
-            </p>
-          )}
-          <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-            {title}
-          </h2>
+          {kicker && <p className="kicker mb-2">{kicker}</p>}
+          <h2 className="uf-section-title mb-0">{title}</h2>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="d-flex align-items-center gap-3">
           {exploreTo && safeMovies.length > 5 && (
             <Link
               to={exploreTo}
-              className="hidden md:flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-white/35 hover:text-primary transition-colors mb-0.5"
+              className="d-none d-md-flex align-items-center gap-2 text-uppercase text-decoration-none mb-1"
+              style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.35)" }}
             >
               Explore all
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight size={14} />
             </Link>
           )}
           {safeMovies.length > 5 && (
-            <div className="hidden sm:flex items-center gap-2">
-            <button
-              onClick={() => scroll(-1)}
-              disabled={!showLeft}
-              aria-label="Scroll left"
-              className={cn(
-                "p-2.5 rounded-full ring-1 ring-white/10 bg-white/[0.04] text-white/70 hover:bg-white/10 hover:text-white hover:ring-white/20 transition-all disabled:opacity-25 disabled:pointer-events-none"
-              )}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => scroll(1)}
-              disabled={!showRight}
-              aria-label="Scroll right"
-              className={cn(
-                "p-2.5 rounded-full ring-1 ring-white/10 bg-white/[0.04] text-white/70 hover:bg-white/10 hover:text-white hover:ring-white/20 transition-all disabled:opacity-25 disabled:pointer-events-none"
-              )}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className="d-none d-sm-flex align-items-center gap-2">
+              <button
+                onClick={() => scroll(-1)}
+                disabled={!showLeft}
+                aria-label="Scroll left"
+                className="uf-btn uf-btn-ghost rounded-4 border-0"
+                style={{ width: "2.5rem", height: "2.5rem", padding: 0 }}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                onClick={() => scroll(1)}
+                disabled={!showRight}
+                aria-label="Scroll right"
+                className="uf-btn uf-btn-ghost rounded-4 border-0"
+                style={{ width: "2.5rem", height: "2.5rem", padding: 0 }}
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      <div className="relative -mx-4 sm:mx-0">
-        <div
-          ref={scrollRef}
-          onScroll={updateArrows}
-          className="flex gap-4 sm:gap-5 overflow-x-auto scrollbar-hide px-4 sm:px-0 pb-4 snap-x snap-mandatory"
-        >
+      <div className="uf-rail-wrap">
+        <div ref={scrollRef} onScroll={updateArrows} className="uf-rail" style={{ gap: "1.25rem" }}>
           {safeMovies.map((m, i) =>
             showRank ? (
-              <div key={`${m.id}-${i}`} className="flex items-end flex-shrink-0 snap-start">
-                <span
-                  aria-hidden
-                  className="select-none leading-none font-black text-[64px] sm:text-[84px] tracking-tighter -mr-3 sm:-mr-4 relative z-10 text-transparent [-webkit-text-stroke:2px_rgba(255,255,255,0.28)]"
-                >
+              <div key={`${m.id}-${i}`} className="content-card d-flex align-items-end" style={cardDelay(i)}>
+                <span aria-hidden className="rank-num flex-shrink-0" style={{ fontSize: "64px", marginRight: "-0.75rem", zIndex: 10 }}>
                   {i + 1}
                 </span>
-                <MovieCard movie={m} type={type} priority={i < 5} className="w-[136px] sm:w-[160px]" />
+                <MovieCard movie={m} type={type} priority={i < 5} className="uf-rail-card" />
               </div>
             ) : (
-              <MovieCard
-                key={`${m.id}-${i}`}
-                movie={m}
-                type={type}
-                priority={i < 5}
-                className="flex-shrink-0 w-[136px] sm:w-[172px] snap-start"
-              />
+              <div key={`${m.id}-${i}`} className="content-card" style={cardDelay(i)}>
+                <MovieCard movie={m} type={type} priority={i < 5} className="uf-rail-card" />
+              </div>
             )
           )}
         </div>
-        {/* Edge fades */}
-        <div className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent transition-opacity duration-300",
-          showLeft ? "opacity-100" : "opacity-0 sm:hidden"
-        )} />
-        <div className={cn(
-          "pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent transition-opacity duration-300",
-          showRight ? "opacity-100" : "opacity-0"
-        )} />
+        {showLeft && <div className="uf-rail-fade uf-rail-fade-start" />}
+        {showRight && <div className="uf-rail-fade uf-rail-fade-end" />}
       </div>
-    </motion.section>
+    </section>
   );
 }

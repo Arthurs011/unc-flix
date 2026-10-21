@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { AlertCircle, ChevronLeft, ChevronRight, Film, Loader2, Search, X } from "lucide-react";
-import { motion } from "motion/react";
+import { AlertCircle, ChevronLeft, ChevronRight, Film, Search, X } from "lucide-react";
 import MovieCard from "@/components/MovieCard";
 import PageShell from "@/components/PageShell";
 import { GridSkeleton } from "@/components/LoadingSkeleton";
@@ -16,7 +15,9 @@ import {
   searchResultKey,
   searchUrl,
 } from "@/lib/search";
-import { springSnappy } from "@/lib/motion";
+import { cn } from "@/lib/utils";
+import { revealNow, revealStagger } from "@/lib/anim";
+import "@/styles/browse.css";
 
 const FILTERS: { value: TitleType | "all"; label: string }[] = [
   { value: "all", label: "All" },
@@ -33,6 +34,9 @@ export default function SearchPage() {
   // refining a search meant going back to the nav bar.
   const [draft, setDraft] = useState(urlQuery);
   const debouncedDraft = useDebouncedValue(draft, 400);
+
+  const headerRef = useRef<HTMLElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   // Keep the field in step when the URL changes from elsewhere, such as the nav.
   useEffect(() => {
@@ -54,33 +58,40 @@ export default function SearchPage() {
   const visible = filterByType(results, type);
   const trimmed = urlQuery.trim();
 
+  // Header entrance on mount.
+  useEffect(() => revealNow(headerRef.current, { y: 18, duration: 500 }), []);
+
+  // Stagger the result cards whenever a fresh set of results lands (new
+  // query, new page, new filter, or the first load finishing). Cards are
+  // visible by default; the stagger only dips them if it actually runs.
+  useEffect(() => {
+    if (isLoading || visible.length === 0 || !gridRef.current) return;
+    revealStagger(Array.from(gridRef.current.children), { step: 20, y: 18, duration: 450 });
+  }, [isLoading, visible.length, trimmed, type, page]);
+
   const goToPage = (next: number) => {
     setParams({ q: urlQuery, ...(next > 1 ? { page: String(next) } : {}) });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
-    <PageShell className="min-h-screen bg-background px-4 pt-28 pb-32 sm:px-6 md:pt-32 lg:px-8">
-      <div className="mx-auto max-w-[1600px]">
-        <motion.header
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={springSnappy}
-          className="mb-8"
-        >
-          <p className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary">
-            <Search className="h-3.5 w-3.5" />
+    <PageShell className="min-vh-100 uf-browse-top" style={{ paddingBottom: "8rem" }}>
+      <div className="page-container" style={{ maxWidth: "100rem" }}>
+        <header ref={headerRef} className="mb-4">
+          <p className="kicker d-flex align-items-center gap-2 mb-2">
+            <Search size={14} />
             Search
           </p>
-          <h1 className="truncate text-3xl font-black leading-none tracking-tighter text-white sm:text-5xl">
+          <h1
+            className="fw-black text-white text-truncate mb-0"
+            style={{ fontSize: "clamp(1.875rem, 5vw, 3rem)", lineHeight: 1, letterSpacing: "-0.04em" }}
+          >
             {isSearchable(urlQuery) ? `“${urlQuery}”` : "Discover Content"}
           </h1>
-        </motion.header>
+        </header>
 
-        <div className="relative mb-8">
-          <Search
-            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/35"
-          />
+        <div className="uf-search-form mb-4">
+          <Search size={20} className="uf-search-icon" />
           <input
             type="search"
             value={draft}
@@ -88,27 +99,34 @@ export default function SearchPage() {
             placeholder="Search movies and series..."
             aria-label="Search movies and series"
             enterKeyHint="search"
-            className="h-14 w-full rounded-2xl bg-white/[0.06] pl-12 pr-12 text-base text-white outline-none ring-1 ring-white/10 placeholder:text-white/30 focus:ring-primary/60"
+            className="uf-search-input uf-search-sheet"
+            style={{ paddingRight: "3.25rem" }}
           />
           {draft && (
             <button
               onClick={() => setDraft("")}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-white/40 hover:bg-white/[0.06] hover:text-white"
+              className="uf-icon-btn position-absolute top-50 end-0 translate-middle-y border-0"
             >
-              <X className="h-4 w-4" />
+              <X size={16} />
             </button>
           )}
         </div>
 
         {!hasSearched && !isLoading && (
-          <div className="py-24 text-center">
+          <div className="text-center" style={{ paddingTop: "6rem", paddingBottom: "6rem" }}>
             {/* Not a spinner: nothing is loading here, and a spinner implies it is. */}
-            <Search className="mx-auto mb-5 h-10 w-10 text-white/10" />
-            <h2 className="mb-2 text-lg font-extrabold tracking-tight text-white/30">
+            <Search size={40} style={{ color: "rgba(255,255,255,0.1)" }} className="mx-auto mb-4" />
+            <h2
+              className="fw-extrabold mb-2"
+              style={{ fontSize: "1.125rem", letterSpacing: "-0.02em", color: "rgba(255,255,255,0.3)" }}
+            >
               Start your search
             </h2>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/20">
+            <p
+              className="text-uppercase fw-bold mb-0"
+              style={{ fontSize: "10px", letterSpacing: "0.12em", color: "rgba(255,255,255,0.2)" }}
+            >
               Find your favorite movies and shows
             </p>
           </div>
@@ -117,9 +135,15 @@ export default function SearchPage() {
         {isError && hasSearched && (
           <div
             role="status"
-            className="flex items-center gap-3 rounded-2xl bg-amber-500/10 px-5 py-4 text-sm text-amber-100/90 ring-1 ring-amber-500/30"
+            className="d-flex align-items-center gap-3 rounded-4 px-4 py-3"
+            style={{
+              background: "rgba(245,158,11,0.1)",
+              border: "1px solid rgba(245,158,11,0.3)",
+              color: "rgba(254,243,199,0.9)",
+              fontSize: "0.875rem",
+            }}
           >
-            <AlertCircle className="h-5 w-5 shrink-0 text-amber-400" />
+            <AlertCircle size={20} style={{ color: "#fbbf24" }} className="flex-shrink-0" />
             Could not reach the search service. Check your connection and try again.
           </div>
         )}
@@ -127,12 +151,21 @@ export default function SearchPage() {
         {hasSearched && !isError && isLoading && <GridSkeleton count={12} />}
 
         {hasSearched && !isError && !isLoading && visible.length === 0 && (
-          <div className="rounded-3xl bg-white/[0.03] py-28 text-center ring-1 ring-dashed ring-white/10">
-            <Film className="mx-auto mb-5 h-14 w-14 text-white/15" />
-            <h2 className="mb-2 text-xl font-extrabold tracking-tight text-white/40">
+          <div
+            className="rounded-4 text-center"
+            style={{ padding: "7rem 1rem", background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.1)" }}
+          >
+            <Film size={56} style={{ color: "rgba(255,255,255,0.15)" }} className="mx-auto mb-4" />
+            <h2
+              className="fw-extrabold mb-2"
+              style={{ fontSize: "1.25rem", letterSpacing: "-0.02em", color: "rgba(255,255,255,0.4)" }}
+            >
               No matches found
             </h2>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">
+            <p
+              className="text-uppercase fw-bold mb-0"
+              style={{ fontSize: "10px", letterSpacing: "0.12em", color: "rgba(255,255,255,0.25)" }}
+            >
               Try a different title or search for a series instead
             </p>
           </div>
@@ -140,73 +173,64 @@ export default function SearchPage() {
 
         {visible.length > 0 && (
           <>
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
+            <div className="mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+              <div className="d-flex align-items-center gap-2">
                 {FILTERS.map((f) => (
                   <button
                     key={f.value}
                     onClick={() => setType(f.value)}
                     aria-pressed={type === f.value}
-                    className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors ${
-                      type === f.value
-                        ? "bg-primary/15 text-primary ring-1 ring-primary/40"
-                        : "bg-white/[0.04] text-white/50 ring-1 ring-white/[0.08] hover:text-white/80"
-                    }`}
+                    className={cn("uf-chip uf-chip-sm", type === f.value && "active")}
                   >
                     {f.label}
                   </button>
                 ))}
               </div>
-              <p aria-live="polite" className="text-xs font-medium text-white/40">
+              <p aria-live="polite" className="mb-0 small fw-medium" style={{ color: "rgba(255,255,255,0.4)" }}>
                 {visible.length} result{visible.length === 1 ? "" : "s"}
-                {isFetching && <span className="ml-2 text-white/25">updating...</span>}
-                {debouncedQuery !== trimmed && <span className="ml-2 text-white/25">typing...</span>}
+                {isFetching && <span className="ms-2" style={{ color: "rgba(255,255,255,0.25)" }}>updating...</span>}
+                {debouncedQuery !== trimmed && <span className="ms-2" style={{ color: "rgba(255,255,255,0.25)" }}>typing...</span>}
               </p>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={springSnappy}
-              className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+            <div
+              ref={gridRef}
+              className="row g-3 g-sm-4 row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6"
             >
-              {visible.map((m, i) => (
+              {visible.map((m) => (
                 // Keyed by type and id: TMDB ids repeat across media types, so a
                 // bare id collided and React dropped cells.
-                <motion.div
-                  key={searchResultKey(m)}
-                  initial={{ opacity: 0, y: 18 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...springSnappy, delay: Math.min(i * 0.02, 0.3) }}
-                >
+                <div className="col" key={searchResultKey(m)}>
                   <MovieCard movie={m} />
-                </motion.div>
+                </div>
               ))}
-            </motion.div>
+            </div>
 
             {totalPages > 1 && (
               <nav
                 aria-label="Search result pages"
-                className="mt-12 flex items-center justify-center gap-3"
+                className="mt-5 d-flex align-items-center justify-content-center gap-3"
               >
                 <button
                   onClick={() => goToPage(page - 1)}
                   disabled={page <= 1}
                   aria-label="Previous page"
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.06] text-white/70 ring-1 ring-white/10 transition-colors hover:bg-white/[0.1] disabled:pointer-events-none disabled:opacity-30"
+                  className="uf-btn uf-btn-ghost rounded-pill"
+                  style={{ width: "2.5rem", height: "2.5rem", padding: 0 }}
                 >
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft size={20} />
                 </button>
-                <span className="text-xs font-semibold text-white/50">
+                <span className="fw-semibold" style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)" }}>
                   Page {page} of {totalPages}
                 </span>
                 <button
                   onClick={() => goToPage(page + 1)}
                   disabled={page >= totalPages}
                   aria-label="Next page"
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.06] text-white/70 ring-1 ring-white/10 transition-colors hover:bg-white/[0.1] disabled:pointer-events-none disabled:opacity-30"
+                  className="uf-btn uf-btn-ghost rounded-pill"
+                  style={{ width: "2.5rem", height: "2.5rem", padding: 0 }}
                 >
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight size={20} />
                 </button>
               </nav>
             )}

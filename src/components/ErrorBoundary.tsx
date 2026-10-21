@@ -1,7 +1,5 @@
 import { Component, ReactNode } from "react";
-import { motion } from "motion/react";
 import { RefreshCw, Home, AlertTriangle, ChevronDown } from "lucide-react";
-import { EASE } from "@/lib/motion";
 
 interface Props {
   children: ReactNode;
@@ -41,58 +39,65 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (!this.state.hasError) return this.props.children;
 
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[560px] h-[560px] rounded-full bg-red-500/[0.06] blur-[130px] pointer-events-none" />
+      <div className="min-vh-100 d-flex align-items-center justify-content-center px-3 position-relative overflow-hidden route-enter">
+        <div className="uf-error-blob position-absolute pointer-events-none" aria-hidden="true" />
 
-        <motion.div
-          initial={{ opacity: 0, y: 24, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.5, ease: EASE }}
-          className="relative text-center max-w-lg w-full"
-        >
-          <div className="mx-auto mb-7 w-16 h-16 rounded-3xl bg-red-500/10 ring-1 ring-red-500/25 flex items-center justify-center">
-            <AlertTriangle className="w-7 h-7 text-red-400" />
+        <div className="position-relative text-center w-100" style={{ maxWidth: "32rem" }}>
+          <div
+            className="rounded-4 d-inline-flex align-items-center justify-content-center mb-4"
+            style={{
+              width: "4rem",
+              height: "4rem",
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.25)",
+            }}
+          >
+            <AlertTriangle size={28} style={{ color: "#f87171" }} />
           </div>
 
-          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-red-400/80 mb-3">
+          <p className="kicker mb-3" style={{ color: "rgba(248,113,113,0.8)", letterSpacing: "0.35em" }}>
             Transmission Interrupted
           </p>
-          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tighter leading-[0.95] mb-4">
+          <h1 className="fw-black text-white mb-3" style={{ fontSize: "clamp(2rem, 6vw, 3rem)", letterSpacing: "-0.04em", lineHeight: 0.95 }}>
             Something broke the stream
           </h1>
-          <p className="text-white/45 text-sm sm:text-base leading-relaxed mb-9 max-w-md mx-auto">
+          <p className="mb-4 mx-auto" style={{ maxWidth: "28rem", color: "rgba(255,255,255,0.45)", lineHeight: 1.7 }}>
             An unexpected error interrupted this page. Navigating away resets it automatically —
             or jump back home and pick up where you left off.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
-            <button
-              onClick={() => window.location.reload()}
-              className="flex items-center gap-2.5 h-12 px-7 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow hover:scale-[1.03] active:scale-95 transition-transform"
-            >
-              <RefreshCw className="w-4 h-4" />
+          <div className="d-flex flex-column flex-sm-row align-items-center justify-content-center gap-3 mb-4">
+            <button onClick={() => window.location.reload()} className="uf-btn uf-btn-md btn-gradient rounded-pill">
+              <RefreshCw size={16} />
               Reload
             </button>
             <button
               onClick={() => { window.location.href = "/"; }}
-              className="flex items-center gap-2.5 h-12 px-7 rounded-full glass ring-1 ring-white/15 text-white font-bold text-sm hover:bg-white/10 transition-colors"
+              className="uf-btn uf-btn-md uf-btn-glass rounded-pill"
             >
-              <Home className="w-4 h-4" />
+              <Home size={16} />
               Go Home
             </button>
           </div>
 
           {this.state.error && (
-            <div className="text-left rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.07] overflow-hidden">
+            <div className="text-start rounded-4 overflow-hidden" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}>
               <button
                 onClick={() => this.setState((s) => ({ showDetails: !s.showDetails }))}
-                className="w-full flex items-center justify-between px-5 py-3.5 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white/70 transition-colors"
+                className="d-flex align-items-center justify-content-between w-100 border-0 px-4 py-3 text-uppercase"
+                style={{
+                  background: "transparent",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.12em",
+                  color: "rgba(255,255,255,0.4)",
+                }}
               >
                 Error Details
-                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${this.state.showDetails ? "rotate-180" : ""}`} />
+                <ChevronDown size={16} className={this.state.showDetails ? "rotate-180" : ""} style={{ transition: "transform 300ms ease" }} />
               </button>
               {this.state.showDetails && (
-                <pre className="px-5 pb-5 pt-1 text-[11px] leading-relaxed text-white/35 whitespace-pre-wrap break-words font-mono max-h-48 overflow-y-auto scrollbar-hide">
+                <pre className="px-4 pb-4 pt-1 mb-0 scrollbar-hide" style={{ fontSize: "11px", lineHeight: 1.7, color: "rgba(255,255,255,0.35)", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: "12rem", overflowY: "auto" }}>
                   {this.state.error.message}
                   {"\n\n"}
                   {this.state.error.stack}
@@ -100,7 +105,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               )}
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
     );
   }

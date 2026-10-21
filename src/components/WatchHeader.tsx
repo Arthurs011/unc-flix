@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { motion } from "motion/react";
+import { useEffect, useRef } from "react";
 import { useAutoHideNav } from "@/hooks/useAutoHideNav";
+import { revealNow } from "@/lib/anim";
 
 interface Props {
   to: string;
@@ -12,35 +13,41 @@ interface Props {
 
 export default function WatchHeader({ to, label, title, badge }: Props) {
   const hidden = useAutoHideNav();
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    revealNow(ref.current, { y: -60, duration: 500 });
+  }, []);
 
   return (
-    <motion.header
-      initial={{ y: -80, opacity: 0 }}
-      animate={{ y: hidden ? -90 : 0, opacity: 1 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed top-3 md:top-4 left-3 right-3 md:left-0 md:right-0 z-50 flex justify-center pointer-events-none"
+    <header
+      ref={ref}
+      className={`uf-watch-header position-fixed top-0 start-0 end-0 z-50 d-flex justify-content-center pointer-events-none pt-3 ${
+        hidden ? "uf-watch-header-hidden" : ""
+      }`}
     >
-      <div className="pointer-events-auto flex items-center gap-2 md:gap-3 h-14 md:h-16 pl-2 pr-4 md:pl-3 md:pr-5 rounded-full glass-strong ring-1 ring-white/10 shadow-card max-w-[92vw] md:max-w-none">
+      <div className="pointer-events-auto d-flex align-items-center gap-2 gap-md-3 glass-strong rounded-pill shadow-card px-2 px-md-3 py-2" style={{ maxWidth: "92vw", height: "3.5rem" }}>
         <Link
           to={to}
           aria-label="Back to details"
-          className="w-11 h-11 md:w-11 md:h-11 rounded-full bg-white/[0.06] hover:bg-primary hover:shadow-glow-sm transition-all flex items-center justify-center shrink-0 group active:bg-white/[0.12]"
+          className="uf-icon-btn rounded-circle border-0 flex-shrink-0 text-white-75"
+          style={{ background: "rgba(255,255,255,0.06)" }}
         >
-          <ArrowLeft className="w-5 h-5 text-white/80 group-hover:text-white transition-transform group-hover:-translate-x-0.5" />
+          <ArrowLeft size={20} />
         </Link>
 
-        <span className="hidden sm:block w-px h-6 bg-white/10" />
+        <span className="d-none d-sm-block flex-shrink-0" style={{ width: 1, height: "1.5rem", background: "rgba(255,255,255,0.1)" }} />
 
-        <div className="min-w-0">
-          <p className="text-[8px] md:text-[9px] font-bold uppercase tracking-[0.3em] text-primary leading-none mb-1">
+        <div style={{ minWidth: 0 }}>
+          <p className="kicker mb-1 lh-1" style={{ fontSize: "9px" }}>
             {label}
-            {badge && <span className="text-white/40 ml-2">{badge}</span>}
+            {badge && <span className="ms-2" style={{ color: "rgba(255,255,255,0.4)" }}>{badge}</span>}
           </p>
-          <h1 className="text-xs md:text-sm font-semibold truncate tracking-tight text-white/90 leading-none">
+          <h1 className="mb-0 text-truncate fw-semibold text-white-90" style={{ fontSize: "0.8rem", letterSpacing: "-0.01em" }}>
             {title}
           </h1>
         </div>
       </div>
-    </motion.header>
+    </header>
   );
 }

@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Star, ChevronDown, User } from "lucide-react";
 import { Review, imgUrl } from "@/lib/tmdb";
-import { motion, AnimatePresence } from "motion/react";
-import { fadeUp, stagger, viewportOnce } from "@/lib/motion";
+import { revealOnView, prefersReducedMotion } from "@/lib/anim";
 
 interface Props {
   reviews: Review[] | undefined;
@@ -11,26 +10,26 @@ interface Props {
 export default function ReviewsSection({ reviews }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const safeReviews = reviews ?? [];
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Scroll-reveal the section once; individual cards get a CSS stagger that
+  // completes on its own.
+  useEffect(() => revealOnView(sectionRef.current, { y: 24 }), [safeReviews.length]);
 
   if (!safeReviews.length) return null;
 
+  const staggerDelay = (i: number) =>
+    prefersReducedMotion() ? "0s" : `${Math.min(i * 0.05, 0.5)}s`;
+
   return (
-    <motion.section
-      variants={fadeUp}
-      initial="hidden"
-      whileInView="show"
-      viewport={viewportOnce}
-      className="mt-16 mb-16"
-    >
-      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-1.5">
-        Community
-      </p>
-      <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-6">
-        Reviews <span className="text-white/30 font-bold">({safeReviews.length})</span>
+    <section ref={sectionRef} className="mt-5 mt-md-5 pt-4" style={{ marginTop: "4rem", marginBottom: "4rem" }}>
+      <p className="kicker mb-2">Community</p>
+      <h2 className="uf-section-title mb-4">
+        Reviews <span className="fw-bold" style={{ color: "rgba(255,255,255,0.3)" }}>({safeReviews.length})</span>
       </h2>
 
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
-        {safeReviews.slice(0, 10).map((review) => {
+      <div className="d-flex flex-column gap-3">
+        {safeReviews.slice(0, 10).map((review, i) => {
           const isExpanded = expandedId === review.id;
           const isLong = review.content.length > 300;
           const avatarUrl = review.author_details.avatar_path
@@ -40,30 +39,30 @@ export default function ReviewsSection({ reviews }: Props) {
             : null;
 
           return (
-            <motion.div
+            <div
               key={review.id}
-              variants={{
-                hidden: { opacity: 0, y: 14 },
-                show: { opacity: 1, y: 0 },
-              }}
-              className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.06] p-5 hover:ring-white/[0.12] transition-all"
+              className="uf-review-card rounded-4 p-4"
+              style={{ animationDelay: staggerDelay(i) }}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-white/[0.06] ring-1 ring-white/10 flex items-center justify-center flex-shrink-0">
+              <div className="d-flex align-items-center gap-3 mb-3">
+                <div
+                  className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center flex-shrink-0"
+                  style={{ width: "2.5rem", height: "2.5rem", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+                >
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
                       alt={review.author}
-                      className="w-full h-full object-cover"
+                      className="w-100 h-100 object-fit-cover"
                       onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                     />
                   ) : (
-                    <User className="w-5 h-5 text-white/30" />
+                    <User size={20} style={{ color: "rgba(255,255,255,0.3)" }} />
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{review.author}</p>
-                  <p className="text-xs text-white/35 mt-0.5">
+                <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                  <p className="small fw-semibold text-white text-truncate mb-0">{review.author}</p>
+                  <p className="mb-0 mt-1" style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)" }}>
                     {new Date(review.created_at).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "short",
@@ -72,41 +71,34 @@ export default function ReviewsSection({ reviews }: Props) {
                   </p>
                 </div>
                 {review.author_details.rating && (
-                  <div className="flex items-center gap-1.5 rounded-full bg-white/[0.06] px-2.5 py-1 ring-1 ring-white/10">
-                    <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                    <span className="text-xs font-bold text-white">
-                      {review.author_details.rating}/10
-                    </span>
+                  <div className="d-flex align-items-center gap-1 rounded-pill px-2 py-1 flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                    <Star size={13} className="fill-warning text-warning" />
+                    <span className="small fw-bold text-white">{review.author_details.rating}/10</span>
                   </div>
                 )}
               </div>
 
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.p
-                  key={isExpanded ? "full" : "short"}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="text-sm text-white/60 leading-relaxed whitespace-pre-line"
-                >
-                  {isExpanded || !isLong ? review.content : review.content.slice(0, 300) + "…"}
-                </motion.p>
-              </AnimatePresence>
+              <p className="small mb-0" style={{ color: "rgba(255,255,255,0.6)", lineHeight: 1.7, whiteSpace: "pre-line" }}>
+                {isExpanded || !isLong ? review.content : review.content.slice(0, 300) + "…"}
+              </p>
 
               {isLong && (
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : review.id)}
-                  className="flex items-center gap-1 mt-3 text-xs font-semibold text-primary hover:text-sky-300 transition-colors"
+                  className="d-inline-flex align-items-center gap-1 mt-1 border-0 px-2 py-1 rounded-2 small fw-semibold text-primary"
+                  style={{ background: "transparent", minHeight: "2rem" }}
                 >
                   {isExpanded ? "Show less" : "Read more"}
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} />
+                  <ChevronDown
+                    size={14}
+                    style={{ transition: "transform 300ms ease", transform: isExpanded ? "rotate(180deg)" : "none" }}
+                  />
                 </button>
               )}
-            </motion.div>
+            </div>
           );
         })}
-      </motion.div>
-    </motion.section>
+      </div>
+    </section>
   );
 }

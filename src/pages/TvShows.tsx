@@ -6,10 +6,10 @@ import ContentRow from "@/components/ContentRow";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { GridSkeleton } from "@/components/LoadingSkeleton";
-import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { fadeUp, staggerFast } from "@/lib/motion";
+import { revealNow, revealOnView, revealStagger } from "@/lib/anim";
 import { Star, Play, Tv, Loader2 } from "lucide-react";
+import "@/styles/browse.css";
 
 const MOOD_PILLS = [
   { id: 10759, name: "Action & Adventure" },
@@ -36,6 +36,10 @@ export default function TvShowsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const observerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const heroContentRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSelectedGenre(genreIdParam ? Number(genreIdParam) : null);
@@ -103,114 +107,110 @@ export default function TvShowsPage() {
     setSearchParams(searchParams);
   };
 
+  // Spotlight hero entrance: fade the section, then stagger the content.
+  // Everything is visible by default; the reveal only dips it to opacity 0
+  // when it actually runs. The backdrop zoom is a CSS animation (.uf-tv-zoom).
+  useEffect(() => {
+    if (!heroShow || genreIdParam) return;
+    revealNow(heroRef.current, { y: 0, duration: 600 });
+    const kids = heroContentRef.current ? Array.from(heroContentRef.current.children) : [];
+    revealStagger(kids, { step: 80, y: 18, duration: 500 });
+  }, [heroShow, genreIdParam]);
+
+  // Header reveals the first time it scrolls into view.
+  useEffect(() => revealOnView(headerRef.current, { y: 18, duration: 500 }), []);
+
+  // Card stagger when a fresh grid mounts (initial load or genre change).
+  useEffect(() => {
+    if (loading || !gridRef.current) return;
+    revealStagger(Array.from(gridRef.current.children), { step: 40, y: 18, duration: 450 });
+  }, [loading, selectedGenre]);
+
   return (
-    <PageShell className="min-h-screen bg-background pb-32">
+    <PageShell className="min-vh-100" style={{ paddingBottom: "8rem" }}>
       {/* Hero spotlight */}
-      <AnimatePresence mode="wait">
-        {heroShow && !genreIdParam && (
-          <motion.section
-            key={heroShow.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="relative w-full h-[62vh] sm:h-[70vh] overflow-hidden"
+      {heroShow && !genreIdParam && (
+        <section key={heroShow.id} ref={heroRef} className="uf-tv-hero position-relative w-100 overflow-hidden">
+          <img
+            src={imgUrl(heroShow.backdrop_path, "w1280", true)}
+            className="uf-tv-zoom position-absolute top-0 start-0 w-100 h-100 object-fit-cover"
+            alt=""
+          />
+          <div className="uf-hero-scrim-bottom" />
+          <div className="uf-hero-scrim-left" />
+
+          <div
+            ref={heroContentRef}
+            className="uf-tv-hero-content position-absolute bottom-0 start-0 end-0 z-1 mx-auto"
+            style={{ maxWidth: "80rem" }}
           >
-            <motion.img
-              initial={{ scale: 1.08 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 8, ease: "linear" }}
-              src={imgUrl(heroShow.backdrop_path, "w1280", true)}
-              className="absolute inset-0 w-full h-full object-cover"
-              alt=""
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent hidden sm:block" />
+            <div className="d-flex align-items-center gap-3 mb-3">
+              <span
+                className="rounded-pill btn-gradient px-3 text-uppercase fw-bold flex-shrink-0"
+                style={{ fontSize: "10px", letterSpacing: "0.2em", paddingTop: "0.375rem", paddingBottom: "0.375rem" }}
+              >
+                Trending Series
+              </span>
+              <span
+                className="d-flex align-items-center gap-1 fw-bold"
+                style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.8)" }}
+              >
+                <Star size={14} style={{ fill: "#fbbf24", color: "#fbbf24" }} />
+                {heroShow.vote_average.toFixed(1)}
+              </span>
+            </div>
 
-            <motion.div
-              initial="hidden"
-              animate="show"
-              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08, delayChildren: 0.2 } } }}
-              className="absolute bottom-0 left-0 right-0 p-6 sm:p-12 lg:p-20 z-10 max-w-7xl mx-auto"
+            <h2
+              className="fw-black text-white mb-4"
+              style={{
+                fontSize: "clamp(2.25rem, 6vw, 4.5rem)",
+                lineHeight: 0.95,
+                letterSpacing: "-0.04em",
+                maxWidth: "64rem",
+              }}
             >
-              <motion.div
-                variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}
-                className="flex items-center gap-3 mb-4"
+              {heroShow.name}
+            </h2>
+
+            <div>
+              <Link
+                to={`/tv/${heroShow.id}`}
+                className="uf-btn uf-btn-md btn-gradient rounded-pill text-decoration-none"
               >
-                <span className="rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-glow-sm">
-                  Trending Series
-                </span>
-                <span className="flex items-center gap-1.5 text-xs font-bold text-white/80">
-                  <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                  {heroShow.vote_average.toFixed(1)}
-                </span>
-              </motion.div>
+                <Play size={20} style={{ fill: "currentColor" }} />
+                Start Series
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
-              <motion.h2
-                variants={{ hidden: { opacity: 0, y: 26 }, show: { opacity: 1, y: 0 } }}
-                className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tighter leading-[0.95] mb-7 max-w-3xl"
-              >
-                {heroShow.name}
-              </motion.h2>
-
-              <motion.div variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}>
-                <motion.button
-                  whileHover={{ scale: 1.04 }}
-                  whileTap={{ scale: 0.96 }}
-                  className="flex items-center gap-2.5 h-13 pl-7 pr-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow-lg"
-                >
-                  <Link to={`/tv/${heroShow.id}`} className="flex items-center gap-2.5">
-                    <Play className="w-5 h-5 fill-current" />
-                    Start Series
-                  </Link>
-                </motion.button>
-              </motion.div>
-            </motion.div>
-          </motion.section>
-        )}
-      </AnimatePresence>
-
-      <div className={cn("max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8", genreIdParam ? "pt-28 md:pt-32" : "-mt-4 relative z-10")}>
-        <motion.header
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="mb-8"
-        >
-          <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-2">
-            <Tv className="w-3.5 h-3.5" />
+      <div className={cn("page-container", genreIdParam ? "uf-browse-top" : "uf-tv-overlap")}>
+        <header ref={headerRef} className="mb-4">
+          <p className="kicker d-flex align-items-center gap-2 mb-2">
+            <Tv size={14} />
             Series Hub
           </p>
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter leading-none mb-8">
+          <h1
+            className="fw-black text-white mb-4"
+            style={{ fontSize: "clamp(2.25rem, 6vw, 3.75rem)", letterSpacing: "-0.05em", lineHeight: 1 }}
+          >
             {selectedGenre ? MOOD_PILLS.find((p) => p.id === selectedGenre)?.name ?? "Series" : "TV Shows"}
           </h1>
 
           {/* Genre pills */}
-          <motion.div
-            variants={staggerFast}
-            initial="hidden"
-            animate="show"
-            className="flex gap-2 overflow-x-auto scrollbar-hide py-1"
-          >
+          <div className="d-flex gap-2 overflow-x-auto scrollbar-hide py-1">
             {[{ id: null as number | null, name: "All Series" }, ...MOOD_PILLS].map((g) => (
-              <motion.button
+              <button
                 key={g.name}
-                variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-                whileTap={{ scale: 0.95 }}
                 onClick={() => handleGenreSelect(g.id)}
-                className={cn(
-                  "px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all shrink-0 ring-1",
-                  selectedGenre === g.id
-                    ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white ring-transparent shadow-glow"
-                    : "bg-white/[0.04] text-white/45 ring-white/[0.08] hover:bg-white/[0.08] hover:text-white"
-                )}
+                className={cn("uf-chip uf-chip-sm", selectedGenre === g.id && "active")}
               >
                 {g.name}
-              </motion.button>
+              </button>
             ))}
-          </motion.div>
-        </motion.header>
+          </div>
+        </header>
 
         {!selectedGenre && trendingTv.length > 0 && (
           <ContentRow
@@ -219,7 +219,7 @@ export default function TvShowsPage() {
             movies={trendingTv}
             type="tv"
             showRank
-            className="mb-12"
+            className="mb-5"
           />
         )}
 
@@ -227,30 +227,38 @@ export default function TvShowsPage() {
           {loading ? (
             <GridSkeleton count={12} />
           ) : (
-            <motion.div
+            <div
               key={selectedGenre ?? "all"}
-              variants={staggerFast}
-              initial="hidden"
-              animate="show"
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6"
+              ref={gridRef}
+              className="row g-3 g-sm-4 row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6"
             >
               {shows.map((m) => (
-                <motion.div key={m.id} variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0 } }}>
+                <div className="col" key={m.id}>
                   <MovieCard movie={m} type="tv" />
-                </motion.div>
+                </div>
               ))}
-            </motion.div>
+            </div>
           )}
 
-          <div ref={observerRef} className="py-16 flex flex-col items-center justify-center gap-3">
+          <div ref={observerRef} className="py-5 d-flex flex-column align-items-center justify-content-center gap-3">
             {loadingMore && (
               <>
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/25">Loading more</span>
+                <Loader2 size={32} className="text-primary spin" />
+                <span
+                  className="text-uppercase fw-bold"
+                  style={{ fontSize: "10px", letterSpacing: "0.35em", color: "rgba(255,255,255,0.25)" }}
+                >
+                  Loading more
+                </span>
               </>
             )}
             {!loading && page >= totalPages && (
-              <span className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/20">End of library</span>
+              <span
+                className="text-uppercase fw-bold"
+                style={{ fontSize: "10px", letterSpacing: "0.35em", color: "rgba(255,255,255,0.2)" }}
+              >
+                End of library
+              </span>
             )}
           </div>
         </main>

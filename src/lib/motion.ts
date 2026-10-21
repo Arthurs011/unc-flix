@@ -1,33 +1,40 @@
-import type { Variants, Transition } from "motion/react";
+import type { Transition } from "motion/react";
 
-export const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+/**
+ * Motion (motion.dev) layer — additive to anime.js.
+ *
+ * Anime.js owns the hero timeline, parallax and scroll choreography. Motion
+ * owns React-level interaction states: press feedback, shared layout moves and
+ * AnimatePresence exits. Both use the same numbers as the CSS layer so a tap
+ * feels identical whether CSS or Motion answers it.
+ *
+ * Reduced motion is handled globally by `<MotionConfig reducedMotion="user">`
+ * in App.tsx — Motion then skips transform/layout animations for those users.
+ */
 
-export const springSoft: Transition = { type: "spring", stiffness: 260, damping: 26 };
-export const springSnappy: Transition = { type: "spring", stiffness: 420, damping: 30 };
-
-export const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE } },
+/** Hover / focus / open-close: 180ms outExpo, exactly like the CSS tokens. */
+export const STATE_TRANSITION: Transition = {
+  duration: 0.18,
+  ease: [0.22, 1, 0.36, 1],
 };
 
-export const fadeIn: Variants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { duration: 0.5, ease: "easeOut" } },
+/** Press: answer immediately. */
+export const PRESS_TRANSITION: Transition = {
+  duration: 0.1,
+  ease: [0.22, 1, 0.36, 1],
 };
 
-export const scaleIn: Variants = {
-  hidden: { opacity: 0, scale: 0.94 },
-  show: { opacity: 1, scale: 1, transition: { duration: 0.45, ease: EASE } },
+/** Shared element (dock indicator) move. */
+export const LAYOUT_TRANSITION: Transition = {
+  duration: 0.28,
+  ease: [0.22, 1, 0.36, 1],
 };
 
-export const stagger: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.05, delayChildren: 0.04 } },
+/** Sheet / overlay slide. */
+export const SHEET_TRANSITION: Transition = {
+  duration: 0.32,
+  ease: [0.22, 1, 0.36, 1],
 };
 
-export const staggerFast: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.03 } },
-};
-
-export const viewportOnce = { once: true, margin: "-80px" } as const;
+/** One press scale for every tappable surface. */
+export const PRESS_SCALE = 0.97;

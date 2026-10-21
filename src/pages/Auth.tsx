@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Clapperboard, Loader2, Mail, KeyRound, ArrowRight, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
 import PageShell from "@/components/PageShell";
 import { useAuth } from "@/hooks/useAuth";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { cn } from "@/lib/utils";
+import { revealNow } from "@/lib/anim";
+import { PRESS_SCALE, PRESS_TRANSITION } from "@/lib/motion";
+import "@/styles/watch.css";
 
 type Mode = "signin" | "signup";
 
@@ -16,6 +18,7 @@ export default function Auth() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const shellRef = useRef<HTMLDivElement>(null);
 
   const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
@@ -23,6 +26,10 @@ export default function Auth() {
   usePageTitle(mode === "signin" ? "Sign In" : "Create Account");
 
   const from = (location.state as { from?: string } | null)?.from ?? "/";
+
+  useEffect(() => {
+    revealNow(shellRef.current, { y: 18, duration: 500 });
+  }, []);
 
   if (!loading && user && !sent) {
     navigate(from, { replace: true });
@@ -52,64 +59,58 @@ export default function Auth() {
     }
   };
 
-  const field =
-    "w-full h-12 rounded-xl bg-white/[0.06] ring-1 ring-white/10 text-sm text-white placeholder:text-white/30 pl-11 pr-4 outline-none focus:ring-primary/60 transition-all";
-
   return (
-    <PageShell className="min-h-screen flex items-center justify-center bg-background px-4 py-28">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <span className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 items-center justify-center text-white shadow-glow-sm mb-4">
-            <Clapperboard className="w-6 h-6" />
+    <PageShell className="min-vh-100 d-flex align-items-center justify-content-center px-3" style={{ paddingTop: "7rem", paddingBottom: "7rem" }}>
+      <div ref={shellRef} className="uf-auth-wrap">
+        <div className="text-center mb-4">
+          <span className="uf-auth-tile">
+            <Clapperboard size={24} />
           </span>
-          <h1 className="text-3xl font-black text-white tracking-tight">
+          <h1 className="uf-auth-title">
             {mode === "signin" ? "Welcome back" : "Create your account"}
           </h1>
-          <p className="text-sm text-white/40 mt-2">
+          <p className="uf-auth-sub">
             {mode === "signin"
               ? "Sign in to resume across all your devices."
               : "Sync your continue-watching between devices."}
           </p>
         </div>
 
-        <div className="rounded-2xl glass-strong ring-1 ring-white/10 shadow-card-lg p-6">
+        <div className="uf-auth-card glass-strong">
           {sent ? (
-            <div className="text-center py-4">
-              <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-4" />
-              <p className="text-sm font-bold text-white mb-1.5">Check your inbox</p>
-              <p className="text-xs text-white/40 leading-relaxed">
-                We sent a confirmation link to <span className="text-white/70">{email}</span>. Click it
+            <div className="uf-auth-sent">
+              <CheckCircle2 className="uf-auth-sent-icon" />
+              <p className="fw-bold text-white mb-1" style={{ fontSize: "0.875rem" }}>Check your inbox</p>
+              <p className="mb-0" style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>
+                We sent a confirmation link to <span style={{ color: "rgba(255,255,255,0.7)" }}>{email}</span>. Click it
                 to finish setting up your account.
               </p>
               <button
                 onClick={() => { setSent(false); setMode("signin"); }}
-                className="mt-6 text-xs font-bold uppercase tracking-widest text-primary hover:underline"
+                className="uf-auth-back"
               >
                 Back to sign in
               </button>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-white/[0.04] ring-1 ring-white/10 mb-5">
+              <div className="uf-auth-tabs">
                 {(["signin", "signup"] as const).map((m) => (
                   <button
                     key={m}
                     type="button"
                     onClick={() => { setMode(m); setError(null); }}
-                    className={cn(
-                      "py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors",
-                      mode === m ? "bg-white/[0.10] text-white" : "text-white/40 hover:text-white/70",
-                    )}
+                    className={`uf-auth-tab${mode === m ? " active" : ""}`}
                   >
                     {m === "signin" ? "Sign In" : "Sign Up"}
                   </button>
                 ))}
               </div>
 
-              <form onSubmit={submit} className="space-y-4" noValidate>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
-                  <label htmlFor="email" className="sr-only">Email</label>
+              <form onSubmit={submit} className="d-flex flex-column gap-3" noValidate>
+                <div className="uf-auth-field">
+                  <Mail className="uf-auth-icon" />
+                  <label htmlFor="email" className="visually-hidden">Email</label>
                   <input
                     id="email"
                     type="email"
@@ -117,13 +118,13 @@ export default function Auth() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className={field}
+                    className="form-control uf-auth-input"
                   />
                 </div>
 
-                <div className="relative">
-                  <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 pointer-events-none" />
-                  <label htmlFor="password" className="sr-only">Password</label>
+                <div className="uf-auth-field">
+                  <KeyRound className="uf-auth-icon" />
+                  <label htmlFor="password" className="visually-hidden">Password</label>
                   <input
                     id="password"
                     type="password"
@@ -131,44 +132,41 @@ export default function Auth() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className={field}
+                    className="form-control uf-auth-input"
                   />
                 </div>
 
                 {error && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    role="alert"
-                    className="text-xs text-red-400 bg-red-500/10 ring-1 ring-red-500/20 rounded-lg px-3 py-2"
-                  >
+                  <p role="alert" className="uf-auth-error">
                     {error}
-                  </motion.p>
+                  </p>
                 )}
 
-                <button
+                <motion.button
                   type="submit"
                   disabled={busy}
-                  className="w-full h-12 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 text-white text-sm font-bold shadow-glow hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                  className="uf-btn uf-btn-md btn-gradient uf-auth-submit"
+                  whileTap={busy ? undefined : { scale: PRESS_SCALE }}
+                  transition={PRESS_TRANSITION}
                 >
                   {busy ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 size={16} className="spin" />
                   ) : (
                     <>
                       {mode === "signin" ? "Sign In" : "Create Account"}
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight size={16} />
                     </>
                   )}
-                </button>
+                </motion.button>
               </form>
 
-              <p className="mt-5 text-[11px] text-white/30 leading-relaxed text-center">
+              <p className="uf-auth-foot">
                 {mode === "signin" ? (
                   <>
                     No account yet?{" "}
                     <button
                       onClick={() => { setMode("signup"); setError(null); }}
-                      className="text-primary font-bold hover:underline"
+                      className="uf-auth-link"
                     >
                       Create one
                     </button>
@@ -178,7 +176,7 @@ export default function Auth() {
                     Already have an account?{" "}
                     <button
                       onClick={() => { setMode("signin"); setError(null); }}
-                      className="text-primary font-bold hover:underline"
+                      className="uf-auth-link"
                     >
                       Sign in
                     </button>
@@ -189,8 +187,8 @@ export default function Auth() {
           )}
         </div>
 
-        <p className="mt-6 text-center text-[11px] text-white/25">
-          <Link to="/" className="hover:text-white/50 transition-colors">Continue without an account</Link>
+        <p className="uf-auth-footnote">
+          <Link to="/" className="uf-auth-link">Continue without an account</Link>
         </p>
       </div>
     </PageShell>

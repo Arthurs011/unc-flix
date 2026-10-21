@@ -1,7 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { Star, ThumbsUp, ThumbsDown, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, imgUrl, posterUrl, Movie, MovieDetails, formatCount, getYear } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
@@ -9,7 +8,8 @@ import { SOURCES } from "@/lib/servers";
 import PageShell from "@/components/PageShell";
 import ScrollProgress from "@/components/ScrollProgress";
 import WatchHeader from "@/components/WatchHeader";
-import { EASE, springSnappy } from "@/lib/motion";
+import { revealNow } from "@/lib/anim";
+import "@/styles/watch.css";
 
 const CINESRC_ORIGIN = SOURCES[0].baseUrl;
 
@@ -22,6 +22,9 @@ export default function WatchMovie() {
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
   const lastSaveRef = useRef(0);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const infoRef = useRef<HTMLDivElement>(null);
+  const asideRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -39,6 +42,18 @@ export default function WatchMovie() {
 
     return () => { document.title = "UNCFLIX"; };
   }, [id]);
+
+  // Entrances: content is visible by default; anime.js only fades it in.
+  useEffect(() => {
+    revealNow(stageRef.current, { y: 24, duration: 550 });
+    revealNow(infoRef.current, { y: 20, duration: 500, delay: 150 });
+  }, []);
+
+  useEffect(() => {
+    if (recommendations.length > 0) {
+      revealNow(asideRef.current, { y: 24, duration: 550, delay: 100 });
+    }
+  }, [recommendations.length]);
 
   // CineSrc progress sync
   useEffect(() => {
@@ -70,27 +85,26 @@ export default function WatchMovie() {
 
   if (!loading && !movie) {
     return (
-      <PageShell className="min-h-screen flex items-center justify-center bg-background px-4">
+      <PageShell className="min-vh-100 d-flex align-items-center justify-content-center px-3">
         <div className="text-center">
-          <h2 className="text-2xl font-extrabold tracking-tight text-white mb-3">Title not found</h2>
-          <Link to="/" className="text-primary font-bold uppercase tracking-widest text-xs hover:underline">Go Home</Link>
+          <h2 className="fw-extrabold text-white mb-3" style={{ fontSize: "1.5rem", letterSpacing: "-0.02em" }}>Title not found</h2>
+          <Link to="/" className="text-decoration-none fw-bold text-uppercase" style={{ color: "var(--uf-primary)", fontSize: "0.75rem", letterSpacing: "0.1em" }}>Go Home</Link>
         </div>
       </PageShell>
     );
   }
 
   return (
-    <PageShell className="min-h-screen text-white pb-32 overflow-x-hidden">
+    <PageShell className="min-vh-100 text-white uf-watch-shell">
       {/* Ambient backdrop */}
-      <div className="fixed inset-0 -z-10">
+      <div className="uf-watch-ambient" aria-hidden="true">
         {movie?.backdrop_path && (
           <img
             src={imgUrl(movie.backdrop_path, "w1280", true)}
             alt=""
-            className="w-full h-full object-cover opacity-20 scale-110 blur-2xl"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/85 to-black" />
+        <div className="position-absolute top-0 start-0 w-100 h-100" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.85), #000)" }} />
       </div>
 
       {/* Floating pill header */}
@@ -103,24 +117,21 @@ export default function WatchMovie() {
       />
 
       {/* Two-column cinema layout */}
-      <div className="w-full max-w-[1600px] mx-auto mt-5 sm:mt-7 px-0 sm:px-6 pt-16 md:pt-24">
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_370px] xl:grid-cols-[minmax(0,1fr)_410px] gap-6 xl:gap-8">
+      <div className="uf-watch-main">
+        <div className="uf-watch-grid">
 
           {/* ===== Left: stage + info ===== */}
-          <div className="min-w-0">
-            <motion.section
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, ease: EASE }}
-            >
-              <div className="relative group/stage sm:px-6 lg:px-0">
-                <div className="absolute -inset-1 rounded-none sm:rounded-[2rem] bg-gradient-to-r from-sky-500/25 via-indigo-500/15 to-transparent blur-xl opacity-60" />
-                <div className="relative p-px rounded-none sm:rounded-[1.75rem] bg-gradient-to-b from-white/20 via-white/[0.07] to-transparent shadow-card-lg">
-                  <div className="aspect-video w-full overflow-hidden rounded-none sm:rounded-[1.7rem] bg-black relative">
+          <div style={{ minWidth: 0 }}>
+            <div ref={stageRef}>
+              <section className="uf-stage">
+                <div className="uf-stage-glow" aria-hidden="true" />
+                <div className="uf-stage-frame">
+                  <div className="uf-stage-player">
                     <iframe
                       key={embedSrc}
                       src={embedSrc}
-                      className="absolute inset-0 w-full h-full border-0 z-10"
+                      className="position-absolute top-0 start-0 w-100 h-100 border-0"
+                      style={{ zIndex: 10 }}
                       allowFullScreen
                       allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                       referrerPolicy="no-referrer-when-downgrade"
@@ -132,63 +143,58 @@ export default function WatchMovie() {
                 </div>
 
                 {/* Action dock */}
-                <div className="hidden sm:flex absolute -bottom-7 left-1/2 -translate-x-1/2 z-20 items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg pointer-events-none">
+                <div className="uf-action-dock d-none d-sm-flex glass-strong">
                   <button
                     onClick={() => { setLiked(!liked); setDisliked(false); }}
-                    className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${liked ? "bg-primary text-white shadow-glow-sm" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
+                    className={`uf-action-btn${liked ? " is-liked" : ""}`}
                   >
-                    <ThumbsUp className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
+                    <ThumbsUp size={16} style={{ fill: liked ? "currentColor" : "none" }} />
                     {formatCount(likes(movie, liked))}
                   </button>
-                  <span className="w-px h-5 bg-white/10" />
+                  <span className="uf-action-divider" />
                   <button
                     onClick={() => { setDisliked(!disliked); setLiked(false); }}
-                    className={`pointer-events-auto flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60 hover:text-white hover:bg-white/[0.08]"}`}
+                    className={`uf-action-btn${disliked ? " is-disliked" : ""}`}
                   >
-                    <ThumbsDown className={`w-4 h-4 ${disliked ? "fill-current" : ""}`} />
+                    <ThumbsDown size={16} style={{ fill: disliked ? "currentColor" : "none" }} />
                     {formatCount(dislikes(movie, disliked))}
                   </button>
-                  <span className="w-px h-5 bg-white/10" />
+                  <span className="uf-action-divider" />
                   <button
                     onClick={() => navigator.clipboard?.writeText(window.location.href)}
                     aria-label="Share"
-                    className="pointer-events-auto flex items-center px-4 py-3 rounded-full text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
+                    className="uf-action-btn"
                   >
-                    <Share2 className="w-4 h-4" />
+                    <Share2 size={16} />
                   </button>
                 </div>
-              </div>
+              </section>
 
               {/* Mobile actions */}
-              <div className="sm:hidden flex justify-center mt-3 relative z-20 px-4 pb-safe">
-                <div className="flex items-center gap-1 glass-strong ring-1 ring-white/10 rounded-full px-2 py-1.5 shadow-card-lg gap-x-0.5">
-                  <button onClick={() => { setLiked(!liked); setDisliked(false); }} aria-label="Like" className={`flex items-center px-4 py-3 rounded-full transition-all ${liked ? "bg-primary text-white" : "text-white/60"}`}>
-                    <ThumbsUp className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
+              <div className="uf-action-dock-mobile d-sm-none pb-safe">
+                <div className="uf-action-dock-inline glass-strong">
+                  <button onClick={() => { setLiked(!liked); setDisliked(false); }} aria-label="Like" className={`uf-action-btn${liked ? " is-liked" : ""}`}>
+                    <ThumbsUp size={16} style={{ fill: liked ? "currentColor" : "none" }} />
                   </button>
-                  <button onClick={() => { setDisliked(!disliked); setLiked(false); }} aria-label="Dislike" className={`flex items-center px-4 py-3 rounded-full transition-all ${disliked ? "bg-red-500 text-white" : "text-white/60"}`}>
-                    <ThumbsDown className={`w-4 h-4 ${disliked ? "fill-current" : ""}`} />
+                  <button onClick={() => { setDisliked(!disliked); setLiked(false); }} aria-label="Dislike" className={`uf-action-btn${disliked ? " is-disliked" : ""}`}>
+                    <ThumbsDown size={16} style={{ fill: disliked ? "currentColor" : "none" }} />
                   </button>
-                  <button onClick={() => navigator.clipboard?.writeText(window.location.href)} aria-label="Share" className="flex items-center px-4 py-3 rounded-full text-white/60">
-                    <Share2 className="w-4 h-4" />
+                  <button onClick={() => navigator.clipboard?.writeText(window.location.href)} aria-label="Share" className="uf-action-btn">
+                    <Share2 size={16} />
                   </button>
                 </div>
               </div>
-            </motion.section>
+            </div>
 
             {/* Info */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15, ease: EASE }}
-              className="px-4 sm:px-6 lg:px-0 mt-12 sm:mt-14"
-            >
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-4 text-xs font-semibold text-white/40 uppercase tracking-wider">
-                <Link to={`/movie/${id}`} className="rounded-full bg-white/[0.07] ring-1 ring-white/10 px-3 py-1 text-[10px] normal-case text-white/75 hover:ring-primary/40 transition-all">HD</Link>
+            <div ref={infoRef} className="uf-watch-info">
+              <div className="uf-meta-row">
+                <Link to={`/movie/${id}`} className="uf-meta-pill">HD</Link>
                 {movie?.vote_average ? (
-                  <span className="flex items-center gap-1.5 text-yellow-400 normal-case font-bold">
-                    <Star className="w-3.5 h-3.5 fill-yellow-400" />
+                  <span className="uf-rating">
+                    <Star size={14} />
                     {movie.vote_average.toFixed(1)}
-                    <span className="text-white/30 font-semibold">/ 10</span>
+                    <span className="uf-meta-muted">/ 10</span>
                   </span>
                 ) : null}
                 {movie && getYear(movie) && <span>{getYear(movie)}</span>}
@@ -197,65 +203,56 @@ export default function WatchMovie() {
                 ) : null}
               </div>
 
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tighter leading-[0.95] mb-5">
+              <h2 className="uf-watch-title">
                 {movie ? getTitle(movie) : "Loading..."}
               </h2>
 
-              <p className="text-base text-white/55 leading-relaxed max-w-2xl">
+              <p className="uf-watch-overview">
                 {movie?.overview || "No description available."}
               </p>
 
               {movie?.genres && movie.genres.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-8">
+                <div className="uf-genre-row">
                   {movie.genres.map((g) => (
                     <Link
                       key={g.id}
                       to={`/movies?genre=${g.id}`}
-                      className="rounded-full bg-white/[0.05] ring-1 ring-white/[0.09] px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white/55 hover:text-white hover:bg-white/[0.09] hover:ring-white/20 transition-all"
+                      className="uf-genre-pill"
                     >
                       {g.name}
                     </Link>
                   ))}
                 </div>
               )}
-            </motion.div>
+            </div>
           </div>
 
           {/* ===== Right: recommendations sidebar ===== */}
           {recommendations.length > 0 && (
-            <motion.aside
-              initial={{ opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.55, delay: 0.1, ease: EASE }}
-              className="w-full min-w-0 px-4 sm:px-6 lg:px-0 lg:sticky lg:top-24 lg:self-start"
-            >
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/25 mb-4">More Like This</p>
-              <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1 -mr-1">
-                {recommendations.map((rec) => (
-                  <motion.div
+            <aside ref={asideRef} className="uf-watch-sidebar">
+              <p className="uf-side-kicker">More Like This</p>
+              <div className="uf-side-list">
+                {recommendations.map((rec, i) => (
+                  <Link
                     key={rec.id}
-                    whileHover={{ x: 4 }}
-                    transition={springSnappy}
+                    to={`/movie/${rec.id}`}
+                    className="uf-side-item content-card"
+                    style={{ animationDelay: `${i * 40}ms` }}
                   >
-                    <Link
-                      to={`/movie/${rec.id}`}
-                      className="flex gap-3.5 p-2 rounded-xl bg-white/[0.03] ring-1 ring-transparent hover:ring-primary/30 hover:bg-white/[0.05] transition-colors text-left w-full"
-                    >
-                      <div className="w-12 h-[72px] rounded-lg overflow-hidden shrink-0 ring-1 ring-white/[0.08] bg-card">
-                        <img src={posterUrl(rec, "w200")} alt="" loading="lazy" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex flex-col justify-center min-w-0 pr-1">
-                        <p className="text-xs font-bold line-clamp-2 leading-snug">{getTitle(rec)}</p>
-                        <span className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mt-1">
-                          {getYear(rec)}
-                          {rec.vote_average ? ` · ★ ${rec.vote_average.toFixed(1)}` : ""}
-                        </span>
-                      </div>
-                    </Link>
-                  </motion.div>
+                    <div className="uf-side-poster">
+                      <img src={posterUrl(rec, "w200")} alt="" loading="lazy" />
+                    </div>
+                    <div className="uf-side-body">
+                      <p className="uf-side-title line-clamp-2">{getTitle(rec)}</p>
+                      <span className="uf-side-meta">
+                        {getYear(rec)}
+                        {rec.vote_average ? ` · ★ ${rec.vote_average.toFixed(1)}` : ""}
+                      </span>
+                    </div>
+                  </Link>
                 ))}
               </div>
-            </motion.aside>
+            </aside>
           )}
         </div>
       </div>

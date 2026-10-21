@@ -1,22 +1,515 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ============================================================
+   UNCFLIX — Bootstrap 5 theme (replaces Tailwind entirely)
+   Design system source of truth: MASTER.md
+   ============================================================ */
 
-@layer base {
-  /* Visible focus for keyboard users without changing mouse click styling. */
-  :focus-visible {
-    outline: 2px solid hsl(var(--primary));
-    outline-offset: 2px;
-    border-radius: 0.5rem;
-  }
+:root {
+  /* --- Color tokens --- */
+  --uf-bg: #0d0f17;
+  --uf-surface: #12141d;
+  --uf-card: #1a1d2b;
+  --uf-fg: #f8fafc;
+  --uf-muted: #94a3b8;
+  --uf-primary: #0ea5e9;
+  --uf-secondary: #6366f1;
+  --uf-accent-gradient: linear-gradient(135deg, #0ea5e9, #6366f1);
+  --uf-border: rgba(255, 255, 255, 0.08);
+  --uf-destructive: #ef4444;
 
-  /* Respect reduced motion globally, in addition to MotionConfig. */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
+  /* --- Motion tokens --- */
+  --uf-press: 100ms; /* every press answers immediately */
+  --uf-state: 180ms; /* hover / focus / open-close */
+  --uf-fast: 150ms;
+  --uf-normal: 180ms;
+  --uf-slow: 400ms;
+  --uf-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* --- Elevation ladder (one layered scale, no stray shadows) --- */
+  --uf-shadow-1: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.35),
+    0 4px 14px rgba(0, 0, 0, 0.22);
+  --uf-shadow-2: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 6px rgba(0, 0, 0, 0.4),
+    0 14px 38px rgba(0, 0, 0, 0.4);
+  --uf-shadow-3: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.45),
+    0 24px 64px rgba(0, 0, 0, 0.55);
+  --uf-shadow-card: var(--uf-shadow-1);
+  --uf-shadow-glow: 0 0 20px rgba(14, 165, 233, 0.35);
+  --uf-shadow-glow-strong: 0 0 0 1px rgba(14, 165, 233, 0.3), 0 6px 28px rgba(14, 165, 233, 0.4);
+
+  /* Light-catch edge: one consistent highlight across every raised surface */
+  --uf-edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --uf-border-strong: rgba(255, 255, 255, 0.16);
+
+  /* --- Type scale --- */
+  --uf-text-2xs: 0.625rem; /* 10px kickers, rank meta */
+  --uf-text-xs: 0.6875rem; /* 11px labels */
+  --uf-text-sm: 0.8125rem; /* 13px supporting copy */
+  --uf-text-base: 0.9375rem; /* 15px body */
+  --uf-text-lg: clamp(1.375rem, 1.2rem + 0.6vw, 1.75rem);
+  --uf-text-xl: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem);
+  --uf-text-display: clamp(2.5rem, 1.7rem + 4vw, 4.5rem);
+
+  /* --- Spacing rhythm (4px base) --- */
+  --uf-space-1: 0.25rem;
+  --uf-space-2: 0.5rem;
+  --uf-space-3: 0.75rem;
+  --uf-space-4: 1rem;
+  --uf-space-5: 1.5rem;
+  --uf-space-6: 2rem;
+  --uf-space-7: 3rem;
+  --uf-space-8: 4rem;
+  --uf-section-gap: clamp(2.5rem, 5vw, 4rem);
+
+  /* --- Bootstrap overrides --- */
+  --bs-body-bg: var(--uf-bg);
+  --bs-body-color: var(--uf-fg);
+  --bs-body-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --bs-primary: var(--uf-primary);
+  --bs-primary-rgb: 14, 165, 233;
+  --bs-secondary-rgb: 99, 102, 241;
+  --bs-danger: var(--uf-destructive);
+  --bs-border-color: var(--uf-border);
+  --bs-border-radius: 12px;
+  --bs-border-radius-sm: 8px;
+  --bs-border-radius-lg: 16px;
+  --bs-border-radius-xl: 24px;
+  --bs-border-radius-2xl: 2rem;
+  --bs-border-radius-pill: 9999px;
+  --bs-emphasis-color: var(--uf-fg);
+  --bs-secondary-color: var(--uf-muted);
+  --bs-tertiary-bg: var(--uf-surface);
+  --bs-body-bg-rgb: 13, 15, 23;
+  --bs-body-color-rgb: 248, 250, 252;
+  --bs-link-color: var(--uf-primary);
+  --bs-link-hover-color: #38bdf8;
+  --bs-focus-ring-color: rgba(14, 165, 233, 0.45);
+}
+
+/* ============ Base ============ */
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--uf-bg);
+  color: var(--uf-fg);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* Headings balance their line breaks; body copy avoids orphan words. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6 {
+  text-wrap: balance;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+}
+
+p,
+li,
+figcaption {
+  text-wrap: pretty;
+}
+
+
+::selection {
+  background-color: rgba(14, 165, 233, 0.35);
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #262a3a;
+  border-radius: 8px;
+  border: 2px solid var(--uf-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a4056;
+}
+
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* Visible focus for keyboard users without changing mouse click styling. */
+:focus-visible {
+  outline: 2px solid var(--uf-primary);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.18);
+}
+
+/* Respect reduced motion globally. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
+}
+
+/* ============ UNCFLIX sinkhole: hides common injected ad elements ============ */
+[id*="ad-"],
+[class*="ad-"],
+[class*="ads-"],
+[id*="google_ads"],
+[class*="google_ads"],
+[class*="popads"],
+[class*="propeller"],
+.ad-container,
+.ads-wrapper,
+.ad-slot,
+.ad-unit,
+.banner-ads,
+.fixed-ads,
+.bottom-ads,
+iframe[src*="doubleclick.net"],
+iframe[src*="adservice.google"],
+iframe[src*="googlesyndication"],
+iframe[src*="popads.net"],
+iframe[src*="propellerads"],
+.trc_rbox_container,
+.outbrain,
+.taboola-container {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* ============ Custom utilities ============ */
+.glass {
+  background-color: rgba(13, 15, 23, 0.6);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 45%);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid var(--uf-border);
+}
+
+.glass-strong {
+  background-color: rgba(13, 15, 23, 0.8);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 40%);
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.shadow-card {
+  box-shadow: var(--uf-shadow-2);
+}
+.shadow-card-lg {
+  box-shadow: var(--uf-shadow-3);
+}
+.shadow-glow-sm {
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.25);
+}
+.shadow-glow {
+  box-shadow: var(--uf-shadow-glow);
+}
+.shadow-glow-lg {
+  box-shadow: var(--uf-shadow-glow-strong);
+}
+
+.text-gradient {
+  background: var(--uf-accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.btn-gradient {
+  background: var(--uf-accent-gradient);
+  color: #fff;
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), var(--uf-shadow-glow);
+  transition: box-shadow var(--uf-state) var(--uf-ease),
+    transform var(--uf-state) var(--uf-ease), filter var(--uf-state) var(--uf-ease);
+}
+.btn-gradient:hover,
+.btn-gradient:focus-visible {
+  background: var(--uf-accent-gradient);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 0 0 1px rgba(56, 189, 248, 0.25), 0 6px 30px rgba(14, 165, 233, 0.55);
+  transform: translateY(-1px);
+  filter: saturate(115%);
+}
+.btn-gradient:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: var(--uf-press);
+}
+
+/* Small uppercase kicker label (mono-style tagline above headings) */
+.kicker {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: var(--uf-primary);
+}
+
+/* ============ Utilities Bootstrap does not ship ============
+   Everything below was written in the old Tailwind vocabulary and silently
+   did nothing under Bootstrap — thin headings, dead click zones, cards with
+   no card. They are defined here so the markup keeps working. */
+
+/* Font weights: Bootstrap ships normal/medium/semibold/bold/bolder only. */
+.fw-extrabold {
+  font-weight: 800;
+}
+.fw-black {
+  font-weight: 900;
+}
+
+/* Letter spacing */
+.tracking-tight {
+  letter-spacing: -0.025em;
+}
+
+/* Tinted white text: Bootstrap ships .text-white-50 only. */
+.text-white-75 {
+  color: rgba(255, 255, 255, 0.75);
+}
+.text-white-90 {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Pointer events: Bootstrap spells these .pe-none / .pe-auto. Fixed chrome
+   (nav, watch header, progress bar) is full-width and would otherwise eat
+   every click in the band it covers. */
+.pointer-events-none {
+  pointer-events: none;
+}
+.pointer-events-auto {
+  pointer-events: auto;
+}
+
+/* Transitions + rotation for chevrons */
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: var(--uf-ease);
+  transition-duration: var(--uf-fast);
+}
+.duration-300 {
+  transition-duration: 300ms;
+}
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Positional offsets: Bootstrap ships 0/50/100 only. */
+.top-2 {
+  top: 0.5rem;
+}
+.start-2 {
+  inset-inline-start: 0.5rem;
+}
+.end-2 {
+  inset-inline-end: 0.5rem;
+}
+
+/* Stacking: Bootstrap ships z-0..z-3; our chrome ladder runs to 60. */
+.z-40 {
+  z-index: 40;
+}
+.z-50 {
+  z-index: 50;
+}
+
+/* SVG fills: this Bootstrap build ships no .fill-* utilities at all. */
+.fill-current {
+  fill: currentColor;
+}
+.fill-warning {
+  fill: #ffc107;
+}
+
+/* Bootstrap has no line-clamp utilities */
+.line-clamp-1,
+.line-clamp-2,
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-1 {
+  -webkit-line-clamp: 1;
+}
+.line-clamp-2 {
+  -webkit-line-clamp: 2;
+}
+.line-clamp-3 {
+  -webkit-line-clamp: 3;
+}
+
+/* Top-10 rank numeral: transparent fill with white outline */
+.rank-num {
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.28);
+  user-select: none;
+}
+
+/* Horizontal content rail (replaces flex + overflow-x utilities everywhere) */
+.rail {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 1rem;
+  -webkit-overflow-scrolling: touch;
+}
+.rail > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+.rail::-webkit-scrollbar {
+  display: none;
+}
+.rail {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Page container shared by all browse/detail pages */
+.page-container {
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+@media (min-width: 576px) {
+  .page-container {
+    padding-inline: 1.5rem;
+  }
+}
+@media (min-width: 992px) {
+  .page-container {
+    padding-inline: 2rem;
+  }
+}
+
+/* ============ Aurora backdrop (was Framer Motion) ============ */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--uf-bg);
+}
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(140px);
+  will-change: transform;
+}
+.aurora-blob-1 {
+  top: -12rem;
+  left: -12rem;
+  width: 640px;
+  height: 640px;
+  background: rgba(14, 165, 233, 0.07);
+  animation: aurora-drift-1 32s ease-in-out infinite;
+}
+.aurora-blob-2 {
+  top: 33%;
+  right: -14rem;
+  width: 720px;
+  height: 720px;
+  background: rgba(99, 102, 241, 0.07);
+  filter: blur(160px);
+  animation: aurora-drift-2 38s ease-in-out infinite;
+}
+.aurora-blob-3 {
+  bottom: -16rem;
+  left: 25%;
+  width: 600px;
+  height: 600px;
+  background: rgba(217, 70, 239, 0.04);
+  filter: blur(150px);
+  animation: aurora-drift-3 44s ease-in-out infinite;
+}
+
+@keyframes aurora-drift-1 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(60px, -40px); }
+  66% { transform: translate(-20px, 30px); }
+}
+@keyframes aurora-drift-2 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(-70px, 50px); }
+  66% { transform: translate(40px, -30px); }
+}
+@keyframes aurora-drift-3 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(40px, -30px); }
+  66% { transform: translate(-50px, 20px); }
+}
+
+/* ============ Route transition (replaces AnimatePresence) ============ */
+.route-enter {
+  animation: route-fade-in var(--uf-slow) var(--uf-ease) both;
+}
+@keyframes route-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Elements hidden before an anime.js reveal (JS removes the class / animates) */
+.pre-reveal {
+  opacity: 0;
 }

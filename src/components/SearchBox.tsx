@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "motion/react";
 import { Search } from "lucide-react";
 import type { Movie } from "@/lib/tmdb";
 import { SUGGESTION_LIMIT, isSearchable, searchUrl, titlePath } from "@/lib/search";
@@ -132,17 +131,9 @@ export default function SearchBox({
   const pill = variant === "pill";
 
   return (
-    <form
-      onSubmit={submit}
-      role="search"
-      className={pill ? "overflow-visible relative" : "w-full"}
-    >
-      <div className="relative">
-        <Search
-          className={`absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none ${
-            pill ? "w-4 h-4" : "w-5 h-5"
-          } text-white/35`}
-        />
+    <form onSubmit={submit} role="search" className={pill ? "uf-search-form" : "w-100"}>
+      <div className="position-relative">
+        <Search size={pill ? 16 : 20} className="uf-search-icon" />
         <input
           ref={inputRef}
           id={inputId}
@@ -164,31 +155,27 @@ export default function SearchBox({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
           placeholder={pill ? "Search titles..." : "Movies, series..."}
-          className={`w-full rounded-full bg-white/[0.06] ring-1 ring-white/10 text-white placeholder:text-white/30 pl-11 pr-4 outline-none focus:ring-primary/60 transition-all ${
-            pill ? "h-11 text-sm" : "h-13 text-base rounded-2xl"
-          }`}
+          className={`uf-search-input ${pill ? "" : "uf-search-sheet"}`}
         />
       </div>
 
       {/* Absolutely positioned on the pill, where the wrapper is already
           relative. In the sheet it flows, because that container scrolls. */}
-      <div className={pill ? "absolute left-0 right-0 top-full mt-2" : "mt-3"}>
-        <AnimatePresence>
-          {expanded && (
-            <SearchDropdown
-              query={query}
-              items={suggestions}
-              isLoading={isLoading}
-              isFetching={isFetching}
-              isError={isError}
-              hasSearched={hasSearched}
-              activeIndex={activeIndex}
-              onHover={setActiveIndex}
-              onSelect={openItem}
-              listboxId={listboxId}
-            />
-          )}
-        </AnimatePresence>
+      <div className={pill ? "uf-search-anchor-pill" : "mt-3"}>
+        {expanded && (
+          <SearchDropdown
+            query={query}
+            items={suggestions}
+            isLoading={isLoading}
+            isFetching={isFetching}
+            isError={isError}
+            hasSearched={hasSearched}
+            activeIndex={activeIndex}
+            onHover={setActiveIndex}
+            onSelect={openItem}
+            listboxId={listboxId}
+          />
+        )}
       </div>
     </form>
   );

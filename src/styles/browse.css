@@ -1,0 +1,103 @@
+/* ============================================================
+   Page-scoped styles for the browse pages
+   (Index, Movies, TvShows, SearchPage, NotFound)
+   ============================================================ */
+
+/* Index: the content block overlaps the hero banner */
+.uf-overlap {
+  position: relative;
+  z-index: 30;
+  margin-top: -1.5rem;
+  padding-bottom: 8rem;
+}
+@media (min-width: 576px) {
+  .uf-overlap {
+    margin-top: -2.5rem;
+    padding-bottom: 7rem;
+  }
+}
+
+/* Browse pages sit under the fixed top navigation */
+.uf-browse-top {
+  padding-top: 7rem;
+  /* Clear the fixed mobile bottom dock (hidden at md and up) */
+  padding-bottom: 7rem;
+}
+@media (min-width: 768px) {
+  .uf-browse-top {
+    padding-top: 8rem;
+    padding-bottom: 3rem;
+  }
+}
+
+/* TvShows: content overlaps the spotlight hero when no genre is selected */
+.uf-tv-overlap {
+  position: relative;
+  z-index: 10;
+  margin-top: -1rem;
+}
+
+/* Toggle-in for the Movies filter sidebar (CSS animations always finish) */
+.uf-panel-in {
+  animation: uf-panel-in 250ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes uf-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Movies: filter sidebar width (full width on mobile, rail on desktop) */
+.uf-filter-aside {
+  width: 100%;
+}
+@media (min-width: 992px) {
+  .uf-filter-aside {
+    width: 18rem;
+    flex-shrink: 0;
+  }
+}
+
+/* Underline-on-hover text button ("Clear all filters") */
+.uf-link-underline:hover {
+  text-decoration: underline;
+}
+
+/* TvShows spotlight hero */
+.uf-tv-hero {
+  height: 62vh;
+}
+@media (min-width: 576px) {
+  .uf-tv-hero {
+    height: 70vh;
+  }
+}
+.uf-tv-hero-content {
+  padding: 1.5rem;
+}
+@media (min-width: 576px) {
+  .uf-tv-hero-content {
+    padding: 3rem;
+  }
+}
+@media (min-width: 992px) {
+  .uf-tv-hero-content {
+    padding: 5rem;
+  }
+}
+/* Slow cinematic zoom on the spotlight backdrop. A CSS animation always
+   completes on its own, so the image can never be stranded mid-scale. */
+.uf-tv-zoom {
+  transform: scale(1.08);
+  animation: uf-tv-zoom-out 8s linear forwards;
+}
+@keyframes uf-tv-zoom-out {
+  to {
+    transform: scale(1);
+  }
+}

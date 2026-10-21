@@ -1,9 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
-import { AnimatePresence, motion, MotionConfig } from "motion/react";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "sonner";
+import { MotionConfig } from "motion/react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { HeroSkeleton } from "@/components/LoadingSkeleton";
 import Navbar from "@/components/Navbar";
@@ -37,75 +35,58 @@ const queryClient = new QueryClient({
 });
 
 const AuroraBackdrop = () => (
-  <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none bg-background">
-    <motion.div
-      animate={{ x: [0, 60, -20, 0], y: [0, -40, 30, 0] }}
-      transition={{ duration: 32, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute -top-48 -left-48 w-[640px] h-[640px] rounded-full bg-sky-500/[0.07] blur-[140px]"
-    />
-    <motion.div
-      animate={{ x: [0, -70, 40, 0], y: [0, 50, -30, 0] }}
-      transition={{ duration: 38, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute top-1/3 -right-56 w-[720px] h-[720px] rounded-full bg-indigo-600/[0.07] blur-[160px]"
-    />
-    <motion.div
-      animate={{ x: [0, 40, -50, 0], y: [0, -30, 20, 0] }}
-      transition={{ duration: 44, repeat: Infinity, ease: "easeInOut" }}
-      className="absolute -bottom-64 left-1/4 w-[600px] h-[600px] rounded-full bg-fuchsia-600/[0.04] blur-[150px]"
-    />
+  <div className="aurora" aria-hidden="true">
+    <div className="aurora-blob aurora-blob-1" />
+    <div className="aurora-blob aurora-blob-2" />
+    <div className="aurora-blob aurora-blob-3" />
   </div>
 );
 
 const AnimatedRoutes = () => {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Index />} />
-        <Route path="/movie/:id" element={<MovieDetails />} />
-        <Route path="/tv/:id" element={<TvDetails />} />
-        <Route path="/watch/movie/:id" element={<WatchMovie />} />
-        <Route path="/watch/tv/:id/:season/:episode" element={<WatchTv />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/watchlist" element={<Watchlist />} />
-        <Route path="/tv" element={<TvShows />} />
-        <Route path="/movies" element={<Movies />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/account" element={<Account />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AnimatePresence>
+    <Routes location={location} key={location.pathname}>
+      <Route path="/" element={<Index />} />
+      <Route path="/movie/:id" element={<MovieDetails />} />
+      <Route path="/tv/:id" element={<TvDetails />} />
+      <Route path="/watch/movie/:id" element={<WatchMovie />} />
+      <Route path="/watch/tv/:id/:season/:episode" element={<WatchTv />} />
+      <Route path="/search" element={<SearchPage />} />
+      <Route path="/watchlist" element={<Watchlist />} />
+      <Route path="/tv" element={<TvShows />} />
+      <Route path="/movies" element={<Movies />} />
+      <Route path="/auth" element={<Auth />} />
+      <Route path="/account" element={<Account />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 };
 
 const App = () => {
   return (
-    <MotionConfig reducedMotion="user">
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <AuroraBackdrop />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
-              <ErrorBoundaryWithReset>
-                <a
-                  href="#main-content"
-                  className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-full focus:bg-primary focus:text-white focus:shadow-glow"
-                >
-                  Skip to content
-                </a>
-                <Navbar />
-                <Suspense fallback={<HeroSkeleton />}>
-                  <AnimatedRoutes />
-                </Suspense>
-                <BackToTop />
-              </ErrorBoundaryWithReset>
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </MotionConfig>
+    <QueryClientProvider client={queryClient}>
+      <MotionConfig reducedMotion="user">
+        <AuroraBackdrop />
+        <Toaster position="bottom-right" theme="dark" richColors />
+        <BrowserRouter>
+          <AuthProvider>
+            <ErrorBoundaryWithReset>
+              <a
+                href="#main-content"
+                className="visually-hidden-focusable position-fixed top-0 start-0 z-3 m-2 btn btn-gradient btn-sm"
+              >
+                Skip to content
+              </a>
+              <Navbar />
+              <Suspense fallback={<HeroSkeleton />}>
+                <AnimatedRoutes />
+              </Suspense>
+              <BackToTop />
+            </ErrorBoundaryWithReset>
+          </AuthProvider>
+        </BrowserRouter>
+      </MotionConfig>
+    </QueryClientProvider>
   );
 };
 

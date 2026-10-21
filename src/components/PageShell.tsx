@@ -1,22 +1,25 @@
-import { motion } from "motion/react";
-import { EASE } from "@/lib/motion";
+import { useRef, useEffect } from "react";
+import { revealNow } from "@/lib/anim";
 
 interface Props {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export default function PageShell({ children, className }: Props) {
+/**
+ * Route-level wrapper with a mount fade. The entrance is applied by anime.js
+ * after mount — the content is visible by default, so a failed or skipped
+ * animation can never leave the page blank.
+ */
+export default function PageShell({ children, className, style }: Props) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    revealNow(ref.current, { y: 18, duration: 400 });
+  }, []);
   return (
-    <motion.main
-      initial={{ opacity: 0, y: 18, filter: "blur(8px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      exit={{ opacity: 0, y: -14, filter: "blur(8px)" }}
-      transition={{ duration: 0.4, ease: EASE }}
-      id="main-content"
-      className={className}
-    >
+    <main ref={ref} className={className} style={style}>
       {children}
-    </motion.main>
+    </main>
   );
 }

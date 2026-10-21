@@ -1,40 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, User, SlidersHorizontal, Shield, Database,
   Check, Loader2, LogOut, Monitor,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { toast } from "sonner";
 import PageShell from "@/components/PageShell";
 import { useAuth } from "@/hooks/useAuth";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useProfile } from "@/hooks/useProfile";
-import { updateProfile, AVATAR_COLORS, DEFAULT_PROFILE } from "@/lib/profile";
+import { updateProfile, AVATAR_COLORS } from "@/lib/profile";
 import { clearLocalUserData } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
-import { cn } from "@/lib/utils";
+import { revealNow } from "@/lib/anim";
+import "@/styles/watch.css";
 
 function Card({
-  icon: Icon, title, subtitle, children,
+  icon: Icon, title, subtitle, children, delay = 0,
 }: {
   icon: React.ElementType;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  delay?: number;
 }) {
   return (
-    <section className="rounded-2xl glass-strong ring-1 ring-white/10 shadow-card-lg overflow-hidden">
-      <header className="flex items-start gap-3 px-5 py-4 border-b border-white/[0.07]">
-        <span className="w-9 h-9 rounded-xl bg-white/[0.06] ring-1 ring-white/10 flex items-center justify-center shrink-0">
-          <Icon className="w-4 h-4 text-primary" />
+    <section
+      className="uf-card glass-strong content-card"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <header className="uf-card-header">
+        <span className="uf-card-icon">
+          <Icon size={16} />
         </span>
-        <div className="min-w-0">
-          <h2 className="text-sm font-bold text-white">{title}</h2>
-          {subtitle && <p className="text-[11px] text-white/40 mt-0.5">{subtitle}</p>}
+        <div style={{ minWidth: 0 }}>
+          <h2 className="uf-card-title">{title}</h2>
+          {subtitle && <p className="uf-card-sub">{subtitle}</p>}
         </div>
       </header>
-      <div className="p-5">{children}</div>
+      <div className="uf-card-body">{children}</div>
     </section>
   );
 }
@@ -49,10 +53,10 @@ function Toggle({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-3">
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-white/90">{label}</p>
-        <p className="text-[11px] text-white/40 mt-0.5 leading-relaxed">{description}</p>
+    <div className="uf-toggle-row">
+      <div className="uf-toggle-copy">
+        <p className="uf-toggle-label">{label}</p>
+        <p className="uf-toggle-desc">{description}</p>
       </div>
       <button
         type="button"
@@ -61,17 +65,9 @@ function Toggle({
         aria-label={label}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={cn(
-          "relative w-11 h-6 rounded-full shrink-0 transition-colors disabled:opacity-40",
-          checked ? "bg-gradient-to-r from-sky-500 to-indigo-600" : "bg-white/15",
-        )}
+        className="uf-toggle"
       >
-        <span
-          className={cn(
-            "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform",
-            checked ? "translate-x-[22px]" : "translate-x-0.5",
-          )}
-        />
+        <span className="uf-toggle-knob" />
       </button>
     </div>
   );
@@ -82,6 +78,7 @@ export default function Account() {
   const profile = useProfile();
   const navigate = useNavigate();
   usePageTitle("Account");
+  const pageRef = useRef<HTMLDivElement>(null);
 
   const [name, setName] = useState(profile.displayName);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -92,6 +89,9 @@ export default function Account() {
   const [busyOthers, setBusyOthers] = useState(false);
 
   useEffect(() => setName(profile.displayName), [profile.displayName]);
+  useEffect(() => {
+    revealNow(pageRef.current, { y: 18, duration: 500 });
+  }, []);
 
   const emailPrefix = (user?.email ?? "").split("@")[0];
   const displayName = profile.displayName || emailPrefix || "Member";
@@ -138,19 +138,19 @@ export default function Account() {
 
   if (loading) {
     return (
-      <PageShell className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-6 h-6 text-white/40 animate-spin" />
+      <PageShell className="min-vh-100 d-flex align-items-center justify-content-center">
+        <Loader2 size={24} className="spin" style={{ color: "rgba(255,255,255,0.4)" }} />
       </PageShell>
     );
   }
 
   if (!user) {
     return (
-      <PageShell className="min-h-screen flex flex-col items-center justify-center gap-5 bg-background px-4">
-        <h1 className="text-2xl font-extrabold text-white">Sign in to manage your account</h1>
+      <PageShell className="min-vh-100 d-flex flex-column align-items-center justify-content-center gap-4 px-3">
+        <h1 className="fw-extrabold text-white" style={{ fontSize: "1.5rem" }}>Sign in to manage your account</h1>
         <Link
           to="/auth"
-          className="px-8 py-3 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow hover:scale-105 transition-transform"
+          className="uf-btn uf-btn-md btn-gradient rounded-pill px-4"
         >
           Sign In
         </Link>
@@ -159,68 +159,65 @@ export default function Account() {
   }
 
   return (
-    <PageShell className="min-h-screen bg-background px-4 pt-28 pb-24">
-      <div className="max-w-3xl mx-auto">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors mb-6"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
+    <PageShell className="min-vh-100 px-3" style={{ paddingTop: "7rem", paddingBottom: "6rem" }}>
+      <div ref={pageRef} className="uf-account-wrap">
+        <Link to="/" className="uf-back-link">
+          <ArrowLeft size={14} />
           Back
         </Link>
 
         {/* Identity header */}
-        <div className="flex items-center gap-5 mb-8">
+        <div className="uf-identity">
           <div
-            className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl font-black text-white shadow-glow-sm shrink-0"
+            className="uf-avatar"
             style={{ background: `linear-gradient(135deg, ${profile.avatarColor}, ${profile.avatarColor}99)` }}
           >
             {initial}
           </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate">{displayName}</h1>
-            <p className="text-sm text-white/40 truncate">{user.email}</p>
+          <div className="uf-identity-body">
+            <h1 className="uf-identity-name">{displayName}</h1>
+            <p className="uf-identity-email">{user.email}</p>
             {user.created_at && (
-              <p className="text-[11px] text-white/25 mt-1">
+              <p className="uf-identity-since">
                 Member since {new Date(user.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}
               </p>
             )}
           </div>
         </div>
 
-        <div className="space-y-5">
+        <div className="uf-account-stack">
           {/* Profile */}
-          <Card icon={User} title="Profile" subtitle="How you appear across UNCFLIX">
-            <form onSubmit={saveName} className="space-y-5">
+          <Card icon={User} title="Profile" subtitle="How you appear across UNCFLIX" delay={40}>
+            <form onSubmit={saveName} className="d-flex flex-column gap-4">
               <div>
-                <label htmlFor="displayName" className="block text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-2">
+                <label htmlFor="displayName" className="uf-field-label">
                   Display name
                 </label>
-                <div className="flex gap-2">
+                <div className="d-flex gap-2">
                   <input
                     id="displayName"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder={emailPrefix}
                     maxLength={40}
-                    className="flex-1 h-11 rounded-xl bg-white/[0.06] ring-1 ring-white/10 text-sm text-white placeholder:text-white/25 px-4 outline-none focus:ring-primary/60 transition-all"
+                    className="form-control uf-account-input flex-grow-1"
                   />
                   <button
                     type="submit"
                     disabled={savingProfile}
-                    className="px-5 rounded-xl bg-white/[0.08] ring-1 ring-white/10 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/[0.14] transition-all disabled:opacity-50 flex items-center gap-2"
+                    className="uf-account-btn"
                   >
-                    {savingProfile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    {savingProfile ? <Loader2 size={14} className="spin" /> : <Check size={14} />}
                     Save
                   </button>
                 </div>
               </div>
 
               <div>
-                <p className="block text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-2.5">
+                <p className="uf-field-label" style={{ marginBottom: "0.625rem" }}>
                   Avatar colour
                 </p>
-                <div className="flex flex-wrap gap-2.5">
+                <div className="uf-avatar-row">
                   {AVATAR_COLORS.map((c) => (
                     <button
                       key={c}
@@ -228,10 +225,7 @@ export default function Account() {
                       aria-label={`Avatar colour ${c}`}
                       aria-pressed={profile.avatarColor === c}
                       onClick={() => updateProfile({ avatarColor: c })}
-                      className={cn(
-                        "w-9 h-9 rounded-xl transition-transform hover:scale-110",
-                        profile.avatarColor === c ? "ring-2 ring-white scale-105" : "ring-1 ring-white/20",
-                      )}
+                      className={`uf-avatar-swatch${profile.avatarColor === c ? " active" : ""}`}
                       style={{ background: c }}
                     />
                   ))}
@@ -241,8 +235,8 @@ export default function Account() {
           </Card>
 
           {/* Playback */}
-          <Card icon={SlidersHorizontal} title="Playback" subtitle="How titles behave on autoplay">
-            <div className="divide-y divide-white/[0.07]">
+          <Card icon={SlidersHorizontal} title="Playback" subtitle="How titles behave on autoplay" delay={90}>
+            <div className="uf-divide">
               <Toggle
                 label="Autoplay next episode"
                 description="Roll into the next episode automatically when one finishes."
@@ -259,38 +253,38 @@ export default function Account() {
           </Card>
 
           {/* Security */}
-          <Card icon={Shield} title="Security" subtitle="Email address and password">
-            <div className="space-y-5">
-              <form onSubmit={saveEmail} className="space-y-2">
-                <label htmlFor="newEmail" className="block text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
+          <Card icon={Shield} title="Security" subtitle="Email address and password" delay={140}>
+            <div className="d-flex flex-column gap-4">
+              <form onSubmit={saveEmail} className="d-flex flex-column gap-2">
+                <label htmlFor="newEmail" className="uf-field-label">
                   Email address
                 </label>
-                <div className="flex gap-2">
+                <div className="d-flex gap-2">
                   <input
                     id="newEmail"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={user.email ?? ""}
-                    className="flex-1 h-11 rounded-xl bg-white/[0.06] ring-1 ring-white/10 text-sm text-white placeholder:text-white/25 px-4 outline-none focus:ring-primary/60 transition-all"
+                    className="form-control uf-account-input flex-grow-1"
                   />
                   <button
                     type="submit"
                     disabled={savingEmail}
-                    className="px-5 rounded-xl bg-white/[0.08] ring-1 ring-white/10 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/[0.14] transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                    className="uf-account-btn"
                   >
-                    {savingEmail ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    {savingEmail ? <Loader2 size={14} className="spin" /> : <Check size={14} />}
                     Update
                   </button>
                 </div>
-                <p className="text-[11px] text-white/25">Current: {user.email}</p>
+                <p className="uf-hint">Current: {user.email}</p>
               </form>
 
-              <form onSubmit={savePassword} className="space-y-2">
-                <label htmlFor="newPassword" className="block text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">
+              <form onSubmit={savePassword} className="d-flex flex-column gap-2">
+                <label htmlFor="newPassword" className="uf-field-label">
                   New password
                 </label>
-                <div className="flex gap-2">
+                <div className="d-flex gap-2">
                   <input
                     id="newPassword"
                     type="password"
@@ -298,14 +292,14 @@ export default function Account() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 6 characters"
-                    className="flex-1 h-11 rounded-xl bg-white/[0.06] ring-1 ring-white/10 text-sm text-white placeholder:text-white/25 px-4 outline-none focus:ring-primary/60 transition-all"
+                    className="form-control uf-account-input flex-grow-1"
                   />
                   <button
                     type="submit"
                     disabled={savingPassword}
-                    className="px-5 rounded-xl bg-white/[0.08] ring-1 ring-white/10 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/[0.14] transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                    className="uf-account-btn"
                   >
-                    {savingPassword ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    {savingPassword ? <Loader2 size={14} className="spin" /> : <Check size={14} />}
                     Change
                   </button>
                 </div>
@@ -314,26 +308,26 @@ export default function Account() {
               <button
                 onClick={signOutOthers}
                 disabled={busyOthers}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/[0.06] ring-1 ring-white/10 px-4 py-3 text-xs font-bold uppercase tracking-widest text-white/80 hover:bg-white/[0.12] hover:text-white transition-all disabled:opacity-50"
+                className="uf-wide-btn"
               >
-                {busyOthers ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Monitor className="w-3.5 h-3.5" />}
+                {busyOthers ? <Loader2 size={14} className="spin" /> : <Monitor size={14} />}
                 Sign out on all other devices
               </button>
             </div>
           </Card>
 
           {/* Data */}
-          <Card icon={Database} title="Data" subtitle="What's stored on this device">
-            <div className="space-y-4">
-              <div className="rounded-xl bg-white/[0.04] ring-1 ring-white/10 px-4 py-3.5">
-                <p className="text-sm font-semibold text-white/90">Continue watching</p>
-                <p className="text-[11px] text-white/40 mt-1 leading-relaxed">
+          <Card icon={Database} title="Data" subtitle="What's stored on this device" delay={190}>
+            <div className="d-flex flex-column gap-3">
+              <div className="uf-data-tile">
+                <p className="uf-data-title">Continue watching</p>
+                <p className="uf-data-desc">
                   Synced to your account and available on every device you sign in on.
                 </p>
               </div>
-              <div className="rounded-xl bg-white/[0.04] ring-1 ring-white/10 px-4 py-3.5">
-                <p className="text-sm font-semibold text-white/90">Watchlist &amp; recently viewed</p>
-                <p className="text-[11px] text-white/40 mt-1 leading-relaxed">
+              <div className="uf-data-tile">
+                <p className="uf-data-title">Watchlist &amp; recently viewed</p>
+                <p className="uf-data-desc">
                   Stored only in this browser. Clearing them affects this device alone.
                 </p>
               </div>
@@ -342,7 +336,7 @@ export default function Account() {
                   clearLocalUserData();
                   toast.success("Local data cleared from this device");
                 }}
-                className="w-full rounded-xl bg-white/[0.06] ring-1 ring-white/10 px-4 py-3 text-xs font-bold uppercase tracking-widest text-white/80 hover:bg-white/[0.12] hover:text-white transition-all"
+                className="uf-wide-btn"
               >
                 Clear local data on this device
               </button>
@@ -351,13 +345,13 @@ export default function Account() {
 
           <button
             onClick={async () => { await signOut(); navigate("/"); }}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-500/10 ring-1 ring-red-500/25 px-4 py-3.5 text-xs font-bold uppercase tracking-widest text-red-400 hover:bg-red-500/20 transition-all"
+            className="uf-danger-btn"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut size={14} />
             Sign out
           </button>
 
-          <p className="text-center text-[11px] text-white/20 pt-2">
+          <p className="uf-account-foot">
             UNCFLIX account &middot; {user.id.slice(0, 8)}
           </p>
         </div>

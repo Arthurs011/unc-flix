@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { AnimatePresence, motion } from "motion/react";
 import { ArrowUp } from "lucide-react";
-import { springSnappy } from "@/lib/motion";
+import { revealNow } from "@/lib/anim";
 
 export default function BackToTop() {
   const [visible, setVisible] = useState(false);
   const { pathname } = useLocation();
   const onWatchPage = pathname.startsWith("/watch");
+  const ref = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const onScroll = () => setVisible(window.scrollY > 700);
@@ -16,21 +16,23 @@ export default function BackToTop() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (visible) revealNow(ref.current, { y: 12, duration: 300 });
+  }, [visible]);
+
+  if (!visible) return null;
+
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.7, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.7, y: 12 }}
-          transition={springSnappy}
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          aria-label="Back to top"
-          className={`fixed right-4 md:right-8 z-40 w-11 h-11 rounded-full glass-strong ring-1 ring-white/10 shadow-card-lg text-white/70 hover:text-primary hover:ring-primary/40 flex items-center justify-center transition-colors ${onWatchPage ? "bottom-6 md:bottom-8" : "bottom-24 md:bottom-8"}`}
-        >
-          <ArrowUp className="w-5 h-5" />
-        </motion.button>
-      )}
-    </AnimatePresence>
+    <button
+      ref={ref}
+      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      aria-label="Back to top"
+      className={`uf-icon-btn uf-backtotop position-fixed z-40 rounded-4 glass-strong shadow-card-lg border-0 ${
+        onWatchPage ? "uf-backtotop-watch" : ""
+      }`}
+      style={{ color: "rgba(255,255,255,0.7)" }}
+    >
+      <ArrowUp size={20} />
+    </button>
   );
 }

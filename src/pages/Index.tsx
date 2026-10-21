@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Movie, tmdb, Genre } from "@/lib/tmdb";
+import { useEffect, useState, useRef } from "react";
+import { Movie, tmdb } from "@/lib/tmdb";
 import { getRecentlyViewed } from "@/lib/storage";
 import { useContinueWatching } from "@/hooks/useContinueWatching";
 import HeroBanner from "@/components/HeroBanner";
@@ -8,9 +8,9 @@ import ContinueRow from "@/components/ContinueRow";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { HeroSkeleton, RowSkeleton } from "@/components/LoadingSkeleton";
-import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { fadeUp, staggerFast } from "@/lib/motion";
+import { revealStagger } from "@/lib/anim";
+import "@/styles/browse.css";
 
 const MOOD_PILLS = [
   { id: 28, name: "Action" },
@@ -38,6 +38,8 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [loadingGenre, setLoadingGenre] = useState(false);
   const [error, setError] = useState(false);
+
+  const pillsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     Promise.all([
@@ -74,15 +76,34 @@ export default function Index() {
       .finally(() => setLoadingGenre(false));
   }, [selectedGenre]);
 
+  // Animate mood pills once they mount (they sit behind the loading
+  // skeleton). The pills are visible by default; the stagger only dips them
+  // to opacity 0 if it actually runs.
+  useEffect(() => {
+    if (!pillsRef.current) return;
+    revealStagger(Array.from(pillsRef.current.querySelectorAll("button")), {
+      step: 30,
+      y: 10,
+      duration: 400,
+    });
+  }, [loading]);
+
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-4">
-        <div className="text-center max-w-md">
-          <h2 className="text-3xl font-extrabold tracking-tight mb-3">Something went wrong</h2>
-          <p className="text-muted-foreground mb-8">We couldn't load the content. Please check your internet connection.</p>
+      <div className="min-vh-100 d-flex align-items-center justify-content-center p-4">
+        <div className="text-center" style={{ maxWidth: "28rem" }}>
+          <h2
+            className="fw-extrabold text-white mb-3"
+            style={{ fontSize: "1.875rem", letterSpacing: "-0.02em" }}
+          >
+            Something went wrong
+          </h2>
+          <p className="text-body-secondary" style={{ marginBottom: "2rem" }}>
+            We couldn't load the content. Please check your internet connection.
+          </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-8 py-3 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold shadow-glow hover:scale-105 active:scale-95 transition-transform"
+            className="uf-btn uf-btn-md btn-gradient rounded-4"
           >
             Retry
           </button>
@@ -93,9 +114,9 @@ export default function Index() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-vh-100">
         <HeroSkeleton />
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 mt-12 pb-32">
+        <div className="page-container mt-5" style={{ paddingBottom: "8rem" }}>
           <RowSkeleton />
           <RowSkeleton />
           <RowSkeleton />
@@ -105,74 +126,51 @@ export default function Index() {
   }
 
   return (
-    <PageShell className="bg-background min-h-screen">
+    <PageShell className="min-vh-100">
       <HeroBanner movies={trending} />
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-10 relative z-30 pb-32 sm:pb-28">
+      <div className="page-container uf-overlap">
         {/* Mood pills */}
-        <motion.div
-          variants={staggerFast}
-          initial="hidden"
-          animate="show"
-          className="flex gap-2 overflow-x-auto scrollbar-hide py-4 mb-6"
+        <div
+          ref={pillsRef}
+          className="d-flex gap-2 overflow-x-auto scrollbar-hide py-3 mb-4"
         >
           {[{ id: null as number | null, name: "Everything" }, ...MOOD_PILLS].map((g) => (
-            <motion.button
+            <button
               key={g.name}
-              variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
-              whileTap={{ scale: 0.95 }}
               onClick={() => setSelectedGenre(g.id)}
-              className={cn(
-                "px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all shrink-0 ring-1",
-                selectedGenre === g.id
-                  ? "bg-gradient-to-r from-sky-500 to-indigo-600 text-white ring-transparent shadow-glow"
-                  : "bg-background/70 backdrop-blur-md text-white/45 ring-white/[0.08] hover:bg-white/[0.12] hover:text-white"
-              )}
+              className={cn("uf-chip", selectedGenre === g.id && "active")}
             >
               {g.name}
-            </motion.button>
+            </button>
           ))}
-        </motion.div>
+        </div>
 
-        <AnimatePresence mode="wait">
-          {selectedGenre !== null ? (
-            <motion.div
-              key="genre-results"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14 }}
-              transition={{ duration: 0.35 }}
-            >
-              {loadingGenre ? (
-                <RowSkeleton />
-              ) : (
-                <ContentRow
-                  title={`${MOOD_PILLS.find((p) => p.id === selectedGenre)?.name} Spotlight`}
-                  kicker="Curated for you"
-                  movies={genreResults}
-                />
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="standard-home"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {continueList.length > 0 && <ContinueRow />}
+        {selectedGenre !== null ? (
+          <div>
+            {loadingGenre ? (
+              <RowSkeleton />
+            ) : (
+              <ContentRow
+                title={`${MOOD_PILLS.find((p) => p.id === selectedGenre)?.name} Spotlight`}
+                kicker="Curated for you"
+                movies={genreResults}
+              />
+            )}
+          </div>
+        ) : (
+          <div>
+            {continueList.length > 0 && <ContinueRow />}
 
-              <ContentRow title="Trending This Week" kicker="Top 10" movies={trending} showRank exploreTo="/movies" />
-              <ContentRow title="Popular Movies" kicker="Everyone is watching" movies={popular} exploreTo="/movies" />
-              <ContentRow title="Top Rated Movies" kicker="Critically acclaimed" movies={topRated} exploreTo="/movies" />
-              <ContentRow title="Popular TV Shows" kicker="Binge-worthy" movies={tvShows} type="tv" exploreTo="/tv" />
-              <ContentRow title="Coming Soon" kicker="Fresh releases" movies={upcoming} exploreTo="/movies" />
+            <ContentRow title="Trending This Week" kicker="Top 10" movies={trending} showRank exploreTo="/movies" />
+            <ContentRow title="Popular Movies" kicker="Everyone is watching" movies={popular} exploreTo="/movies" />
+            <ContentRow title="Top Rated Movies" kicker="Critically acclaimed" movies={topRated} exploreTo="/movies" />
+            <ContentRow title="Popular TV Shows" kicker="Binge-worthy" movies={tvShows} type="tv" exploreTo="/tv" />
+            <ContentRow title="Coming Soon" kicker="Fresh releases" movies={upcoming} exploreTo="/movies" />
 
-              {recent.length > 0 && <ContentRow title="Recently Viewed" movies={recent} />}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {recent.length > 0 && <ContentRow title="Recently Viewed" movies={recent} />}
+          </div>
+        )}
       </div>
     </PageShell>
   );

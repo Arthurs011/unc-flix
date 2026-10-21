@@ -1,10 +1,7 @@
 import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 import { Film, Play, Tv, X } from "lucide-react";
-import { motion } from "motion/react";
 import { Movie, getTitle, posterFallback, posterUrl } from "@/lib/tmdb";
-import { springSnappy } from "@/lib/motion";
-import { cn } from "@/lib/utils";
 
 interface Props {
   movie: Movie;
@@ -17,15 +14,12 @@ interface Props {
 /**
  * One saved title.
  *
- * Animates on explicit values, never on a variant label. A label-based
- * `animate` depends on a parent resolving the matching variant, and that
- * dependency failed to hold when the grid mounted mid-session, which left the
- * whole library at opacity 0 under a correct item count.
+ * The entrance runs from an inline, index-based animation delay — a CSS
+ * animation always completes on its own, so the card can never be stranded at
+ * opacity 0 the way an unresolved motion variant label used to strand the
+ * whole library.
  *
- * Forwards its ref because the grid renders these inside AnimatePresence with
- * mode="popLayout", which measures each child to take it out of flow while it
- * animates out. Without the ref, popLayout could not measure the card and
- * React warned about the ref on every mount.
+ * Forwards its ref so the grid can measure cards when animating them out.
  */
 const WatchlistCard = forwardRef<HTMLDivElement, Props>(function WatchlistCard(
   { movie, type, index, onRemove },
@@ -35,25 +29,15 @@ const WatchlistCard = forwardRef<HTMLDivElement, Props>(function WatchlistCard(
   const title = getTitle(movie);
 
   return (
-    <motion.div
+    <div
       ref={ref}
-      layout
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.85 }}
-      // Index-based stagger. The grid used to pass staggerChildren, which only
-      // reaches children that declare variants, so it silently did nothing.
-      transition={{ ...springSnappy, delay: Math.min(index * 0.03, 0.3) }}
-      className="group relative"
+      className="uf-poster-card position-relative"
+      style={{
+        animation: "route-fade-in 450ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        animationDelay: `${Math.min(index * 0.04, 0.4)}s`,
+      }}
     >
-      <Link
-        to={to}
-        className={cn(
-          "block aspect-[2/3] rounded-2xl overflow-hidden bg-card relative",
-          "ring-1 ring-white/[0.08] group-hover:ring-primary/40 shadow-card",
-          "transition-all duration-300",
-        )}
-      >
+      <Link to={to} className="uf-poster d-block border-0">
         <img
           src={posterUrl(movie, "w500")}
           alt={title}
@@ -63,24 +47,18 @@ const WatchlistCard = forwardRef<HTMLDivElement, Props>(function WatchlistCard(
           onError={(e) => {
             e.currentTarget.src = posterFallback(title);
           }}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
+          className="uf-poster-img"
         />
 
-        <div
-          className={cn(
-            "absolute inset-0 flex flex-col items-center justify-end p-4 pb-5 text-center",
-            "bg-gradient-to-t from-black/95 via-black/20 to-transparent",
-            "opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-          )}
-        >
-          <span className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center mb-3 shadow-glow-lg">
-            <Play className="w-5 h-5 fill-current ml-0.5" />
+        <div className="uf-poster-overlay d-flex flex-column align-items-center justify-content-end text-center p-3 pb-4">
+          <span className="rounded-circle d-flex align-items-center justify-content-center mb-3 shadow-glow-lg" style={{ width: "3rem", height: "3rem", background: "#fff", color: "#000" }}>
+            <Play size={20} fill="currentColor" />
           </span>
-          <p className="text-xs font-bold leading-tight line-clamp-2">{title}</p>
+          <p className="mb-0 fw-bold line-clamp-2" style={{ fontSize: "0.75rem" }}>{title}</p>
         </div>
 
-        <span className="absolute top-2.5 left-2.5 p-1.5 rounded-lg bg-black/60 backdrop-blur-md ring-1 ring-white/10 text-white/70">
-          {type === "movie" ? <Film className="w-3 h-3" /> : <Tv className="w-3 h-3" />}
+        <span className="position-absolute top-2 start-2 rounded-3 d-flex align-items-center justify-content-center" style={{ padding: "0.375rem", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}>
+          {type === "movie" ? <Film size={13} /> : <Tv size={13} />}
         </span>
       </Link>
 
@@ -93,15 +71,11 @@ const WatchlistCard = forwardRef<HTMLDivElement, Props>(function WatchlistCard(
           onRemove(movie);
         }}
         aria-label={`Remove ${title} from watchlist`}
-        className={cn(
-          "absolute -top-2 -right-2 z-10 w-8 h-8 rounded-full bg-red-500 text-white",
-          "flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100",
-          "hover:bg-red-600 active:scale-90 transition-all",
-        )}
+        className="uf-remove-btn position-absolute z-2 rounded-circle border-0"
       >
-        <X className="w-4 h-4" />
+        <X size={16} />
       </button>
-    </motion.div>
+    </div>
   );
 });
 

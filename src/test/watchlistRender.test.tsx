@@ -12,34 +12,39 @@ const card = readFileSync(resolve(__dirname, "../components/WatchlistCard.tsx"),
  * The library spent three releases going blank under a correct item count.
  * The data was loaded and the DOM was right; nothing was painted.
  *
- * The cause was always the same shape: the grid and its cards took their
- * visible values from a variant label, and that label only resolved on some
- * mounts. Loading the page fresh resolved it. Arriving from a client-side
- * route change did not, so the whole grid stayed at opacity 0 until a reload.
+ * The original cause was always the same shape: the grid and its cards took
+ * their visible values from a motion variant label, and that label only
+ * resolved on some mounts. Loading the page fresh resolved it. Arriving from
+ * a client-side route change did not, so the whole grid stayed at opacity 0
+ * until a reload.
  *
- * Neither type checking nor a DOM-assertion test can see this: the elements
- * exist, the count is right, and the props type-check. These are source-level
- * guards for that reason.
+ * The rebuild moved to anime.js + CSS. The equivalent failure is an entrance
+ * that only exists as a JS animation and hides the element first: if the
+ * animation never runs, the content stays invisible. These are source-level
+ * guards for that, because neither type checking nor a DOM assertion can see
+ * it — the elements exist, the count is right, and the props type-check.
  */
-describe("library is painted rather than left on an unresolved variant label", () => {
-  it("does not drive the grid off a variant label", () => {
-    expect(page).not.toMatch(/variants=\{staggerFast\}/);
+describe("library is painted rather than left on an unresolved entrance", () => {
+  it("does not drive the grid off a variant label or a hide-first wrapper", () => {
+    expect(page).not.toMatch(/variants=/);
     expect(page).not.toMatch(/initial="hidden"/);
     expect(page).not.toMatch(/animate="show"/);
-    expect(page).toMatch(/animate=\{\{ opacity: 1 \}\}/);
+    expect(page).not.toMatch(/staggerChildren/);
+    // The grid wrapper must not hide its children before JS runs.
+    expect(page).not.toMatch(/pre-reveal/);
   });
 
   it("does not drive cards off a variant label", () => {
     expect(card).not.toMatch(/variants=/);
     expect(card).not.toMatch(/initial="hidden"/);
-    expect(card).toMatch(/initial=\{\{ opacity: 0, y: 18 \}\}/);
-    expect(card).toMatch(/animate=\{\{ opacity: 1, y: 0 \}\}/);
+    // The card entrance is a CSS animation: CSS animations always run and
+    // always complete, so a card cannot be stranded at opacity 0.
+    expect(card).toMatch(/animation: "route-fade-in/);
+    expect(card).toMatch(/animationDelay/);
   });
 
-  it("staggers cards by index, since staggerChildren cannot reach them", () => {
-    // transition.staggerChildren only reaches children that declare variants.
-    expect(page).not.toMatch(/staggerChildren/);
-    expect(card).toMatch(/index \* 0\.03/);
+  it("staggers cards by index", () => {
+    expect(card).toMatch(/index \* 0\.04/);
   });
 
   it("renders one card per saved title", () => {
@@ -52,11 +57,7 @@ describe("library is painted rather than left on an unresolved variant label", (
     expect(card).toMatch(/import .*posterFallback.* from "@\/lib\/tmdb"/);
   });
 
-  it("forwards its ref, because the grid renders it under popLayout", () => {
-    // AnimatePresence mode="popLayout" measures each child to take it out of
-    // flow while it animates out. A function component that does not forward
-    // the ref cannot be measured, and React warns on every mount.
-    expect(page).toMatch(/mode="popLayout"/);
+  it("forwards its ref, because the grid measures cards", () => {
     expect(card).toMatch(/forwardRef<HTMLDivElement, Props>/);
     expect(card).toMatch(/ref=\{ref\}/);
   });

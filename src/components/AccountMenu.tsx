@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { LogOut, UserPlus, Cloud, Settings } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { STATE_TRANSITION } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export default function AccountMenu({ className }: { className?: string }) {
@@ -32,7 +33,18 @@ export default function AccountMenu({ className }: { className?: string }) {
   useEffect(() => setOpen(false), [location.pathname]);
 
   if (loading) {
-    return <div className={cn("w-11 h-11 rounded-full bg-white/[0.06] ring-1 ring-white/10 animate-pulse", className)} />;
+    return (
+      <div
+        className={cn("rounded-circle flex-shrink-0", className)}
+        style={{
+          width: "2.75rem",
+          height: "2.75rem",
+          background: "rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          animation: "uf-pulse 1.5s ease-in-out infinite",
+        }}
+      />
+    );
   }
 
   if (!user) {
@@ -41,12 +53,9 @@ export default function AccountMenu({ className }: { className?: string }) {
         to="/auth"
         state={{ from: location.pathname }}
         aria-label="Sign in"
-        className={cn(
-          "flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/[0.08] transition-all",
-          className,
-        )}
+        className={cn("uf-chip uf-chip-sm rounded-pill text-decoration-none", className)}
       >
-        <UserPlus className="w-4 h-4" />
+        <UserPlus size={15} />
         Sign In
       </Link>
     );
@@ -57,13 +66,18 @@ export default function AccountMenu({ className }: { className?: string }) {
   const initial = (displayName[0] ?? "?").toUpperCase();
 
   return (
-    <div className={cn("relative", className)} ref={wrapRef}>
+    <div className={cn("position-relative", className)} ref={wrapRef}>
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Account"
         aria-expanded={open}
-        className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-black shadow-glow-sm hover:scale-105 active:scale-95 transition-transform"
-        style={{ background: `linear-gradient(135deg, ${profile.avatarColor}, ${profile.avatarColor}99)` }}
+        className="uf-icon-btn rounded-circle border-0 fw-black text-white shadow-glow-sm"
+        style={{
+          width: "2.75rem",
+          height: "2.75rem",
+          fontSize: "0.875rem",
+          background: `linear-gradient(135deg, ${profile.avatarColor}, ${profile.avatarColor}99)`,
+        }}
       >
         {initial}
       </button>
@@ -71,25 +85,25 @@ export default function AccountMenu({ className }: { className?: string }) {
       <AnimatePresence>
         {open && (
           <motion.div
+            key="uf-account-menu"
+            className="uf-dropdown uf-dropdown-right glass-strong rounded-4 shadow-card-lg p-3"
             initial={{ opacity: 0, y: 8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ duration: 0.18 }}
-            className="absolute right-0 top-full mt-3 w-64 rounded-2xl glass-strong ring-1 ring-white/10 shadow-card-lg p-3 origin-top-right z-50"
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={STATE_TRANSITION}
           >
-            <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/30 mb-1.5 px-1">
-              Signed in
-            </p>
-            <p className="text-sm font-semibold text-white truncate px-1" title={email}>
+            <p className="uf-dropdown-kicker px-1 mb-1 text-uppercase">Signed in</p>
+            <p className="small fw-semibold text-white text-truncate px-1 mb-0" title={email}>
               {displayName}
             </p>
-            <p className="text-[11px] text-white/35 truncate px-1 mt-0.5" title={email}>
+            <p className="px-1 mt-1 mb-0 text-truncate" style={{ fontSize: "11px", color: "rgba(255,255,255,0.45)" }} title={email}>
               {email}
             </p>
 
-            <div className="mt-3 mb-2 flex items-start gap-2 px-2.5 py-2.5 rounded-xl bg-primary/10 ring-1 ring-primary/20">
-              <Cloud className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              <p className="text-[11px] text-white/60 leading-relaxed">
+            <div className="d-flex align-items-start gap-2 mt-3 mb-2 px-2 py-2 rounded-3"
+              style={{ background: "rgba(14,165,233,0.1)", border: "1px solid rgba(14,165,233,0.22)" }}>
+              <Cloud size={14} className="text-primary flex-shrink-0 mt-1" />
+              <p className="mb-0" style={{ fontSize: "11px", color: "rgba(255,255,255,0.65)", lineHeight: 1.6 }}>
                 Continue watching syncs across all your devices.
               </p>
             </div>
@@ -97,17 +111,19 @@ export default function AccountMenu({ className }: { className?: string }) {
             <Link
               to="/account"
               onClick={() => setOpen(false)}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/60 hover:text-white hover:bg-white/[0.07] transition-colors"
+              className="uf-menu-item d-flex align-items-center gap-2 px-2 py-2 rounded-3 text-uppercase text-decoration-none"
+              style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.7)" }}
             >
-              <Settings className="w-3.5 h-3.5" />
+              <Settings size={14} />
               Account &amp; settings
             </Link>
 
             <button
               onClick={() => { setOpen(false); signOut(); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/60 hover:text-white hover:bg-white/[0.07] transition-colors"
+              className="uf-menu-item d-flex align-items-center gap-2 px-2 py-2 rounded-3 text-uppercase"
+              style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.1em", color: "rgba(255,255,255,0.7)" }}
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut size={14} />
               Sign Out
             </button>
           </motion.div>

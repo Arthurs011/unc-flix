@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Play, Plus, Check, ChevronLeft, ChevronRight, Star, Shuffle } from "lucide-react";
+import { motion } from "motion/react";
 import { Movie, imgUrl, getTitle, getYear } from "@/lib/tmdb";
 import { useWatchlistItem } from "@/hooks/useWatchlist";
-import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from "motion/react";
-import { EASE, springSnappy } from "@/lib/motion";
+import { animate } from "animejs";
+import { prefersReducedMotion, revealStagger } from "@/lib/anim";
+import { PRESS_TRANSITION } from "@/lib/motion";
 
 interface Props {
   movies: Movie[] | undefined;
@@ -17,22 +19,10 @@ export default function HeroBanner({ movies }: Props) {
   const safeMovies = useMemo(() => movies ?? [], [movies]);
   const featured = useMemo(() => safeMovies.slice(0, 8), [safeMovies]);
   const current = featured[idx] ?? null;
-  const heroRef = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const progressRef = useRef<HTMLSpanElement>(null);
 
   const { saved: inWatchlist, toggle } = useWatchlistItem(current);
-  const contentOpacity = useTransform(scrollYProgress, [0, 0.42], [1, 0]);
-  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "16%"]);
-
-  const magX = useMotionValue(0);
-  const magY = useMotionValue(0);
-  const springMagX = useSpring(magX, springSnappy);
-  const springMagY = useSpring(magY, springSnappy);
 
   const next = useCallback(() => {
     setIdx((i) => (i + 1) % Math.max(featured.length, 1));
@@ -48,190 +38,147 @@ export default function HeroBanner({ movies }: Props) {
     return () => clearInterval(t);
   }, [next, idx, featured.length]);
 
-  useEffect(() => {
-
-  }, [current]);
-
   const handleShuffle = () => {
     if (!safeMovies.length) return;
     setIdx(Math.floor(Math.random() * featured.length));
   };
+
+  // Animate title words on slide change. The words are visible by default;
+  // revealStagger owns the hide-first moment and its backstop.
+  useEffect(() => {
+    if (!titleRef.current) return;
+    revealStagger(Array.from(titleRef.current.querySelectorAll<HTMLElement>(".hero-word")), {
+      step: 70,
+      y: 40,
+      duration: 600,
+    });
+  }, [current?.id]);
+
+  // Progress bar animation.
+  useEffect(() => {
+    if (!progressRef.current || prefersReducedMotion()) return;
+    animate(progressRef.current, {
+      scaleX: [0, 1],
+      duration: AUTOPLAY_MS,
+      ease: "linear",
+    });
+  }, [idx]);
 
   if (!current) return null;
 
   const words = getTitle(current).split(" ");
 
   return (
-    <div ref={heroRef} className="group/hero relative w-full h-[82vh] sm:h-[88vh] overflow-hidden">
-      {/* Backdrop with parallax */}
-      <motion.div style={{ y: bgY }} className="absolute inset-0">
-        <AnimatePresence>
-          <motion.div
-            key={current.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1, ease: "easeInOut" }}
-            className="absolute inset-0"
-          >
-            <motion.img
-              initial={{ scale: 1.12 }}
-              animate={{ scale: 1.02 }}
-              transition={{ duration: 9, ease: "linear" }}
-              src={imgUrl(current.backdrop_path, "w1280", true)}
-              alt={getTitle(current)}
-              loading="eager"
-              decoding="async"
-              className="w-full h-full object-cover"
-            />
-          </motion.div>
-        </AnimatePresence>
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-background/85 via-background/20 to-transparent hidden sm:block" />
-      </motion.div>
+    <div className="uf-hero">
+      {/* Backdrop */}
+      <div className="position-absolute top-0 bottom-0 start-0 end-0">
+        <img
+          key={current.id}
+          src={imgUrl(current.backdrop_path, "w1280", true)}
+          alt={getTitle(current)}
+          loading="eager"
+          decoding="async"
+          className="uf-hero-img"
+        />
+        <div className="uf-hero-scrim-bottom" />
+        <div className="uf-hero-scrim-left" />
+      </div>
 
       {/* Arrows */}
       <button
         onClick={prev}
         aria-label="Previous"
-        className="absolute left-6 xl:left-12 top-1/2 -translate-y-1/2 z-20 p-3.5 rounded-full glass text-white/70 hover:text-white hover:bg-white/10 opacity-0 group-hover/hero:opacity-100 md:opacity-0 md:focus:opacity-100 transition-all duration-300 hidden md:block"
+        className="uf-hero-arrow position-absolute z-2 glass rounded-4 border-0 d-none d-md-flex align-items-center justify-content-center uf-hero-arrow-start"
       >
-        <ChevronLeft className="w-5 h-5" />
+        <ChevronLeft size={20} />
       </button>
       <button
         onClick={next}
         aria-label="Next"
-        className="absolute right-6 xl:right-12 top-1/2 -translate-y-1/2 z-20 p-3.5 rounded-full glass text-white/70 hover:text-white hover:bg-white/10 transition-all duration-300 hidden md:block"
+        className="uf-hero-arrow position-absolute z-2 glass rounded-4 border-0 d-none d-md-flex align-items-center justify-content-center uf-hero-arrow-end"
       >
-        <ChevronRight className="w-5 h-5" />
+        <ChevronRight size={20} />
       </button>
 
       {/* Content */}
-      <motion.div
-        style={{ opacity: contentOpacity, y: contentY }}
-        className="absolute bottom-0 left-0 right-0 p-6 sm:p-12 lg:p-20 z-10 max-w-7xl mx-auto w-full"
-      >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={current.id}
-            initial="hidden"
-            animate="show"
-            exit={{ opacity: 0, y: -16, transition: { duration: 0.25 } }}
-            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.15 } } }}
-            className="max-w-3xl"
-          >
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } } }}
-              className="flex items-center gap-3 mb-5"
-            >
-              <span className="rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-glow-sm">
-                Featured
+      <div className="uf-hero-content position-absolute bottom-0 start-0 end-0 z-1 page-container" style={{ maxWidth: "80rem", marginInline: "auto" }}>
+        <div style={{ maxWidth: "48rem" }}>
+          <div className="d-flex align-items-center gap-3 mb-4">
+            <span className="btn-gradient rounded-pill text-uppercase text-white flex-shrink-0" style={{ padding: "0.4rem 0.9rem", fontSize: "10px", fontWeight: 700, letterSpacing: "0.2em", boxShadow: "0 0 10px rgba(14,165,233,0.25)" }}>
+              Featured
+            </span>
+            <span className="d-flex align-items-center gap-2 fw-bold" style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.8)" }}>
+              <Star size={14} className="fill-warning text-warning" />
+              {current.vote_average.toFixed(1)}
+            </span>
+            <span style={{ width: 4, height: 4, borderRadius: "9999px", background: "rgba(255,255,255,0.25)" }} />
+            <span className="text-uppercase fw-semibold" style={{ fontSize: "0.75rem", letterSpacing: "0.08em", color: "rgba(255,255,255,0.5)" }}>
+              {getYear(current)}
+            </span>
+          </div>
+
+          <h1 ref={titleRef} className="fw-black text-white mb-4" style={{ fontSize: "clamp(2.75rem, 8vw, 6rem)", letterSpacing: "-0.05em", lineHeight: 0.9, textShadow: "0 12px 48px rgba(0,0,0,0.5)" }}>
+            {words.map((word, i) => (
+              <span key={`${current.id}-${i}`} className="hero-word">
+                {word}
               </span>
-              <span className="flex items-center gap-1.5 text-xs font-bold text-white/80">
-                <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                {current.vote_average.toFixed(1)}
-              </span>
-              <span className="w-1 h-1 rounded-full bg-white/25" />
-              <span className="text-xs font-semibold tracking-wider text-white/50 uppercase">
-                {getYear(current)}
-              </span>
-            </motion.div>
+            ))}
+          </h1>
 
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white mb-5 tracking-tighter leading-[0.95] drop-shadow-2xl">
-              {words.map((word, i) => (
-                <motion.span
-                  key={`${current.id}-${i}`}
-                  variants={{
-                    hidden: { opacity: 0, y: 34 },
-                    show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE } },
-                  }}
-                  className="inline-block mr-[0.24em]"
-                >
-                  {word}
-                </motion.span>
-              ))}
-            </h1>
+          <p className="mb-4 line-clamp-3" style={{ maxWidth: "36rem", fontSize: "0.875rem", lineHeight: 1.7, color: "rgba(255,255,255,0.65)" }}>
+            {current.overview}
+          </p>
 
-            <motion.p
-              variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } } }}
-              className="text-sm sm:text-base text-white/65 max-w-xl mb-8 line-clamp-3 leading-relaxed"
+          <div className="d-flex flex-wrap align-items-center gap-3">
+            <Link to={`/watch/movie/${current.id}`} className="uf-btn uf-btn-lg btn-gradient text-decoration-none">
+              <Play size={20} className="fill-current" />
+              Play Now
+            </Link>
+
+            <motion.button
+              onClick={toggle}
+              className="uf-btn uf-btn-lg uf-btn-glass"
+              whileTap={{ scale: 0.97 }}
+              transition={PRESS_TRANSITION}
             >
-              {current.overview}
-            </motion.p>
+              {inWatchlist ? <Check size={20} style={{ color: "#34d399" }} /> : <Plus size={20} />}
+              {inWatchlist ? "Saved" : "My List"}
+            </motion.button>
 
-            <motion.div
-              variants={{ hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE } } }}
-              className="flex flex-wrap items-center gap-3"
+            <motion.button
+              onClick={handleShuffle}
+              aria-label="Surprise me"
+              title="Surprise me"
+              className="uf-btn uf-btn-lg uf-btn-glass"
+              style={{ width: "3.5rem", padding: 0 }}
+              whileTap={{ scale: 0.94 }}
+              transition={PRESS_TRANSITION}
             >
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                transition={springSnappy}
-                onMouseMove={(e) => {
-                  const r = e.currentTarget.getBoundingClientRect();
-                  magX.set((e.clientX - r.left - r.width / 2) * 0.3);
-                  magY.set((e.clientY - r.top - r.height / 2) * 0.45);
-                }}
-                onMouseLeave={() => { magX.set(0); magY.set(0); }}
-                style={{ x: springMagX, y: springMagY }}
-                className="flex items-center gap-2.5 h-13 pl-7 pr-8 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow-lg hover:shadow-glow"
-              >
-                <Link to={`/watch/movie/${current.id}`} className="flex items-center gap-2.5">
-                  <Play className="w-5 h-5 fill-current" />
-                  Play Now
-                </Link>
-              </motion.button>
+              <Shuffle size={20} />
+            </motion.button>
+          </div>
 
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.96 }}
-                transition={springSnappy}
-                onClick={toggle}
-                className="flex items-center gap-2.5 h-13 px-7 rounded-full glass ring-1 ring-white/15 text-white font-bold text-sm hover:bg-white/10 transition-colors"
+          {/* Progress indicators */}
+          <div className="d-flex gap-2 mt-4 pt-3 pb-2">
+            {featured.map((m, i) => (
+              <button
+                key={m.id}
+                onClick={() => setIdx(i)}
+                aria-label={`Slide ${i + 1}`}
+                className={`uf-hero-dot border-0 p-0 ${i === idx ? "uf-hero-dot-active" : ""}`}
               >
-                {inWatchlist ? <Check className="w-5 h-5 text-emerald-400" /> : <Plus className="w-5 h-5" />}
-                {inWatchlist ? "Saved" : "My List"}
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.08, rotate: 12 }}
-                whileTap={{ scale: 0.92 }}
-                transition={springSnappy}
-                onClick={handleShuffle}
-                aria-label="Surprise me"
-                title="Surprise me"
-                className="w-13 h-13 rounded-full glass ring-1 ring-white/15 text-white/70 hover:text-primary flex items-center justify-center transition-colors"
-              >
-                <Shuffle className="w-5 h-5" />
-              </motion.button>
-            </motion.div>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Progress indicators */}
-        <div className="flex gap-2 mt-10 pb-2">
-          {featured.map((m, i) => (
-            <button
-              key={m.id}
-              onClick={() => setIdx(i)}
-              aria-label={`Slide ${i + 1}`}
-              className={`relative h-1 rounded-full overflow-hidden transition-all duration-500 ${
-                i === idx ? "w-14 bg-white/20" : "w-5 bg-white/15 hover:bg-white/30"
-              }`}
-            >
-              {i === idx && (
-                <motion.span
-                  key={`progress-${idx}`}
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: AUTOPLAY_MS / 1000, ease: "linear" }}
-                  className="absolute inset-0 origin-left rounded-full bg-gradient-to-r from-sky-400 to-indigo-500"
-                />
-              )}
-            </button>
-          ))}
+                {i === idx && (
+                  <span
+                    ref={progressRef}
+                    className="uf-hero-dot-fill position-absolute top-0 bottom-0 start-0 end-0 rounded-pill"
+                    style={{ transform: "scaleX(0)" }}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,973 @@
+/* ============================================================
+   UNCFLIX component layer — Bootstrap classes + uf-* primitives
+   ============================================================ */
+
+/* ---------- Top navigation (desktop floating pill) ---------- */
+.uf-topnav {
+  transition: transform 350ms var(--uf-ease),
+    opacity 350ms var(--uf-ease);
+  transform: translateY(0);
+  opacity: 1;
+  padding-top: 0.75rem;
+}
+.uf-topnav.uf-topnav-hidden {
+  transform: translateY(-120%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.uf-nav-pill {
+  max-width: calc(100vw - 2rem);
+  height: 4rem;
+  padding-left: 1.25rem;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  transition: background-color var(--uf-state) var(--uf-ease),
+    box-shadow var(--uf-state) var(--uf-ease),
+    border-color var(--uf-state) var(--uf-ease);
+}
+.uf-topnav.uf-scrolled .uf-nav-pill {
+  background-color: rgba(13, 15, 23, 0.9);
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: var(--uf-shadow-3);
+}
+
+.uf-logo-tile {
+  width: 2.25rem;
+  height: 2.25rem;
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 14px rgba(14, 165, 233, 0.3);
+  transition: transform 500ms var(--uf-ease);
+}
+a:hover .uf-logo-tile {
+  transform: rotate(12deg);
+}
+
+/* Nav links: uppercase micro-labels */
+.uf-nav-link {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: inherit;
+  background: transparent;
+  transition: color var(--uf-state) var(--uf-ease),
+    background-color var(--uf-state) var(--uf-ease);
+}
+.uf-nav-link:hover {
+  color: #fff;
+}
+.uf-nav-link .uf-nav-active {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  z-index: 0;
+}
+.uf-nav-link.active {
+  color: #fff;
+}
+.uf-nav-link:active {
+  transform: scale(0.97);
+}
+
+/* Search expanding into the pill */
+.uf-nav-search {
+  width: 300px;
+  animation: uf-search-expand 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes uf-search-expand {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 300px;
+    opacity: 1;
+  }
+}
+
+/* Round icon button (search, watchlist…) */
+.uf-icon-btn {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  transition: color var(--uf-state) var(--uf-ease),
+    background-color var(--uf-state) var(--uf-ease),
+    transform var(--uf-press) var(--uf-ease);
+}
+.uf-icon-btn:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.08);
+}
+.uf-icon-btn:active {
+  transform: scale(0.94);
+}
+
+/* ---------- Dropdown panels ---------- */
+.uf-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.75rem;
+  min-width: 13rem;
+  transform-origin: top center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.uf-dropdown-right {
+  left: auto;
+  right: 0;
+  transform: none;
+  transform-origin: top right;
+}
+
+.uf-dropdown-kicker {
+  font-size: var(--uf-text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.uf-menu-item {
+  background: transparent;
+  border: 0;
+  width: 100%;
+  text-align: left;
+  font-size: 0.8rem;
+  transition: color var(--uf-state) var(--uf-ease),
+    background-color var(--uf-state) var(--uf-ease);
+}
+.uf-menu-item:hover,
+.uf-menu-item:focus-visible {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+.uf-menu-item:active {
+  transform: scale(0.98);
+}
+
+/* ---------- Search field ---------- */
+.uf-search-form {
+  position: relative;
+}
+.uf-search-input {
+  width: 100%;
+  height: 2.75rem;
+  padding: 0 1rem 0 2.75rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 0.875rem;
+  transition: border-color var(--uf-state) var(--uf-ease),
+    box-shadow var(--uf-state) var(--uf-ease),
+    background-color var(--uf-state) var(--uf-ease);
+}
+.uf-search-input:focus-visible {
+  outline: 2px solid rgba(14, 165, 233, 0.65);
+  outline-offset: 2px;
+}
+.uf-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+.uf-search-input:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(14, 165, 233, 0.65);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 3px rgba(14, 165, 233, 0.18), 0 0 20px rgba(14, 165, 233, 0.15);
+}
+.uf-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+/* Sheet variant: taller field with a rounded-2xl shape */
+.uf-search-input.uf-search-sheet {
+  height: 3.25rem;
+  border-radius: 1rem;
+  font-size: 1rem;
+}
+.uf-search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+.uf-search-anchor-pill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 0.5rem;
+}
+
+/* Suggestion dropdown */
+.uf-suggestions {
+  overflow: hidden;
+  border-radius: 1rem;
+  background: rgba(13, 15, 23, 0.96);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--uf-shadow-3);
+  animation: uf-pop-in-flat 160ms var(--uf-ease) both;
+}
+@keyframes uf-pop-in-flat {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.uf-suggestion-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.6rem 0.875rem;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.78);
+  transition: background-color var(--uf-state) var(--uf-ease),
+    color var(--uf-state) var(--uf-ease);
+}
+.uf-suggestion-row:hover,
+.uf-suggestion-row[data-active="true"] {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+.uf-suggestion-row:active {
+  transform: scale(0.99);
+}
+.uf-suggestion-poster {
+  width: 2.25rem;
+  height: 3.25rem;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  background: #1a1d2b;
+  flex-shrink: 0;
+}
+
+/* ---------- Mobile top bar + bottom dock ---------- */
+.uf-mobile-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding-top: env(safe-area-inset-top, 0px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.uf-dock {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: uf-dock-in 600ms var(--uf-ease) 250ms both;
+}
+@keyframes uf-dock-in {
+  from {
+    transform: translateY(110px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.uf-dock-inner {
+  pointer-events: auto;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 2rem;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: var(--uf-shadow-3);
+}
+.uf-dock-link {
+  position: relative;
+  width: 4rem;
+  height: 3.5rem;
+  border-radius: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--uf-state) var(--uf-ease),
+    transform var(--uf-press) var(--uf-ease);
+}
+.uf-dock-link:active {
+  transform: scale(0.94);
+}
+.uf-dock-link.active {
+  color: #fff;
+}
+.uf-dock-link .uf-dock-active {
+  position: absolute;
+  inset: 0;
+  border-radius: 1.5rem;
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 18px rgba(14, 165, 233, 0.45);
+}
+.uf-dock-label {
+  position: relative;
+  z-index: 1;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* ---------- Mobile search sheet ---------- */
+.uf-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.uf-sheet {
+  position: absolute;
+  inset: 0 0 0 0;
+  top: 2.5rem;
+  border-radius: 2rem 2rem 0 0;
+  background: linear-gradient(180deg, #161a28 0%, var(--uf-bg) 55%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 -24px 64px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.uf-sheet-grabber {
+  width: 2.5rem;
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ---------- Chips (mood pills, genre filters) ---------- */
+.uf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  transition: background-color var(--uf-state) var(--uf-ease),
+    color var(--uf-state) var(--uf-ease),
+    border-color var(--uf-state) var(--uf-ease),
+    box-shadow var(--uf-state) var(--uf-ease),
+    transform var(--uf-press) var(--uf-ease);
+}
+.uf-chip:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+.uf-chip:active {
+  transform: scale(0.97);
+}
+.uf-chip.active {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 0 24px rgba(14, 165, 233, 0.4);
+}
+/* Compact variant for filter rows */
+.uf-chip-sm {
+  padding: 0.5rem 1.125rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+}
+
+/* ---------- Buttons ---------- */
+.uf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border: 0;
+  font-weight: 700;
+  transition: background-color var(--uf-state) var(--uf-ease),
+    color var(--uf-state) var(--uf-ease),
+    transform var(--uf-state) var(--uf-ease),
+    box-shadow var(--uf-state) var(--uf-ease),
+    border-color var(--uf-state) var(--uf-ease);
+}
+.uf-btn:active {
+  transform: scale(0.97);
+  transition-duration: var(--uf-press);
+}
+.uf-btn:disabled {
+  opacity: 0.55;
+}
+.uf-btn-lg {
+  height: 3.5rem;
+  padding: 0 2rem;
+  border-radius: 1rem;
+  font-size: 1rem;
+}
+.uf-btn-md {
+  height: 3rem;
+  padding: 0 1.5rem;
+  border-radius: 0.875rem;
+  font-size: 0.875rem;
+}
+.uf-btn-sm {
+  height: 2.5rem;
+  padding: 0 1.125rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+}
+/* Glass variant (secondary hero actions) */
+.uf-btn-glass {
+  background: rgba(13, 15, 23, 0.6);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 24px rgba(0, 0, 0, 0.3);
+  color: #fff;
+}
+.uf-btn-glass:hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 10px 28px rgba(0, 0, 0, 0.38);
+  color: #fff;
+}
+/* Muted variant (row arrows, utility controls) */
+.uf-btn-ghost {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.72);
+}
+.uf-btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+.uf-btn-ghost:disabled {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* ---------- Poster card ---------- */
+.uf-poster {
+  position: relative;
+  display: block;
+  aspect-ratio: 2 / 3;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--uf-card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--uf-shadow-1);
+  transition: border-color var(--uf-state) var(--uf-ease),
+    box-shadow var(--uf-state) var(--uf-ease),
+    transform var(--uf-state) var(--uf-ease);
+}
+.uf-poster-card {
+  transition: transform var(--uf-state) var(--uf-ease);
+}
+.uf-poster-card:hover {
+  transform: translateY(-8px);
+}
+.uf-poster-card:hover .uf-poster {
+  border-color: rgba(14, 165, 233, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 12px rgba(0, 0, 0, 0.45),
+    0 22px 48px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(14, 165, 233, 0.18);
+}
+.uf-poster-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 700ms var(--uf-ease);
+}
+.uf-poster-card:hover .uf-poster-img {
+  transform: scale(1.06);
+}
+.uf-poster-scrim {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 60%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.4) 40%, transparent);
+}
+.uf-poster-meta {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 0.875rem;
+}
+.uf-poster-cta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.375rem;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity var(--uf-state) var(--uf-ease),
+    transform var(--uf-state) var(--uf-ease);
+}
+.uf-poster-card:hover .uf-poster-cta,
+.uf-poster:focus-visible .uf-poster-cta {
+  opacity: 1;
+  transform: translateY(0);
+}
+.uf-poster-badge {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.625rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.uf-poster-rank {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 0 0 1rem 0;
+  padding: 0.25rem 0.625rem;
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 14px rgba(14, 165, 233, 0.35);
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+/* ---------- Content rail ---------- */
+/* Wide rail card used in the row rails */
+/* Rail items must never shrink: the cards' contents are all absolutely
+   positioned (poster image, scrim, meta), so their intrinsic size is ~0 and
+   flex-shrink would crush them to slivers once the row overflows. The
+   !important beats Bootstrap's .w-100 so the fixed track width wins. */
+.uf-rail > * {
+  flex: 0 0 auto;
+}
+.uf-rail .uf-rail-card {
+  width: 160px !important;
+}
+@media (min-width: 576px) {
+  .uf-rail .uf-rail-card {
+    width: 200px !important;
+  }
+}
+
+/* Card entrance stagger (CSS — always completes on its own) */
+.content-card {
+  animation: route-fade-in 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------- Hero ---------- */
+.uf-hero {
+  position: relative;
+  width: 100%;
+  height: 92vh;
+  overflow: hidden;
+}
+@media (min-width: 576px) {
+  .uf-hero {
+    height: 96vh;
+  }
+}
+.uf-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 1000ms ease;
+}
+.uf-hero-scrim-bottom {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, var(--uf-bg), rgba(13, 15, 23, 0.4) 45%, transparent);
+}
+.uf-hero-scrim-left {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(13, 15, 23, 0.85), rgba(13, 15, 23, 0.2) 45%, transparent);
+  display: none;
+}
+@media (min-width: 576px) {
+  .uf-hero-scrim-left {
+    display: block;
+  }
+}
+.hero-word {
+  display: inline-block;
+  margin-right: 0.24em;
+}
+
+/* Hero arrows + content + progress dots */
+.uf-hero-arrow {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3.25rem;
+  height: 3.25rem;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.75);
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 8px 24px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transition: opacity var(--uf-state) var(--uf-ease),
+    color var(--uf-state) var(--uf-ease),
+    background-color var(--uf-state) var(--uf-ease),
+    transform var(--uf-press) var(--uf-ease);
+}
+.uf-hero:hover .uf-hero-arrow,
+.uf-hero:focus-within .uf-hero-arrow {
+  opacity: 1;
+}
+.uf-hero-arrow:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+.uf-hero-arrow:active {
+  transform: translateY(-50%) scale(0.94);
+}
+.uf-hero-arrow-start {
+  left: 1.5rem;
+}
+.uf-hero-arrow-end {
+  right: 1.5rem;
+}
+@media (min-width: 1400px) {
+  .uf-hero-arrow-start {
+    left: 3rem;
+  }
+  .uf-hero-arrow-end {
+    right: 3rem;
+  }
+}
+.uf-hero-content {
+  padding-bottom: clamp(2rem, 8vw, 6rem);
+}
+.uf-hero-dot {
+  position: relative;
+  height: 4px;
+  width: 1.25rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.15);
+  transition: width 500ms ease, background-color 300ms ease;
+}
+/* The bar stays 4px tall, but the tap target is expanded to ~28px via an
+   invisible pseudo-element (hit-testing follows the pseudo-element). */
+.uf-hero-dot::before {
+  content: "";
+  position: absolute;
+  inset: -12px -4px;
+}
+.uf-hero-dot:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.uf-hero-dot-active {
+  width: 3.5rem;
+  background: rgba(255, 255, 255, 0.2);
+}
+.uf-hero-dot-fill {
+  transform-origin: left;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  border-radius: 9999px;
+}
+
+/* ---------- Rails ---------- */
+.uf-rail-wrap {
+  position: relative;
+  margin-inline: -1rem;
+}
+@media (min-width: 576px) {
+  .uf-rail-wrap {
+    margin-inline: 0;
+  }
+}
+.uf-rail {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 0 1rem 1.5rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.uf-rail::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 576px) {
+  .uf-rail {
+    padding-inline: 0;
+  }
+}
+.uf-rail > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+.uf-rail-fade {
+  position: absolute;
+  top: 0;
+  bottom: 1.5rem;
+  width: 4rem;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+.uf-rail-fade-start {
+  left: 0;
+  background: linear-gradient(to right, var(--uf-bg), transparent);
+}
+.uf-rail-fade-end {
+  right: 0;
+  background: linear-gradient(to left, var(--uf-bg), transparent);
+}
+
+/* Section header for rails */
+.uf-section-title {
+  font-size: var(--uf-text-lg);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: #fff;
+}
+
+/* ---------- Skeleton shimmer ---------- */
+.uf-shimmer {
+  background: rgba(255, 255, 255, 0.05);
+}
+.uf-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: uf-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes uf-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------- Shared keyframes ---------- */
+@keyframes uf-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+@keyframes uf-spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: uf-spin 1s linear infinite;
+}
+
+/* ---------- Scroll progress bar ---------- */
+.uf-scroll-progress {
+  height: 3px;
+  transform-origin: left;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, #0ea5e9, #6366f1, #d946ef);
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.25);
+  border-radius: 9999px;
+}
+
+/* ---------- Back to top ---------- */
+.uf-backtotop {
+  right: 1rem;
+  bottom: 6rem; /* clears the mobile dock */
+}
+.uf-backtotop-watch {
+  bottom: 1.5rem;
+}
+@media (min-width: 768px) {
+  .uf-backtotop {
+    right: 2rem;
+    bottom: 2rem;
+  }
+  .uf-backtotop-watch {
+    bottom: 2rem;
+  }
+}
+
+/* ---------- Watch header (player pages) ---------- */
+.uf-watch-header {
+  transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 450ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.uf-watch-header-hidden {
+  transform: translateY(-130%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- Hover reveals (play overlays, card remove buttons) ---------- */
+.uf-hover-reveal {
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.25);
+  transition: opacity var(--uf-state) var(--uf-ease);
+}
+a:hover .uf-hover-reveal,
+a:focus-visible .uf-hover-reveal,
+.uf-poster-card:hover .uf-hover-reveal {
+  opacity: 1;
+}
+.uf-hover-reveal:hover span {
+  transform: scale(1.08);
+}
+
+.uf-poster-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.2) 60%, transparent);
+  transition: opacity var(--uf-state) var(--uf-ease);
+}
+.uf-poster-card:hover .uf-poster-overlay,
+.uf-poster-card:focus-within .uf-poster-overlay {
+  opacity: 1;
+}
+
+.uf-remove-btn {
+  top: -0.5rem;
+  right: -0.5rem;
+  width: 2rem;
+  height: 2rem;
+  background: #ef4444;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 14px rgba(0, 0, 0, 0.45);
+  transition: opacity var(--uf-state) var(--uf-ease),
+    transform var(--uf-press) var(--uf-ease),
+    background-color var(--uf-state) var(--uf-ease);
+}
+.uf-poster-card:hover .uf-remove-btn,
+.uf-continue-card:hover .uf-remove-btn,
+.uf-remove-btn:focus-visible {
+  opacity: 1;
+}
+.uf-remove-btn:hover {
+  background: #dc2626;
+}
+.uf-remove-btn:active {
+  transform: scale(0.9);
+}
+
+/* ---------- Touch devices: hover never fires, so show the affordances ---------- */
+@media (hover: none), (pointer: coarse) {
+  .uf-hero-arrow {
+    opacity: 1;
+  }
+  .uf-poster-cta {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .uf-poster-overlay,
+  .uf-hover-reveal {
+    opacity: 1;
+  }
+  .uf-remove-btn {
+    opacity: 1;
+  }
+}
+
+/* ---------- Fixed chrome must never swallow clicks ----------
+   These bars are full-width and position:fixed. The markup asks for
+   pointer-events:none, but the class is only meaningful because it is
+   defined in the utilities layer; keeping it here too means the chrome
+   can never block the page under it. */
+.uf-topnav,
+.uf-watch-header,
+.uf-scroll-progress,
+.uf-error-blob {
+  pointer-events: none;
+}
+
+/* ---------- Reviews ---------- */
+.uf-review-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: var(--uf-shadow-1);
+  animation: route-fade-in 450ms var(--uf-ease) both;
+}
+
+/* ---------- Error screen backdrop blob ---------- */
+.uf-error-blob {
+  width: 34rem;
+  height: 34rem;
+  max-width: 120vw;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.14), transparent 70%);
+  filter: blur(60px);
+}
+
+/* ---------- Loading pulse (account avatar placeholder) ---------- */
+@keyframes uf-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Continue-watching tile widths */
+.uf-continue-card {
+  flex: 0 0 auto;
+}
+@media (min-width: 576px) {
+  .uf-continue-card .uf-poster {
+    width: 330px !important;
+  }
+}
+
+/* Continue-watching progress bar */
+.uf-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}

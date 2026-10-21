@@ -10,14 +10,21 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <PageShell className="flex min-h-screen items-center justify-center bg-background px-4">
+    <PageShell className="min-vh-100 d-flex align-items-center justify-content-center p-4">
       <div className="text-center">
-        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary mb-3">Error 404</p>
-        <h1 className="text-6xl sm:text-8xl font-black text-white tracking-tighter leading-none mb-4">Lost in the void</h1>
-        <p className="text-white/40 mb-10 text-sm">The page you're looking for doesn't exist.</p>
+        <p className="kicker mb-3">Error 404</p>
+        <h1
+          className="fw-black text-white mb-3"
+          style={{ fontSize: "clamp(3rem, 10vw, 6rem)", lineHeight: 1, letterSpacing: "-0.05em" }}
+        >
+          Lost in the void
+        </h1>
+        <p className="mb-0" style={{ marginBottom: "2.5rem", color: "rgba(255,255,255,0.4)", fontSize: "0.875rem" }}>
+          The page you're looking for doesn't exist.
+        </p>
         <a
           href="/"
-          className="inline-flex px-8 py-3 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold text-sm shadow-glow hover:scale-105 active:scale-95 transition-transform"
+          className="uf-btn uf-btn-md btn-gradient rounded-pill text-decoration-none"
         >
           Return Home
         </a>

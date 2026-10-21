@@ -1,13 +1,40 @@
-import { motion, useScroll, useSpring } from "motion/react";
+import { useEffect, useRef } from "react";
 
+/**
+ * Thin scroll-progress bar. Implemented with a rAF-throttled scroll listener
+ * instead of the old motion value so the pages do not pull in a motion runtime
+ * for three pixels of gradient.
+ */
 export default function ScrollProgress() {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 140, damping: 26, mass: 0.4 });
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const doc = document.documentElement;
+      const max = doc.scrollHeight - window.innerHeight;
+      const p = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
+      if (ref.current) ref.current.style.transform = `scaleX(${p})`;
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
 
   return (
-    <motion.div
-      style={{ scaleX }}
-      className="fixed top-0 left-0 right-0 h-[3px] origin-left z-[80] rounded-full bg-gradient-to-r from-sky-500 via-indigo-500 to-fuchsia-500 shadow-glow-sm pointer-events-none"
+    <div
+      ref={ref}
+      className="uf-scroll-progress position-fixed top-0 start-0 end-0 z-3 pointer-events-none"
+      aria-hidden="true"
     />
   );
 }

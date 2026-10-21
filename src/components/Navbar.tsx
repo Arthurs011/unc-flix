@@ -1,9 +1,10 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Search, Clapperboard, LayoutGrid, ChevronDown, BookmarkPlus, Home, Tv, Film } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
-import { springSnappy } from "@/lib/motion";
+import { revealNow } from "@/lib/anim";
+import { STATE_TRANSITION } from "@/lib/motion";
 import SearchBox from "@/components/SearchBox";
 import { useAutoHideNav } from "@/hooks/useAutoHideNav";
 import MobileNav from "@/components/MobileNav";
@@ -28,11 +29,13 @@ const LINKS = [
 export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
-  const navigate = useNavigate();
   const location = useLocation();
 
   const searchWrapRef = useRef<HTMLDivElement>(null);
   const browseRef = useRef<HTMLDivElement>(null);
+  const browseMenuRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLDivElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -63,14 +66,20 @@ export default function Navbar() {
     setBrowseOpen(false);
   }, [location.pathname]);
 
+  // Entrance reveal for the floating pill.
+  useEffect(() => {
+    revealNow(pillRef.current, { y: -40, duration: 550 });
+  }, []);
+
   const navHidden = useAutoHideNav();
-  const { scrollY } = useScroll();
-  const pillBg = useTransform(scrollY, [0, 180], ["rgba(13,15,23,0.45)", "rgba(13,15,23,0.88)"]);
-  const pillShadow = useTransform(
-    scrollY,
-    [0, 180],
-    ["0 8px 32px rgba(0,0,0,0.25)", "0 16px 48px rgba(0,0,0,0.55)"]
-  );
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   if (location.pathname.startsWith("/watch/") || /^\/watch\/?$/.test(location.pathname)) return null;
 
@@ -79,27 +88,25 @@ export default function Navbar() {
       <MobileNav />
 
       {/* ===== Desktop floating pill nav ===== */}
-      <motion.nav
-        initial={{ y: -72, opacity: 0 }}
-        animate={{ y: navHidden ? -96 : 0, opacity: 1 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed top-4 left-0 right-0 z-50 hidden md:flex justify-center pointer-events-none"
+      <nav
+        className={cn(
+          "uf-topnav position-fixed top-0 start-0 end-0 z-50 d-none d-md-flex justify-content-center pointer-events-none pt-3",
+          navHidden && "uf-topnav-hidden",
+          scrolled && "uf-scrolled"
+        )}
         aria-label="Desktop navigation"
       >
-        <motion.div
-          style={{ backgroundColor: pillBg, boxShadow: pillShadow }}
-          className="pointer-events-auto flex items-center gap-1 h-16 pl-5 pr-2 rounded-full glass-strong ring-1 ring-white/10"
-        >
-          <Link to="/" className="flex items-center gap-2.5 mr-4 group">
-            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-glow-sm group-hover:rotate-12 transition-transform duration-500">
-              <Clapperboard className="w-4 h-4" />
+        <div ref={pillRef} className="uf-nav-pill pointer-events-auto d-flex align-items-center gap-1 rounded-pill glass-strong px-2 shadow-card">
+          <Link to="/" className="d-flex align-items-center gap-2 me-3 text-decoration-none text-white">
+            <span className="uf-logo-tile rounded-3 d-inline-flex align-items-center justify-content-center text-white shadow-glow-sm">
+              <Clapperboard size={16} />
             </span>
-            <span className="text-lg font-extrabold tracking-tight text-white">
+            <span className="fs-5 fw-extrabold fst-normal tracking-tight text-white">
               UNC<span className="text-primary">FLIX</span>
             </span>
           </Link>
 
-          <div className="flex items-center gap-0.5">
+          <div className="d-flex align-items-center">
             {LINKS.slice(0, 3).map((l) => {
               const isActive = location.pathname === l.to;
               return (
@@ -107,63 +114,56 @@ export default function Navbar() {
                   key={l.to}
                   to={l.to}
                   className={cn(
-                    "relative px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors",
-                    isActive ? "text-white" : "text-white/50 hover:text-white"
+                    "uf-nav-link position-relative rounded-pill px-3 py-2 me-1 text-uppercase",
+                    isActive ? "text-white active" : "text-white-50"
                   )}
                 >
-                  {isActive && (
-                    <motion.span
-                      layoutId="nav-active-pill"
-                      transition={springSnappy}
-                      className="absolute inset-0 rounded-full bg-white/[0.09] ring-1 ring-white/10"
-                    />
-                  )}
-                  <span className="relative z-10">{l.label}</span>
+                  {isActive && <span className="uf-nav-active rounded-pill" aria-hidden="true" />}
+                  <span className="position-relative z-1">{l.label}</span>
                 </Link>
               );
             })}
 
             {/* Browse dropdown */}
-            <div className="relative" ref={browseRef}>
+            <div className="position-relative" ref={browseRef}>
               <button
                 onClick={() => setBrowseOpen((o) => !o)}
+                aria-expanded={browseOpen}
+                aria-haspopup="true"
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors outline-none",
-                  browseOpen ? "text-white bg-white/[0.09]" : "text-white/50 hover:text-white"
+                  "uf-nav-link d-inline-flex align-items-center gap-1 border-0 rounded-pill px-3 py-2 text-uppercase",
+                  browseOpen ? "text-white bg-body-secondary" : "text-white-50"
                 )}
               >
                 Browse
-                <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", browseOpen && "rotate-180")} />
+                <ChevronDown
+                  size={13}
+                  className={cn("transition-transform duration-300", browseOpen && "rotate-180")}
+                />
               </button>
 
               <AnimatePresence>
                 {browseOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                    transition={{ duration: 0.18 }}
-                    className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-52 rounded-2xl glass-strong ring-1 ring-white/10 shadow-card-lg p-1.5 origin-top"
+                    key="uf-browse-menu"
+                    ref={browseMenuRef}
+                    className="uf-dropdown glass-strong rounded-4 shadow-card-lg p-2"
+                    initial={{ opacity: 0, x: "-50%", y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: "-50%", y: 6, scale: 0.98 }}
+                    transition={STATE_TRANSITION}
                   >
-                    <p className="px-3 pt-2 pb-1.5 text-[9px] font-bold uppercase tracking-[0.25em] text-white/30">
-                      Popular Genres
-                    </p>
-                    {QUICK_GENRES.map((g, i) => (
-                      <motion.div
+                    <p className="uf-dropdown-kicker px-2 pt-1 pb-1 mb-1 text-uppercase">Popular Genres</p>
+                    {QUICK_GENRES.map((g) => (
+                      <Link
                         key={g.id}
-                        initial={{ opacity: 0, x: -6 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.03 * i }}
+                        to={`/movies?genre=${g.id}`}
+                        onClick={() => setBrowseOpen(false)}
+                        className="uf-menu-item d-flex align-items-center gap-2 px-2 py-2 rounded-3 text-white-50 text-decoration-none small fw-semibold"
                       >
-                        <Link
-                          to={`/movies?genre=${g.id}`}
-                          onClick={() => setBrowseOpen(false)}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-white/60 hover:text-white hover:bg-white/[0.07] transition-colors"
-                        >
-                          <LayoutGrid className="w-3 h-3 text-primary" />
-                          {g.name}
-                        </Link>
-                      </motion.div>
+                        <LayoutGrid size={13} className="text-primary" />
+                        {g.name}
+                      </Link>
                     ))}
                   </motion.div>
                 )}
@@ -172,33 +172,25 @@ export default function Navbar() {
           </div>
 
           {/* Right cluster */}
-          <div className="flex items-center gap-1 ml-3 relative" ref={searchWrapRef}>
-            <AnimatePresence>
-              {searchOpen && (
-                <motion.div
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 300, opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 320, damping: 32 }}
-                  className="overflow-visible relative"
-                >
-                  <SearchBox
-                    variant="pill"
-                    autoFocus
-                    onSubmitted={() => setSearchOpen(false)}
-                    onDismiss={() => setSearchOpen(false)}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
+          <div className="d-flex align-items-center gap-1 ms-3 position-relative" ref={searchWrapRef}>
+            {searchOpen && (
+              <div className="uf-nav-search">
+                <SearchBox
+                  variant="pill"
+                  autoFocus
+                  onSubmitted={() => setSearchOpen(false)}
+                  onDismiss={() => setSearchOpen(false)}
+                />
+              </div>
+            )}
 
             {!searchOpen && (
               <button
                 onClick={() => setSearchOpen(true)}
                 aria-label="Search"
-                className="p-3 rounded-full text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
+                className="uf-icon-btn rounded-pill border-0 text-white-50"
               >
-                <Search className="w-5 h-5" />
+                <Search size={20} />
               </button>
             )}
 
@@ -206,20 +198,19 @@ export default function Navbar() {
               to="/watchlist"
               aria-label="Watchlist"
               className={cn(
-                "p-3 rounded-full transition-all",
+                "uf-icon-btn rounded-pill border-0 text-decoration-none",
                 location.pathname === "/watchlist"
-                  ? "text-primary bg-primary/10"
-                  : "text-white/60 hover:text-white hover:bg-white/[0.08]"
+                  ? "text-primary bg-primary bg-opacity-10"
+                  : "text-white-50"
               )}
             >
-              <BookmarkPlus className="w-5 h-5" />
+              <BookmarkPlus size={20} />
             </Link>
 
             <AccountMenu />
           </div>
-        </motion.div>
-      </motion.nav>
-
+        </div>
+      </nav>
     </>
   );
 }
