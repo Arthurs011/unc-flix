@@ -61,13 +61,26 @@ export default function ContentRow({ title, kicker, movies, type, showRank, expl
         <div>
           {kicker && <p className="kicker mb-2">{kicker}</p>}
           <h2 className="uf-section-title mb-0">{title}</h2>
+          {exploreTo && safeMovies.length > 5 && (
+            /* On a phone the rail is a dead end: it scrolls sideways and there
+               is no arrow and no "explore all", so the rest of the catalogue
+               was unreachable from the row. This is the way out. */
+            <Link
+              to={exploreTo}
+              className="d-md-none uf-chip uf-chip-sm mt-2 text-decoration-none"
+              style={{ fontSize: "0.6875rem", letterSpacing: "0.08em" }}
+            >
+              See all
+              <ArrowRight size={12} />
+            </Link>
+          )}
         </div>
         <div className="d-flex align-items-center gap-3">
           {exploreTo && safeMovies.length > 5 && (
             <Link
               to={exploreTo}
               className="d-none d-md-flex align-items-center gap-2 text-uppercase text-decoration-none mb-1"
-              style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.35)" }}
+              style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.12em", color: "var(--uf-muted)" }}
             >
               Explore all
               <ArrowRight size={14} />

@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import {
   setRemoteUser,
   resetSyncedCaches,
+  clearLocalLibrary,
   syncContinueWatchingForUser,
   syncWatchlistForUser,
 } from "@/lib/storage";
@@ -100,6 +101,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     setRemoteUser(null);
     clearProfile();
+    // The local library belongs to the account that is signing out. Leaving it
+    // in localStorage would hand it to the next person to sign in on this
+    // browser; the account's own copy is safe on the server.
+    clearLocalLibrary();
     await supabase.auth.signOut();
   }, []);
 

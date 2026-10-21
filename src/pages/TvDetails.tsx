@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Play, Plus, Check, Star, ArrowLeft, X, Film, Clock } from "lucide-react";
-import { tmdb, Movie, Review, Episode, SeasonDetails, MovieDetails as MD, imgUrl, posterUrl, getTitle, getYear } from "@/lib/tmdb";
+import { Play, Plus, Check, Star, ArrowLeft, Film, Clock } from "lucide-react";
+import { tmdb, Movie, Review, Episode, SeasonDetails, MovieDetails as MD, imgUrl, posterUrl, getTitle, getYear, srcSetUrl } from "@/lib/tmdb";
 import { addRecentlyViewed } from "@/lib/storage";
 import { useWatchlistItem } from "@/hooks/useWatchlist";
 import { useContinueWatching } from "@/hooks/useContinueWatching";
 import PageShell from "@/components/PageShell";
 import ScrollProgress from "@/components/ScrollProgress";
+import TrailerModal from "@/components/TrailerModal";
 import { DetailSkeleton } from "@/components/LoadingSkeleton";
 import ContentRow from "@/components/ContentRow";
 import ReviewsSection from "@/components/ReviewsSection";
@@ -156,32 +157,7 @@ export default function TvDetailsPage() {
       <ScrollProgress />
       {/* Trailer modal */}
       {showTrailer && trailerKey && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Trailer"
-          className="uf-trailer-overlay"
-          onClick={() => setShowTrailer(false)}
-        >
-          <div className="uf-trailer-frame" onClick={(e) => e.stopPropagation()}>
-            <iframe
-              src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`}
-              title="Trailer"
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-              className="w-100 h-100"
-              style={{ border: 0 }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowTrailer(false)}
-              aria-label="Close trailer"
-              className="uf-trailer-close glass"
-            >
-              <X size={20} />
-            </button>
-          </div>
-        </div>
+        <TrailerModal videoId={trailerKey} onClose={() => setShowTrailer(false)} />
       )}
 
       {/* Backdrop */}
@@ -190,6 +166,8 @@ export default function TvDetailsPage() {
           <img
             ref={backdropImgRef}
             src={imgUrl(show.backdrop_path, "w1280", true)}
+            srcSet={srcSetUrl(show.backdrop_path)}
+            sizes="100vw"
             alt=""
             className="uf-details-hero-img"
           />
@@ -278,9 +256,11 @@ export default function TvDetailsPage() {
                 type="button"
                 onClick={toggle}
                 aria-label={inWL ? "Remove from watchlist" : "Add to watchlist"}
-                className="uf-btn uf-btn-glass uf-btn-round"
+                aria-pressed={inWL}
+                className="uf-btn uf-btn-glass uf-btn-pill"
               >
                 {inWL ? <Check size={20} className="uf-check" /> : <Plus size={20} />}
+                {inWL ? "Saved" : "My List"}
               </button>
             </div>
           </div>

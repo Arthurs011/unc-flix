@@ -58,11 +58,9 @@
     padding-top: 6rem;
   }
 }
-@media (min-width: 992px) {
-  .uf-watch-grid {
-    grid-template-columns: minmax(0, 1fr) 370px;
-  }
-}
+/* The two-column layout waits until there is genuinely room for it. At 992px
+   the player was squeezed into 548px beside a 370px sidebar, which made the
+   thing people came to watch the smallest element on the page. */
 @media (min-width: 1200px) {
   .uf-watch-grid {
     grid-template-columns: minmax(0, 1fr) 410px;
@@ -128,6 +126,107 @@
   .uf-stage-player {
     border-radius: 1.7rem;
   }
+}
+
+/* ---------- Player waiting / failure state ---------- */
+/* The app owns the wait for the third-party embed: the artwork shows through
+   a blur, a spinner says what is happening, and a dead embed gets a way out
+   instead of a black rectangle. */
+.uf-player-wait {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  /* Clicks go through to the embed: it may start before we notice. */
+  pointer-events: none;
+  background: rgba(8, 10, 16, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  text-align: center;
+}
+.uf-player-wait-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.28;
+  filter: blur(6px) saturate(0.8);
+}
+.uf-player-wait-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 26rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+}
+
+/* ---------- Slow-player hint (never covers the video) ---------- */
+.uf-player-hint {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 22;
+  width: min(19rem, calc(100% - 2rem));
+  padding: 0.875rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--uf-shadow-3);
+}
+.uf-player-hint-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.25rem;
+  padding-right: 1.5rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #fff;
+}
+.uf-player-hint-text {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--uf-muted);
+}
+
+/* ---------- Next episode countdown ---------- */
+.uf-nextup {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 25;
+  width: min(20rem, calc(100% - 2rem));
+  padding: 1rem 1.125rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: var(--uf-shadow-3);
+  animation: uf-nextup-in 320ms var(--uf-ease) both;
+}
+@keyframes uf-nextup-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.uf-nextup-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+  line-height: 1.35;
 }
 
 /* ---------- Like / dislike / share dock ---------- */
@@ -886,6 +985,37 @@
 .uf-account-wrap {
   max-width: 48rem;
   margin-inline: auto;
+}
+
+/* Signed-out gate: the account page used to be a single button on an empty
+   screen. It now says what an account is for before asking for one. */
+.uf-account-gate {
+  max-width: 30rem;
+  margin-inline: auto;
+}
+.uf-gate-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.uf-gate-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.78);
+  text-align: left;
+}
+.uf-gate-list li svg {
+  color: var(--uf-primary);
+  flex-shrink: 0;
 }
 .uf-back-link {
   display: inline-flex;

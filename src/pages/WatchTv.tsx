@@ -4,14 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { getContinueWatching, updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, MovieDetails, Episode, SeasonDetails, imgUrl, formatCount } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
+import { usePlayerShortcuts, toggleStageFullscreen } from "@/hooks/usePlayerShortcuts";
 import { SOURCES } from "@/lib/servers";
 import PageShell from "@/components/PageShell";
 import ScrollProgress from "@/components/ScrollProgress";
+import PlayerFrame from "@/components/PlayerFrame";
 import WatchHeader from "@/components/WatchHeader";
 import { revealNow } from "@/lib/anim";
 import "@/styles/watch.css";
 
 const CINESRC_ORIGIN = SOURCES[0].baseUrl;
+
+/** How long the viewer has to cancel the next episode. */
+const NEXT_EPISODE_SECONDS = 6;
 
 export default function WatchTv() {
   const { id, season, episode } = useParams();
@@ -24,6 +29,13 @@ export default function WatchTv() {
   const [seasonData, setSeasonData] = useState<SeasonDetails | null>(null);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
+  // True once the embed reports playback, which dismisses the app-owned
+  // loading state.
+  const [playing, setPlaying] = useState(false);
+  // The next episode the embed asked for, with the countdown that gives the
+  // viewer a chance to stay on this one.
+  const [pendingNext, setPendingNext] = useState<{ season: number; episode: number } | null>(null);
+  const [countdown, setCountdown] = useState(0);
   const [liveEp, setLiveEp] = useState<{ season: number; episode: number } | null>(null);
   const lastSaveRef = useRef(0);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -99,6 +111,7 @@ export default function WatchTv() {
       if (!data || typeof data !== "object") return;
 
       if (data.type === "cinesrc:timeupdate" && typeof data.currentTime === "number" && typeof data.duration === "number" && data.duration > 0) {
+        setPlaying(true);
         const now = Date.now();
         if (now - lastSaveRef.current < 15000) return;
         lastSaveRef.current = now;
@@ -140,7 +153,10 @@ export default function WatchTv() {
             });
           }
         } else {
-          navigate(`/watch/tv/${id}/${ns}/${ne}`, { replace: true });
+          // The embed is asking us to move on. It used to happen instantly,
+          // which meant the viewer was thrown into the next episode with no
+          // way to stay on the one they were watching.
+          setPendingNext({ season: ns, episode: ne });
         }
       }
     };
@@ -149,6 +165,42 @@ export default function WatchTv() {
   }, [id, ds, de, show, navigate]);
 
   const embedSrc = SOURCES[0].build("tv", id || "", s, e);
+
+  // The countdown to the next episode. It only runs while a next episode is
+  // pending, and cancelling it stops the timer for good.
+  useEffect(() => {
+    if (!pendingNext) return;
+    setCountdown(NEXT_EPISODE_SECONDS);
+    const timer = window.setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) {
+          window.clearInterval(timer);
+          navigate(`/watch/tv/${id}/${pendingNext.season}/${pendingNext.episode}`, { replace: true });
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [pendingNext, navigate, id]);
+
+  const pendingTitle =
+    seasonData?.episodes.find(
+      (ep) => ep.season_number === pendingNext?.season && ep.episode_number === pendingNext?.episode,
+    )?.name ?? nextEp?.name ?? "Next episode";
+
+  // Keyboard control: the arrows move through the season, F goes fullscreen.
+  const goToEpisode = (episodeNumber: number) => {
+    const target = seasonData?.episodes.find((ep) => ep.episode_number === episodeNumber);
+    if (!target) return;
+    navigate(`/watch/tv/${id}/${ds}/${target.episode_number}`);
+  };
+
+  usePlayerShortcuts({
+    onNext: () => goToEpisode(de + 1),
+    onPrevious: () => goToEpisode(de - 1),
+    onFullscreen: toggleStageFullscreen,
+  });
 
   if (!loading && !show) {
     return (
@@ -194,21 +246,47 @@ export default function WatchTv() {
               <section className="uf-stage">
                 <div className="uf-stage-glow" aria-hidden="true" />
                 <div className="uf-stage-frame">
-                  <div className="uf-stage-player">
-                    <iframe
-                      key={embedSrc}
-                      src={embedSrc}
-                      className="position-absolute top-0 start-0 w-100 h-100 border-0"
-                      style={{ zIndex: 10 }}
-                      allowFullScreen
-                      allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
-                      title={`S${s} E${e} player`}
-                      loading="eager"
-                    />
-                  </div>
+                  <PlayerFrame
+                    src={embedSrc}
+                    title={`S${s} E${e} player`}
+                    poster={show?.backdrop_path || show?.poster_path}
+                    playing={playing}
+                  />
                 </div>
+
+                {/* Next episode countdown */}
+                {pendingNext && (
+                  <div className="uf-nextup glass-strong" role="status" aria-live="polite">
+                    <p className="kicker mb-1">Up next</p>
+                    <p className="uf-nextup-title">
+                      S{pendingNext.season} · E{pendingNext.episode} — {pendingTitle}
+                    </p>
+                    <p className="mb-3" style={{ fontSize: "0.8125rem", color: "var(--uf-muted)" }}>
+                      Starting in {countdown}s
+                    </p>
+                    <div className="d-flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(`/watch/tv/${id}/${pendingNext.season}/${pendingNext.episode}`, {
+                            replace: true,
+                          })
+                        }
+                        className="uf-btn uf-btn-sm btn-gradient rounded-pill px-3"
+                      >
+                        <Play size={14} />
+                        Play now
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPendingNext(null)}
+                        className="uf-btn uf-btn-sm uf-btn-glass rounded-pill px-3"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Action dock */}
                 <div className="uf-action-dock d-none d-sm-flex glass-strong">

@@ -8,6 +8,7 @@ import ContinueRow from "@/components/ContinueRow";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { HeroSkeleton, RowSkeleton } from "@/components/LoadingSkeleton";
+import ErrorState from "@/components/ErrorState";
 import { cn } from "@/lib/utils";
 import { revealStagger } from "@/lib/anim";
 import "@/styles/browse.css";
@@ -38,31 +39,56 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [loadingGenre, setLoadingGenre] = useState(false);
   const [error, setError] = useState(false);
+  // Which rails failed. One dead endpoint must not blank the whole home page.
+  const [failed, setFailed] = useState<string[]>([]);
+  const [attempt, setAttempt] = useState(0);
 
   const pillsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    Promise.all([
-      tmdb.trending(),
-      tmdb.popular(),
-      tmdb.topRated(),
-      tmdb.tvPopular(),
-      tmdb.upcoming(),
-    ])
-      .then(([t, p, tr, tv, u]) => {
-        setTrending(t?.results ?? []);
-        setPopular(p?.results ?? []);
-        setTopRated(tr?.results ?? []);
-        setTvShows(tv?.results ?? []);
-        setUpcoming(u?.results ?? []);
-        setRecent(getRecentlyViewed() || []);
-      })
-      .catch((err) => {
-        console.error("TMDB Fetch Error:", err);
-        setError(true);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+
+    const requests: [string, () => Promise<{ results?: Movie[] }>][] = [
+      ["trending", () => tmdb.trending()],
+      ["popular", () => tmdb.popular()],
+      ["topRated", () => tmdb.topRated()],
+      ["tv", () => tmdb.tvPopular()],
+      ["upcoming", () => tmdb.upcoming()],
+    ];
+
+    // Promise.all used to reject on the first failure, which emptied every
+    // rail because one endpoint had a bad day. Settled results let each rail
+    // stand or fall on its own.
+    Promise.allSettled(requests.map(([, run]) => run())).then((results) => {
+      if (cancelled) return;
+
+      const broken: string[] = [];
+      results.forEach((result, i) => {
+        const name = requests[i][0];
+        if (result.status === "rejected") {
+          console.error(`TMDB fetch failed: ${name}`, result.reason);
+          broken.push(name);
+          return;
+        }
+        const list = result.value?.results ?? [];
+        if (name === "trending") setTrending(list);
+        if (name === "popular") setPopular(list);
+        if (name === "topRated") setTopRated(list);
+        if (name === "tv") setTvShows(list);
+        if (name === "upcoming") setUpcoming(list);
+      });
+
+      setFailed(broken);
+      setError(broken.length === requests.length);
+      setRecent(getRecentlyViewed() || []);
+      setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
 
   useEffect(() => {
     if (selectedGenre === null) {
@@ -90,38 +116,28 @@ export default function Index() {
 
   if (error) {
     return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center p-4">
-        <div className="text-center" style={{ maxWidth: "28rem" }}>
-          <h2
-            className="fw-extrabold text-white mb-3"
-            style={{ fontSize: "1.875rem", letterSpacing: "-0.02em" }}
-          >
-            Something went wrong
-          </h2>
-          <p className="text-body-secondary" style={{ marginBottom: "2rem" }}>
-            We couldn't load the content. Please check your internet connection.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="uf-btn uf-btn-md btn-gradient rounded-4"
-          >
-            Retry
-          </button>
+      <PageShell className="min-vh-100 d-flex align-items-center justify-content-center p-4">
+        <div style={{ maxWidth: "32rem" }}>
+          <ErrorState
+            title="The catalogue did not load"
+            message="We couldn't reach the movie service. This is usually temporary — check your connection and try again."
+            onRetry={() => setAttempt((a) => a + 1)}
+          />
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-vh-100">
+      <PageShell className="min-vh-100">
         <HeroSkeleton />
         <div className="page-container mt-5" style={{ paddingBottom: "8rem" }}>
           <RowSkeleton />
           <RowSkeleton />
           <RowSkeleton />
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -130,6 +146,16 @@ export default function Index() {
       <HeroBanner movies={trending} />
 
       <div className="page-container uf-overlap">
+        {failed.length > 0 && (
+          <div className="mb-4">
+            <ErrorState
+              compact
+              message={`Some rows did not load (${failed.length} of 5). The rest of the page is live.`}
+              onRetry={() => setAttempt((a) => a + 1)}
+            />
+          </div>
+        )}
+
         {/* Mood pills */}
         <div
           ref={pillsRef}

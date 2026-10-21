@@ -6,6 +6,7 @@ import ContentRow from "@/components/ContentRow";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { GridSkeleton } from "@/components/LoadingSkeleton";
+import ErrorState from "@/components/ErrorState";
 import { cn } from "@/lib/utils";
 import { revealNow, revealStagger } from "@/lib/anim";
 import { SlidersHorizontal, Check, Clapperboard, Loader2 } from "lucide-react";
@@ -33,6 +34,7 @@ export default function MoviesPage() {
   );
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -57,6 +59,7 @@ export default function MoviesPage() {
     try {
       if (reset) setLoading(true);
       else setLoadingMore(true);
+      setError(false);
 
       const res = await tmdb.popular(p, selectedGenre ?? undefined);
 
@@ -64,6 +67,9 @@ export default function MoviesPage() {
       setTotalPages(res.total_pages ?? 1);
     } catch (err) {
       console.error(err);
+      // A failed request is not an empty genre. Keeping the two apart stops an
+      // outage from reading as "nothing matches here".
+      setError(true);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -126,7 +132,7 @@ export default function MoviesPage() {
             </h1>
             <p
               className="text-uppercase fw-bold mb-0"
-              style={{ fontSize: "10px", letterSpacing: "0.25em", color: "rgba(255,255,255,0.35)" }}
+              style={{ fontSize: "10px", letterSpacing: "0.25em", color: "var(--uf-muted)" }}
             >
               Exploring {selectedGenre ? genres.find((g) => g.id === selectedGenre)?.name ?? "Everything" : "Everything"}
             </p>
@@ -149,7 +155,7 @@ export default function MoviesPage() {
               style={{
                 fontSize: "11px",
                 letterSpacing: "0.12em",
-                color: "rgba(255,255,255,0.4)",
+                color: "var(--uf-muted)",
                 background: "rgba(255,255,255,0.04)",
                 border: "1px solid rgba(255,255,255,0.08)",
               }}
@@ -173,7 +179,7 @@ export default function MoviesPage() {
           {/* Filter sidebar */}
           {showFilters && (
             <aside className="uf-filter-aside uf-panel-in">
-              <h3 className="kicker mb-3" style={{ color: "rgba(255,255,255,0.3)" }}>
+              <h3 className="kicker mb-3" style={{ color: "var(--uf-muted)" }}>
                 Genres
               </h3>
               <div
@@ -200,8 +206,14 @@ export default function MoviesPage() {
           )}
 
           {/* Grid */}
-          <main className="flex-grow-1" style={{ minWidth: 0 }}>
-            {loading ? (
+          <div className="flex-grow-1" style={{ minWidth: 0 }}>
+            {error && movies.length === 0 ? (
+              <ErrorState
+                title="The catalogue did not load"
+                message="We couldn't reach the movie service. This is usually temporary — check your connection and try again."
+                onRetry={() => fetchMovies(1, true)}
+              />
+            ) : loading ? (
               <GridSkeleton />
             ) : movies.length === 0 ? (
               <div
@@ -211,7 +223,7 @@ export default function MoviesPage() {
                 <Clapperboard size={56} style={{ color: "rgba(255,255,255,0.15)" }} className="mx-auto mb-4" />
                 <h2
                   className="fw-extrabold mb-5"
-                  style={{ fontSize: "1.25rem", letterSpacing: "-0.02em", color: "rgba(255,255,255,0.4)" }}
+                  style={{ fontSize: "1.25rem", letterSpacing: "-0.02em", color: "var(--uf-muted)" }}
                 >
                   No matches found
                 </h2>
@@ -237,20 +249,30 @@ export default function MoviesPage() {
               </div>
             )}
 
+            {error && movies.length > 0 && (
+              <div className="mb-4">
+                <ErrorState
+                  compact
+                  message="We couldn't load more titles. The ones below are still here."
+                  onRetry={() => fetchMovies(page + 1, false)}
+                />
+              </div>
+            )}
+
             <div ref={observerRef} className="py-5 d-flex justify-content-center">
               {loadingMore && (
                 <div className="d-flex flex-column align-items-center gap-3">
                   <Loader2 size={32} className="text-primary spin" />
                   <span
                     className="text-uppercase fw-bold"
-                    style={{ fontSize: "10px", letterSpacing: "0.35em", color: "rgba(255,255,255,0.25)" }}
+                    style={{ fontSize: "10px", letterSpacing: "0.35em", color: "var(--uf-muted)" }}
                   >
                     Loading more
                   </span>
                 </div>
               )}
             </div>
-          </main>
+          </div>
         </div>
       </div>
     </PageShell>

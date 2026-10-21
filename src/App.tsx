@@ -6,9 +6,12 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { HeroSkeleton } from "@/components/LoadingSkeleton";
 import Navbar from "@/components/Navbar";
 import BackToTop from "@/components/BackToTop";
+import ScrollManager from "@/components/ScrollManager";
+import ShortcutsDialog from "@/components/ShortcutsDialog";
+import PageShell from "@/components/PageShell";
 import { AuthProvider } from "@/contexts/AuthProvider";
 
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
 const Index = lazy(() => import("./pages/Index"));
 const MovieDetails = lazy(() => import("./pages/MovieDetails"));
@@ -63,6 +66,29 @@ const AnimatedRoutes = () => {
 };
 
 const App = () => {
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // "?" opens the shortcut list from anywhere, as long as the visitor is not
+  // typing into a field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "?" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      e.preventDefault();
+      setShortcutsOpen(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <MotionConfig reducedMotion="user">
@@ -73,15 +99,27 @@ const App = () => {
             <ErrorBoundaryWithReset>
               <a
                 href="#main-content"
-                className="visually-hidden-focusable position-fixed top-0 start-0 z-3 m-2 btn btn-gradient btn-sm"
+                className="visually-hidden-focusable position-fixed top-0 start-0 z-100 m-2 btn btn-gradient btn-sm"
               >
                 Skip to content
               </a>
-              <Navbar />
-              <Suspense fallback={<HeroSkeleton />}>
+              <Navbar onOpenShortcuts={() => setShortcutsOpen(true)} />
+              <ScrollManager />
+              <Suspense
+                /* The fallback keeps the main landmark, so the skip link
+                   still has a target while a lazy route is loading. */
+                fallback={
+                  <PageShell className="min-vh-100">
+                    <HeroSkeleton />
+                  </PageShell>
+                }
+              >
                 <AnimatedRoutes />
               </Suspense>
               <BackToTop />
+              {shortcutsOpen && (
+                <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />
+              )}
             </ErrorBoundaryWithReset>
           </AuthProvider>
         </BrowserRouter>

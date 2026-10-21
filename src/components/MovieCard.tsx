@@ -18,7 +18,7 @@ export default function MovieCard({ movie, type, rank, className, priority = fal
   const to = mediaType === "tv" ? `/tv/${movie.id}` : `/movie/${movie.id}`;
 
   return (
-    <div className={cn("uf-poster-card w-100", className)}>
+    <div className={cn("uf-poster-card", className)}>
       <motion.div
         className="w-100"
         whileTap={{ scale: 0.985 }}
@@ -26,7 +26,7 @@ export default function MovieCard({ movie, type, rank, className, priority = fal
       >
         <Link to={to} className="uf-poster w-100">
           <img
-            src={posterUrl(movie, "w342")}
+            src={posterUrl(movie, "w500")}
             alt={getTitle(movie)}
             loading={priority ? "eager" : "lazy"}
             decoding="async"

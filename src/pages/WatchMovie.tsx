@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, imgUrl, posterUrl, Movie, MovieDetails, formatCount, getYear } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
+import { usePlayerShortcuts, toggleStageFullscreen } from "@/hooks/usePlayerShortcuts";
 import { SOURCES } from "@/lib/servers";
 import PageShell from "@/components/PageShell";
 import ScrollProgress from "@/components/ScrollProgress";
+import PlayerFrame from "@/components/PlayerFrame";
 import WatchHeader from "@/components/WatchHeader";
 import { revealNow } from "@/lib/anim";
 import "@/styles/watch.css";
@@ -21,6 +23,9 @@ export default function WatchMovie() {
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
   const [liked, setLiked] = useState(false);
   const [disliked, setDisliked] = useState(false);
+  // True once the embed reports playback, which is what dismisses the
+  // app-owned loading state.
+  const [playing, setPlaying] = useState(false);
   const lastSaveRef = useRef(0);
   const stageRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
@@ -63,6 +68,7 @@ export default function WatchMovie() {
       if (!data || typeof data !== "object") return;
 
       if (data.type === "cinesrc:timeupdate" && typeof data.currentTime === "number" && typeof data.duration === "number" && data.duration > 0 && id) {
+        setPlaying(true);
         const now = Date.now();
         if (now - lastSaveRef.current < 15000 || !movie) return;
         lastSaveRef.current = now;
@@ -82,6 +88,9 @@ export default function WatchMovie() {
   }, [id, movie]);
 
   const embedSrc = SOURCES[0].build("movie", id || "");
+
+  // Keyboard control: F goes fullscreen.
+  usePlayerShortcuts({ onFullscreen: toggleStageFullscreen });
 
   if (!loading && !movie) {
     return (
@@ -126,20 +135,12 @@ export default function WatchMovie() {
               <section className="uf-stage">
                 <div className="uf-stage-glow" aria-hidden="true" />
                 <div className="uf-stage-frame">
-                  <div className="uf-stage-player">
-                    <iframe
-                      key={embedSrc}
-                      src={embedSrc}
-                      className="position-absolute top-0 start-0 w-100 h-100 border-0"
-                      style={{ zIndex: 10 }}
-                      allowFullScreen
-                      allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
-                      title={movie ? `${getTitle(movie)} player` : "Streaming player"}
-                      loading="eager"
-                    />
-                  </div>
+                  <PlayerFrame
+                    src={embedSrc}
+                    title={movie ? `${getTitle(movie)} player` : "Streaming player"}
+                    poster={movie?.backdrop_path || movie?.poster_path}
+                    playing={playing}
+                  />
                 </div>
 
                 {/* Action dock */}

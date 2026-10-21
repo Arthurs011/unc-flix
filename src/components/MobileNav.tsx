@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, Clapperboard, X, Home, Tv, Film, BookmarkPlus, LayoutGrid } from "lucide-react";
+import { Search, Clapperboard, X, Home, Tv, Film, BookmarkPlus, LayoutGrid, Keyboard } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -21,8 +21,11 @@ const QUICK_GENRES = [
   { id: 27, name: "Horror" },
 ];
 
-export default function MobileNav() {
+export default function MobileNav({ onOpenShortcuts }: { onOpenShortcuts?: () => void }) {
   const [searchOpen, setSearchOpen] = useState(false);
+  // Over the hero the bar is invisible; once the page moves it becomes glass,
+  // so the logo never floats on a poster.
+  const [scrolled, setScrolled] = useState(false);
   // Held here, not inside SearchBox, so the quick-genre chips can hide as soon
   // as the field has text in it.
   const [query, setQuery] = useState("");
@@ -32,7 +35,11 @@ export default function MobileNav() {
   useEffect(() => {
     setSearchOpen(false);
     setQuery("");
-  }, [location.pathname]);
+    // The search query matters here as much as the path: a quick genre chip
+    // navigates from /movies to /movies?genre=28, which leaves the pathname
+    // untouched. Watching the path alone left the sheet open over the page
+    // the user just asked for.
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     document.body.style.overflow = searchOpen ? "hidden" : "";
@@ -41,10 +48,22 @@ export default function MobileNav() {
     };
   }, [searchOpen]);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <>
       {/* ===== Top bar ===== */}
-      <header className="uf-mobile-topbar glass-strong d-md-none">
+      <header
+        className={cn(
+          "uf-mobile-topbar d-md-none",
+          scrolled ? "glass-strong uf-topbar-solid" : "uf-topbar-clear"
+        )}
+      >
         <div className="d-flex align-items-center justify-content-between px-3" style={{ height: "4rem" }}>
           <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none text-white py-2">
             <span className="uf-logo-tile rounded-3 d-inline-flex align-items-center justify-content-center text-white shadow-glow-sm">
@@ -63,6 +82,16 @@ export default function MobileNav() {
             >
               <Search size={20} />
             </button>
+            {onOpenShortcuts && (
+              <button
+                onClick={onOpenShortcuts}
+                aria-label="Keyboard shortcuts"
+                className="uf-icon-btn rounded-circle border-0 d-none d-sm-inline-flex"
+                style={{ color: "rgba(255,255,255,0.75)" }}
+              >
+                <Keyboard size={18} />
+              </button>
+            )}
             <AccountMenu />
           </div>
         </div>

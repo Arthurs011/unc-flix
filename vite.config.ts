@@ -12,6 +12,14 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [react()],
+  optimizeDeps: {
+    // Pre-bundle the router and the query client explicitly. When Vite
+    // re-optimises mid-session it can hand two copies of react-router-dom to
+    // the page, and the second copy's <Link> renders outside the first copy's
+    // router context - which crashes the page with "cannot destructure
+    // property 'basename'".
+    include: ["react", "react-dom", "react-router-dom", "@tanstack/react-query"],
+  },
   build: {
     rollupOptions: {
       output: {
@@ -29,6 +37,14 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
+    dedupe: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "react-router-dom",
+      "@tanstack/react-query",
+      "@tanstack/query-core",
+    ],
   },
 }));

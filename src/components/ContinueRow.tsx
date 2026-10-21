@@ -82,7 +82,7 @@ export default function ContinueRow() {
       <div className="uf-rail-wrap">
         <div ref={scrollRef} onScroll={updateArrows} className="uf-rail">
           {items.map((item) => (
-            <div key={item.id} className="uf-continue-card position-relative">
+            <div key={`${item.type}:${item.id}`} className="uf-continue-card position-relative">
               <Link
                 to={
                   item.type === "tv"

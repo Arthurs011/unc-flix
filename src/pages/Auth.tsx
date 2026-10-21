@@ -25,15 +25,21 @@ export default function Auth() {
   const location = useLocation();
   usePageTitle(mode === "signin" ? "Sign In" : "Create Account");
 
-  const from = (location.state as { from?: string } | null)?.from ?? "/";
+  // Where to go after signing in. The whole path is carried, so a visitor who
+  // came from /search?q=dune&page=2 lands back on their search instead of the
+  // home page.
+  const rawFrom = (location.state as { from?: string } | null)?.from ?? "/";
+  const from = rawFrom.startsWith("/") ? rawFrom : "/";
 
   useEffect(() => {
     revealNow(shellRef.current, { y: 18, duration: 500 });
   }, []);
 
-  if (!loading && user && !sent) {
-    navigate(from, { replace: true });
-  }
+  // Redirecting from the render body is a side effect during render, which
+  // React can run twice in StrictMode. It belongs in an effect.
+  useEffect(() => {
+    if (!loading && user && !sent) navigate(from, { replace: true });
+  }, [loading, user, sent, from, navigate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +87,7 @@ export default function Auth() {
             <div className="uf-auth-sent">
               <CheckCircle2 className="uf-auth-sent-icon" />
               <p className="fw-bold text-white mb-1" style={{ fontSize: "0.875rem" }}>Check your inbox</p>
-              <p className="mb-0" style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>
+              <p className="mb-0" style={{ fontSize: "0.75rem", color: "var(--uf-muted)", lineHeight: 1.6 }}>
                 We sent a confirmation link to <span style={{ color: "rgba(255,255,255,0.7)" }}>{email}</span>. Click it
                 to finish setting up your account.
               </p>

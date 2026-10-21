@@ -114,7 +114,18 @@ describe("search URLs", () => {
   it("round-trips a query", () => {
     const url = searchUrl("dune");
     const params = new URLSearchParams(url.split("?")[1]);
-    expect(readSearchParams(params)).toEqual({ query: "dune", page: 1 });
+    expect(readSearchParams(params)).toEqual({ query: "dune", page: 1, type: "all" });
+  });
+
+  it("keeps the filter in the URL, so a reload or a shared link keeps it", () => {
+    const url = searchUrl("dune", 2, "tv");
+    const params = new URLSearchParams(url.split("?")[1]);
+    expect(params.get("type")).toBe("tv");
+    expect(readSearchParams(params)).toEqual({ query: "dune", page: 2, type: "tv" });
+  });
+
+  it("ignores a nonsense filter rather than filtering by it", () => {
+    expect(readSearchParams(new URLSearchParams("q=dune&type=banana")).type).toBe("all");
   });
 
   it("trims the query, unlike the old page which sent it raw", () => {

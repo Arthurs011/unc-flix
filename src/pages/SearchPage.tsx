@@ -15,7 +15,7 @@ import {
   searchResultKey,
   searchUrl,
 } from "@/lib/search";
-import { cn } from "@/lib/utils";
+import { cn, scrollTo } from "@/lib/utils";
 import { revealNow, revealStagger } from "@/lib/anim";
 import "@/styles/browse.css";
 
@@ -27,8 +27,10 @@ const FILTERS: { value: TitleType | "all"; label: string }[] = [
 
 export default function SearchPage() {
   const [params, setParams] = useSearchParams();
-  const { query: urlQuery, page } = readSearchParams(params);
-  const [type, setType] = useState<TitleType | "all">("all");
+  // The URL is the source of truth for the query, the page and the filter, so
+  // a reload or a shared link reproduces exactly what the visitor was looking
+  // at.
+  const { query: urlQuery, page, type } = readSearchParams(params);
 
   // The field is editable here. Previously this page had no input at all, so
   // refining a search meant going back to the nav bar.
@@ -44,11 +46,17 @@ export default function SearchPage() {
   }, [urlQuery]);
 
   // Reflect the settled text in the URL. Typing does not push history entries;
-  // replace keeps the back button meaningful.
+  // replace keeps the back button meaningful. The filter is carried across so
+  // typing does not silently reset it.
   useEffect(() => {
     if (debouncedDraft === urlQuery) return;
-    setParams(isSearchable(debouncedDraft) ? { q: debouncedDraft.trim() } : {}, { replace: true });
-  }, [debouncedDraft, urlQuery, setParams]);
+    setParams(
+      isSearchable(debouncedDraft)
+        ? { q: debouncedDraft.trim(), ...(type !== "all" ? { type } : {}) }
+        : {},
+      { replace: true },
+    );
+  }, [debouncedDraft, urlQuery, type, setParams]);
 
   usePageTitle(isSearchable(urlQuery) ? `"${urlQuery}" - Search` : "Search");
 
@@ -70,8 +78,19 @@ export default function SearchPage() {
   }, [isLoading, visible.length, trimmed, type, page]);
 
   const goToPage = (next: number) => {
-    setParams({ q: urlQuery, ...(next > 1 ? { page: String(next) } : {}) });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setParams({
+      q: urlQuery,
+      ...(next > 1 ? { page: String(next) } : {}),
+      ...(type !== "all" ? { type } : {}),
+    });
+    scrollTo(0, true);
+  };
+
+  const setFilter = (next: TitleType | "all") => {
+    setParams({
+      q: urlQuery,
+      ...(next !== "all" ? { type: next } : {}),
+    });
   };
 
   return (
@@ -119,13 +138,13 @@ export default function SearchPage() {
             <Search size={40} style={{ color: "rgba(255,255,255,0.1)" }} className="mx-auto mb-4" />
             <h2
               className="fw-extrabold mb-2"
-              style={{ fontSize: "1.125rem", letterSpacing: "-0.02em", color: "rgba(255,255,255,0.3)" }}
+              style={{ fontSize: "1.125rem", letterSpacing: "-0.02em", color: "var(--uf-muted)" }}
             >
               Start your search
             </h2>
             <p
               className="text-uppercase fw-bold mb-0"
-              style={{ fontSize: "10px", letterSpacing: "0.12em", color: "rgba(255,255,255,0.2)" }}
+              style={{ fontSize: "10px", letterSpacing: "0.12em", color: "var(--uf-muted)" }}
             >
               Find your favorite movies and shows
             </p>
@@ -158,13 +177,13 @@ export default function SearchPage() {
             <Film size={56} style={{ color: "rgba(255,255,255,0.15)" }} className="mx-auto mb-4" />
             <h2
               className="fw-extrabold mb-2"
-              style={{ fontSize: "1.25rem", letterSpacing: "-0.02em", color: "rgba(255,255,255,0.4)" }}
+              style={{ fontSize: "1.25rem", letterSpacing: "-0.02em", color: "var(--uf-muted)" }}
             >
               No matches found
             </h2>
             <p
               className="text-uppercase fw-bold mb-0"
-              style={{ fontSize: "10px", letterSpacing: "0.12em", color: "rgba(255,255,255,0.25)" }}
+              style={{ fontSize: "10px", letterSpacing: "0.12em", color: "var(--uf-muted)" }}
             >
               Try a different title or search for a series instead
             </p>
@@ -178,7 +197,7 @@ export default function SearchPage() {
                 {FILTERS.map((f) => (
                   <button
                     key={f.value}
-                    onClick={() => setType(f.value)}
+                    onClick={() => setFilter(f.value)}
                     aria-pressed={type === f.value}
                     className={cn("uf-chip uf-chip-sm", type === f.value && "active")}
                   >
@@ -186,10 +205,10 @@ export default function SearchPage() {
                   </button>
                 ))}
               </div>
-              <p aria-live="polite" className="mb-0 small fw-medium" style={{ color: "rgba(255,255,255,0.4)" }}>
+              <p aria-live="polite" className="mb-0 small fw-medium" style={{ color: "var(--uf-muted)" }}>
                 {visible.length} result{visible.length === 1 ? "" : "s"}
-                {isFetching && <span className="ms-2" style={{ color: "rgba(255,255,255,0.25)" }}>updating...</span>}
-                {debouncedQuery !== trimmed && <span className="ms-2" style={{ color: "rgba(255,255,255,0.25)" }}>typing...</span>}
+                {isFetching && <span className="ms-2" style={{ color: "var(--uf-muted)" }}>updating...</span>}
+                {debouncedQuery !== trimmed && <span className="ms-2" style={{ color: "var(--uf-muted)" }}>typing...</span>}
               </p>
             </div>
 

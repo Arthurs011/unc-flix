@@ -90,14 +90,14 @@ export default class ErrorBoundary extends Component<Props, State> {
                   fontSize: "0.75rem",
                   fontWeight: 700,
                   letterSpacing: "0.12em",
-                  color: "rgba(255,255,255,0.4)",
+                  color: "var(--uf-muted)",
                 }}
               >
                 Error Details
                 <ChevronDown size={16} className={this.state.showDetails ? "rotate-180" : ""} style={{ transition: "transform 300ms ease" }} />
               </button>
               {this.state.showDetails && (
-                <pre className="px-4 pb-4 pt-1 mb-0 scrollbar-hide" style={{ fontSize: "11px", lineHeight: 1.7, color: "rgba(255,255,255,0.35)", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: "12rem", overflowY: "auto" }}>
+                <pre className="px-4 pb-4 pt-1 mb-0 scrollbar-hide" style={{ fontSize: "11px", lineHeight: 1.7, color: "var(--uf-muted)", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: "12rem", overflowY: "auto" }}>
                   {this.state.error.message}
                   {"\n\n"}
                   {this.state.error.stack}

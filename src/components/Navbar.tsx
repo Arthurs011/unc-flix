@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Search, Clapperboard, LayoutGrid, ChevronDown, BookmarkPlus, Home, Tv, Film } from "lucide-react";
+import { Search, Clapperboard, LayoutGrid, ChevronDown, BookmarkPlus, Home, Tv, Film, Keyboard } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,7 @@ const LINKS = [
   { to: "/watchlist", label: "Saved", icon: BookmarkPlus },
 ];
 
-export default function Navbar() {
+export default function Navbar({ onOpenShortcuts }: { onOpenShortcuts?: () => void }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
   const location = useLocation();
@@ -85,7 +85,7 @@ export default function Navbar() {
 
   return (
     <>
-      <MobileNav />
+      <MobileNav onOpenShortcuts={onOpenShortcuts} />
 
       {/* ===== Desktop floating pill nav ===== */}
       <nav
@@ -97,11 +97,11 @@ export default function Navbar() {
         aria-label="Desktop navigation"
       >
         <div ref={pillRef} className="uf-nav-pill pointer-events-auto d-flex align-items-center gap-1 rounded-pill glass-strong px-2 shadow-card">
-          <Link to="/" className="d-flex align-items-center gap-2 me-3 text-decoration-none text-white">
+          <Link to="/" className="uf-nav-brand d-flex align-items-center gap-2 me-3 text-decoration-none text-white">
             <span className="uf-logo-tile rounded-3 d-inline-flex align-items-center justify-content-center text-white shadow-glow-sm">
               <Clapperboard size={16} />
             </span>
-            <span className="fs-5 fw-extrabold fst-normal tracking-tight text-white">
+            <span className="uf-nav-wordmark fs-5 fw-extrabold fst-normal tracking-tight text-white">
               UNC<span className="text-primary">FLIX</span>
             </span>
           </Link>
@@ -206,6 +206,17 @@ export default function Navbar() {
             >
               <BookmarkPlus size={20} />
             </Link>
+
+            {onOpenShortcuts && (
+              <button
+                onClick={onOpenShortcuts}
+                aria-label="Keyboard shortcuts"
+                title="Keyboard shortcuts"
+                className="uf-icon-btn rounded-pill border-0 d-none d-lg-inline-flex text-white-50"
+              >
+                <Keyboard size={18} />
+              </button>
+            )}
 
             <AccountMenu />
           </div>

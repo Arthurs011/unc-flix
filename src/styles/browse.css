@@ -20,7 +20,7 @@
 /* Browse pages sit under the fixed top navigation */
 .uf-browse-top {
   padding-top: 7rem;
-  /* Clear the fixed mobile bottom dock (hidden at md and up) */
+  /* Clear the fixed mobile bottom dock (hidden from lg up) */
   padding-bottom: 7rem;
 }
 @media (min-width: 768px) {

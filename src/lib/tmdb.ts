@@ -168,6 +168,23 @@ export function imgUrl(path: string | null, size = "w500", wide = false) {
   return path ? `${IMG}/${size}${path}` : blankImg(wide);
 }
 
+/**
+ * A srcset for a backdrop.
+ *
+ * A single 1280px image stretched across a 1600px viewport looks soft on a
+ * retina screen, and a 1920px image on a phone is a lot of bytes for a card.
+ * The browser picks the size it needs.
+ */
+export function srcSetUrl(
+  path: string | null,
+  sizes: string[] = ["w780", "w1280", "w1920"],
+): string | undefined {
+  if (!path) return undefined;
+  return sizes
+    .map((size) => `${IMG}/${size}${path} ${size.replace("w", "")}w`)
+    .join(", ");
+}
+
 export function posterFallback(name?: string | null): string {
   const letter = (name?.trim()?.[0] ?? "?").toUpperCase();
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='342' height='513'><rect width='100%' height='100%' fill='#12141d'/><rect x='1' y='1' width='340' height='511' rx='16' fill='none' stroke='#ffffff14'/><text x='50%' y='50%' fill='#3b82f6' font-family='Arial,sans-serif' font-size='128' font-weight='800' text-anchor='middle' dominant-baseline='central'>${letter}</text></svg>`;

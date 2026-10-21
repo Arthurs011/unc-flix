@@ -31,6 +31,24 @@
   box-shadow: var(--uf-shadow-3);
 }
 
+/* Tablet: the pill has to fit beside the page gutters, so the labels tighten
+   up and the bar gets shorter. Nothing is hidden that a visitor needs. */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .uf-nav-pill {
+    height: 3.5rem;
+    gap: 0.125rem !important;
+  }
+  .uf-nav-brand {
+    margin-right: 0.5rem !important;
+  }
+  .uf-nav-pill .uf-nav-link {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    padding-left: 0.65rem !important;
+    padding-right: 0.65rem !important;
+  }
+}
+
 .uf-logo-tile {
   width: 2.25rem;
   height: 2.25rem;
@@ -264,7 +282,21 @@ a:hover .uf-logo-tile {
   right: 0;
   z-index: 50;
   padding-top: env(safe-area-inset-top, 0px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid transparent;
+  transition: background-color var(--uf-state) var(--uf-ease),
+    border-color var(--uf-state) var(--uf-ease);
+}
+/* At the top of a page the bar is only a scrim over the artwork. */
+.uf-topbar-clear {
+  background: linear-gradient(
+    to bottom,
+    rgba(8, 10, 16, 0.92) 0%,
+    rgba(8, 10, 16, 0.55) 60%,
+    rgba(8, 10, 16, 0) 100%
+  );
+}
+.uf-topbar-solid {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 .uf-dock {
   position: fixed;
@@ -497,6 +529,7 @@ a:hover .uf-logo-tile {
     transform var(--uf-state) var(--uf-ease);
 }
 .uf-poster-card {
+  width: 100%;
   transition: transform var(--uf-state) var(--uf-ease);
 }
 .uf-poster-card:hover {
@@ -577,17 +610,16 @@ a:hover .uf-logo-tile {
 /* Wide rail card used in the row rails */
 /* Rail items must never shrink: the cards' contents are all absolutely
    positioned (poster image, scrim, meta), so their intrinsic size is ~0 and
-   flex-shrink would crush them to slivers once the row overflows. The
-   !important beats Bootstrap's .w-100 so the fixed track width wins. */
+   flex-shrink would crush them to slivers once the row overflows. */
 .uf-rail > * {
   flex: 0 0 auto;
 }
 .uf-rail .uf-rail-card {
-  width: 160px !important;
+  width: var(--uf-rail-card-w);
 }
 @media (min-width: 576px) {
   .uf-rail .uf-rail-card {
-    width: 200px !important;
+    width: var(--uf-rail-card-w-lg);
   }
 }
 
@@ -600,12 +632,22 @@ a:hover .uf-logo-tile {
 .uf-hero {
   position: relative;
   width: 100%;
-  height: 92vh;
+  /* Leave room for the fixed bottom dock and the first row of content, so the
+     mood pills are not born underneath it. */
+  height: calc(100vh - 11rem);
+  height: calc(100svh - 11rem);
+  min-height: 24rem;
   overflow: hidden;
 }
-@media (min-width: 576px) {
+@media (min-width: 768px) {
   .uf-hero {
-    height: 96vh;
+    height: 88vh;
+    min-height: 0;
+  }
+}
+@media (min-width: 992px) {
+  .uf-hero {
+    height: 94vh;
   }
 }
 .uf-hero-img {
@@ -637,10 +679,11 @@ a:hover .uf-logo-tile {
   margin-right: 0.24em;
 }
 
-/* Hero arrows + content + progress dots */
+/* Hero arrows: parked with the dots instead of floating over the title. The
+   old centred arrows landed on the headline on short viewports. */
 .uf-hero-arrow {
-  top: 50%;
-  transform: translateY(-50%);
+  top: auto;
+  bottom: clamp(2rem, 8vw, 6rem);
   width: 3.25rem;
   height: 3.25rem;
   padding: 0;
@@ -662,24 +705,42 @@ a:hover .uf-logo-tile {
   background: rgba(255, 255, 255, 0.12);
 }
 .uf-hero-arrow:active {
-  transform: translateY(-50%) scale(0.94);
+  transform: scale(0.94);
 }
 .uf-hero-arrow-start {
-  left: 1.5rem;
+  left: auto;
+  right: 5.75rem;
 }
 .uf-hero-arrow-end {
   right: 1.5rem;
 }
 @media (min-width: 1400px) {
   .uf-hero-arrow-start {
-    left: 3rem;
+    right: 6.25rem;
   }
   .uf-hero-arrow-end {
-    right: 3rem;
+    right: 2rem;
   }
 }
 .uf-hero-content {
   padding-bottom: clamp(2rem, 8vw, 6rem);
+}
+/* On a phone the three hero actions share the row instead of leaving the
+   shuffle button stranded on its own line. */
+@media (max-width: 575.98px) {
+  .uf-hero-content .uf-btn-lg {
+    height: 3rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.8125rem;
+    gap: 0.4rem;
+  }
+  .uf-hero-content .uf-btn-lg svg {
+    width: 16px;
+    height: 16px;
+  }
+  .uf-hero-content .uf-btn-lg[aria-label] {
+    width: 3rem !important;
+  }
 }
 .uf-hero-dot {
   position: relative;

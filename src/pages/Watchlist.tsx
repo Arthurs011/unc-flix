@@ -62,7 +62,7 @@ export default function Watchlist() {
             <h2 className="fw-extrabold mb-2" style={{ fontSize: "1.25rem", letterSpacing: "-0.02em", color: "rgba(255,255,255,0.5)" }}>
               Your watchlist is empty
             </h2>
-            <p className="mb-4 mx-auto" style={{ maxWidth: "20rem", color: "rgba(255,255,255,0.3)", fontSize: "0.875rem" }}>
+            <p className="mb-4 mx-auto" style={{ maxWidth: "20rem", color: "var(--uf-muted)", fontSize: "0.875rem" }}>
               Start adding movies and TV shows to keep track of what you want to watch next.
             </p>
             <Link to="/" className="btn-gradient btn uf-btn-md rounded-pill text-decoration-none">

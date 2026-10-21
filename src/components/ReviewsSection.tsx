@@ -25,7 +25,7 @@ export default function ReviewsSection({ reviews }: Props) {
     <section ref={sectionRef} className="mt-5 mt-md-5 pt-4" style={{ marginTop: "4rem", marginBottom: "4rem" }}>
       <p className="kicker mb-2">Community</p>
       <h2 className="uf-section-title mb-4">
-        Reviews <span className="fw-bold" style={{ color: "rgba(255,255,255,0.3)" }}>({safeReviews.length})</span>
+        Reviews <span className="fw-bold" style={{ color: "var(--uf-muted)" }}>({safeReviews.length})</span>
       </h2>
 
       <div className="d-flex flex-column gap-3">
@@ -62,7 +62,7 @@ export default function ReviewsSection({ reviews }: Props) {
                 </div>
                 <div className="flex-grow-1" style={{ minWidth: 0 }}>
                   <p className="small fw-semibold text-white text-truncate mb-0">{review.author}</p>
-                  <p className="mb-0 mt-1" style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)" }}>
+                  <p className="mb-0 mt-1" style={{ fontSize: "0.75rem", color: "var(--uf-muted)" }}>
                     {new Date(review.created_at).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "short",

@@ -87,20 +87,30 @@ export function filterByType(titles: Movie[], type: TitleType | "all"): Movie[] 
 }
 
 /** The URL for a search, shared so the nav and the page cannot disagree. */
-export function searchUrl(query: string, page = 1): string {
+export function searchUrl(
+  query: string,
+  page = 1,
+  type: TitleType | "all" = "all",
+): string {
   const params = new URLSearchParams({ q: query.trim() });
   if (page > 1) params.set("page", String(page));
+  // The filter lives in the URL too. It used to be component state, so a
+  // reload or a shared link lost it and the visitor got a different result
+  // set than the one they were looking at.
+  if (type !== "all") params.set("type", type);
   return `/search?${params.toString()}`;
 }
 
 /** Read a search URL back into its parts. */
 export function readSearchParams(
   params: URLSearchParams,
-): { query: string; page: number } {
+): { query: string; page: number; type: TitleType | "all" } {
   const page = Number(params.get("page") ?? "1");
+  const rawType = params.get("type");
   return {
     query: params.get("q")?.trim() ?? "",
     page: Number.isFinite(page) && page > 0 ? Math.floor(page) : 1,
+    type: rawType === "movie" || rawType === "tv" ? rawType : "all",
   };
 }
 

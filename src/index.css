@@ -49,8 +49,7 @@
   --uf-text-display: clamp(2.5rem, 1.7rem + 4vw, 4.5rem);
 
   /* --- Spacing rhythm (4px base) --- */
-  --uf-space-1: 0.25rem;
-  --uf-space-2: 0.5rem;
+  --uf-space-1: 0.25rem;  --uf-space-2: 0.5rem;
   --uf-space-3: 0.75rem;
   --uf-space-4: 1rem;
   --uf-space-5: 1.5rem;
@@ -58,6 +57,10 @@
   --uf-space-7: 3rem;
   --uf-space-8: 4rem;
   --uf-section-gap: clamp(2.5rem, 5vw, 4rem);
+
+  /* --- Rail card width (one place, so a rail can change size) --- */
+  --uf-rail-card-w: 160px;
+  --uf-rail-card-w-lg: 200px;
 
   /* --- Bootstrap overrides --- */
   --bs-body-bg: var(--uf-bg);
@@ -162,6 +165,19 @@ a {
   outline-offset: 2px;
   border-radius: 0.5rem;
   box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.18);
+}
+
+/* The skip link jumps to the page landmark. The landmark is focusable so the
+   jump lands on it, but it is not an interactive control, so it must not draw
+   a focus ring of its own. `scroll-margin-top` keeps the fixed nav from
+   covering the first line of content after the jump. */
+#main-content {
+  scroll-margin-top: 5.5rem;
+}
+#main-content:focus,
+#main-content:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 /* Respect reduced motion globally. */
@@ -360,6 +376,11 @@ iframe[src*="propellerads"],
 }
 .z-50 {
   z-index: 50;
+}
+/* Above every piece of chrome — used by the skip link, which has to be
+   clickable the moment it takes focus. */
+.z-100 {
+  z-index: 100;
 }
 
 /* SVG fills: this Bootstrap build ships no .fill-* utilities at all. */

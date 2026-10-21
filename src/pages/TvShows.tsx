@@ -6,6 +6,7 @@ import ContentRow from "@/components/ContentRow";
 import PageShell from "@/components/PageShell";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { GridSkeleton } from "@/components/LoadingSkeleton";
+import ErrorState from "@/components/ErrorState";
 import { cn } from "@/lib/utils";
 import { revealNow, revealOnView, revealStagger } from "@/lib/anim";
 import { Star, Play, Tv, Loader2 } from "lucide-react";
@@ -33,6 +34,7 @@ export default function TvShowsPage() {
   );
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const observerRef = useRef<HTMLDivElement>(null);
@@ -55,6 +57,7 @@ export default function TvShowsPage() {
     try {
       if (reset) setLoading(true);
       else setLoadingMore(true);
+      setError(false);
 
       const res = await tmdb.tvPopular(p, selectedGenre ?? undefined);
 
@@ -66,6 +69,8 @@ export default function TvShowsPage() {
       setTotalPages(res.total_pages ?? 1);
     } catch (err) {
       console.error(err);
+      // A failed request is not an empty category.
+      setError(true);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -223,9 +228,28 @@ export default function TvShowsPage() {
           />
         )}
 
-        <main>
-          {loading ? (
+        <div>
+          {error && shows.length === 0 ? (
+            <ErrorState
+              title="The series catalogue did not load"
+              message="We couldn't reach the service. This is usually temporary — check your connection and try again."
+              onRetry={() => fetchShows(1, true)}
+            />
+          ) : loading ? (
             <GridSkeleton count={12} />
+          ) : shows.length === 0 ? (
+            <div
+              className="text-center rounded-4"
+              style={{ padding: "7rem 1rem", background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.1)" }}
+            >
+              <Tv size={56} style={{ color: "rgba(255,255,255,0.15)" }} className="mx-auto mb-4" />
+              <h2
+                className="fw-extrabold mb-0"
+                style={{ fontSize: "1.25rem", letterSpacing: "-0.02em", color: "var(--uf-muted)" }}
+              >
+                No series in this category
+              </h2>
+            </div>
           ) : (
             <div
               key={selectedGenre ?? "all"}
@@ -240,28 +264,38 @@ export default function TvShowsPage() {
             </div>
           )}
 
+          {error && shows.length > 0 && (
+            <div className="mt-4">
+              <ErrorState
+                compact
+                message="We couldn't load more series. The ones above are still here."
+                onRetry={() => fetchShows(page + 1, false)}
+              />
+            </div>
+          )}
+
           <div ref={observerRef} className="py-5 d-flex flex-column align-items-center justify-content-center gap-3">
             {loadingMore && (
               <>
                 <Loader2 size={32} className="text-primary spin" />
                 <span
                   className="text-uppercase fw-bold"
-                  style={{ fontSize: "10px", letterSpacing: "0.35em", color: "rgba(255,255,255,0.25)" }}
+                  style={{ fontSize: "10px", letterSpacing: "0.35em", color: "var(--uf-muted)" }}
                 >
                   Loading more
                 </span>
               </>
             )}
-            {!loading && page >= totalPages && (
+            {!loading && !error && page >= totalPages && (
               <span
                 className="text-uppercase fw-bold"
-                style={{ fontSize: "10px", letterSpacing: "0.35em", color: "rgba(255,255,255,0.2)" }}
+                style={{ fontSize: "10px", letterSpacing: "0.35em", color: "var(--uf-muted)" }}
               >
                 End of library
               </span>
             )}
           </div>
-        </main>
+        </div>
       </div>
     </PageShell>
   );

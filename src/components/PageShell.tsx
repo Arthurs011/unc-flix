@@ -18,7 +18,11 @@ export default function PageShell({ children, className, style }: Props) {
     revealNow(ref.current, { y: 18, duration: 400 });
   }, []);
   return (
-    <main ref={ref} className={className} style={style}>
+    // `id="main-content"` is the skip link's target (App.tsx). Without it the
+    // link pointed at nothing and the browser had nowhere to jump to, which
+    // Lighthouse reports as "skip links are not focusable". `tabIndex={-1}`
+    // makes the landmark programmatically focusable so the jump lands on it.
+    <main id="main-content" tabIndex={-1} ref={ref} className={className} style={style}>
       {children}
     </main>
   );

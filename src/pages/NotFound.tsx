@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import PageShell from "@/components/PageShell";
 
@@ -19,15 +19,15 @@ const NotFound = () => {
         >
           Lost in the void
         </h1>
-        <p className="mb-0" style={{ marginBottom: "2.5rem", color: "rgba(255,255,255,0.4)", fontSize: "0.875rem" }}>
+        <p className="mb-0" style={{ marginBottom: "2.5rem", color: "var(--uf-muted)", fontSize: "0.875rem" }}>
           The page you're looking for doesn't exist.
         </p>
-        <a
-          href="/"
+        <Link
+          to="/"
           className="uf-btn uf-btn-md btn-gradient rounded-pill text-decoration-none"
         >
           Return Home
-        </a>
+        </Link>
       </div>
     </PageShell>
   );

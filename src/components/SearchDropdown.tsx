@@ -36,7 +36,7 @@ export default function SearchDropdown({
         <div
           role="status"
           className="d-flex align-items-center gap-2 px-4 py-4 text-uppercase small fw-bold"
-          style={{ letterSpacing: "0.12em", color: "rgba(255,255,255,0.4)", fontSize: "0.75rem" }}
+          style={{ letterSpacing: "0.12em", color: "var(--uf-muted)", fontSize: "0.75rem" }}
         >
           <Loader2 className="spin text-primary" size={16} />
           Searching
@@ -51,13 +51,13 @@ export default function SearchDropdown({
       )}
 
       {showIdle && (
-        <p className="px-4 py-4 mb-0 small" style={{ color: "rgba(255,255,255,0.35)" }}>
+        <p className="px-4 py-4 mb-0 small" style={{ color: "var(--uf-muted)" }}>
           Keep typing to search.
         </p>
       )}
 
       {showEmpty && (
-        <p className="d-flex align-items-center gap-2 px-4 py-4 mb-0 small" style={{ color: "rgba(255,255,255,0.4)" }}>
+        <p className="d-flex align-items-center gap-2 px-4 py-4 mb-0 small" style={{ color: "var(--uf-muted)" }}>
           <SearchX size={16} className="flex-shrink-0" />
           No results for &ldquo;{query.trim()}&rdquo;
         </p>
@@ -112,7 +112,7 @@ export default function SearchDropdown({
                     <span className="d-block text-truncate small fw-semibold text-white">{getTitle(item)}</span>
                     <span className="d-flex align-items-center gap-2 mt-1">
                       {getYear(item) && (
-                        <span style={{ fontSize: "10px", fontWeight: 500, color: "rgba(255,255,255,0.4)" }}>
+                        <span style={{ fontSize: "10px", fontWeight: 500, color: "var(--uf-muted)" }}>
                           {getYear(item)}
                         </span>
                       )}

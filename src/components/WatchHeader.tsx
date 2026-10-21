@@ -41,7 +41,7 @@ export default function WatchHeader({ to, label, title, badge }: Props) {
         <div style={{ minWidth: 0 }}>
           <p className="kicker mb-1 lh-1" style={{ fontSize: "9px" }}>
             {label}
-            {badge && <span className="ms-2" style={{ color: "rgba(255,255,255,0.4)" }}>{badge}</span>}
+            {badge && <span className="ms-2" style={{ color: "var(--uf-muted)" }}>{badge}</span>}
           </p>
           <h1 className="mb-0 text-truncate fw-semibold text-white-90" style={{ fontSize: "0.8rem", letterSpacing: "-0.01em" }}>
             {title}

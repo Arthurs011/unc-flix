@@ -17,6 +17,20 @@ import {
 const WATCHLIST_KEY = "uncflix_watchlist";
 const RECENT_KEY = "uncflix_recent";
 const CONTINUE_KEY = "uncflix_continue";
+/**
+ * Which account the local library belongs to.
+ *
+ * The library is local-first, so it lives in localStorage and is shared by
+ * every account that signs in on this browser. That is fine while one person
+ * uses the device, and a data leak the moment two people do: sign out of A,
+ * sign in as B, and B inherits A's watchlist because the merge is additive.
+ *
+ * Recording the owner makes the merge conditional. A library that belongs to
+ * another account is replaced by the account's own remote copy instead of
+ * being merged into it. A library with no owner was built while signed out,
+ * and that one is still merged - that is the whole point of local-first.
+ */
+const OWNER_KEY = "uncflix_library_owner";
 const MAX_CONTINUE = 20;
 
 export interface ContinueItem {
@@ -187,7 +201,12 @@ export function getRecentlyViewed(): Movie[] {
 }
 
 export function addRecentlyViewed(movie: Movie) {
-  const list = getRecentlyViewed().filter((m) => m.id !== movie.id);
+  // TMDB ids repeat across media types, so the type is part of the identity.
+  // Filtering on the id alone let a show overwrite a movie with the same id.
+  const type = titleType(movie);
+  const list = getRecentlyViewed().filter(
+    (m) => !(m.id === movie.id && titleType(m) === type),
+  );
   list.unshift(movie);
   write(RECENT_KEY, list.slice(0, 20));
 }
@@ -254,6 +273,35 @@ export function setRemoteUser(userId: string | null) {
   remoteUserId = userId;
 }
 
+/** The account the local library belongs to, if any. */
+export function getLibraryOwner(): string | null {
+  try {
+    return localStorage.getItem(OWNER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Records the account the local library now belongs to. */
+export function setLibraryOwner(userId: string | null) {
+  try {
+    if (userId) localStorage.setItem(OWNER_KEY, userId);
+    else localStorage.removeItem(OWNER_KEY);
+  } catch {
+    // A storage failure here only costs us the ownership record; the library
+    // itself still works.
+  }
+}
+
+/**
+ * True when the local library holds another account's titles and must not be
+ * merged into the account that is signing in.
+ */
+function libraryBelongsToOtherAccount(userId: string): boolean {
+  const owner = getLibraryOwner();
+  return owner !== null && owner !== userId;
+}
+
 /**
  * Union this device's watchlist with the account's. Additive on purpose: a
  * saved title is never dropped by signing in, so a phone's library and a
@@ -265,6 +313,15 @@ export async function syncWatchlistForUser(userId: string): Promise<void> {
 
   const local = getWatchlist();
   const remote = await fetchRemoteWatchlist();
+
+  // Another account's library is not this account's to keep. Drop it and
+  // start from the account's own copy.
+  if (libraryBelongsToOtherAccount(userId)) {
+    commitWatchlist(remote, false);
+    setLibraryOwner(userId);
+    watchlistListeners.forEach((l) => l());
+    return;
+  }
 
   const merged = [...remote];
   const toUpload: Movie[] = [];
@@ -278,6 +335,7 @@ export async function syncWatchlistForUser(userId: string): Promise<void> {
 
   commitWatchlist(merged, false);
   if (toUpload.length) await upsertRemoteWatchlistBatch(userId, toUpload);
+  setLibraryOwner(userId);
   watchlistListeners.forEach((l) => l());
 }
 
@@ -292,6 +350,16 @@ export async function syncContinueWatchingForUser(userId: string): Promise<void>
 
   const local = cache();
   const remote = await fetchRemoteContinue();
+
+  // Same rule as the watchlist: another account's progress is never handed
+  // over, and this account's own progress is pulled down instead.
+  if (libraryBelongsToOtherAccount(userId)) {
+    const sorted = [...remote].sort((a, b) => b.timestamp - a.timestamp);
+    commit(sorted, false);
+    setLibraryOwner(userId);
+    listeners.forEach((l) => l());
+    return;
+  }
 
   const merged = [...remote];
   const toUpload: ContinueItem[] = [];
@@ -314,6 +382,7 @@ export async function syncContinueWatchingForUser(userId: string): Promise<void>
     await upsertRemoteContinueBatch(userId, toUpload);
   }
 
+  setLibraryOwner(userId);
   listeners.forEach((l) => l());
 }
 
@@ -334,6 +403,47 @@ export function clearLocalUserData() {
   localStorage.removeItem(WATCHLIST_KEY);
   localStorage.removeItem(CONTINUE_KEY);
   localStorage.removeItem(RECENT_KEY);
+  localStorage.removeItem(OWNER_KEY);
   continueCache = null;
   watchlistCache = null;
+  watchlistListeners.forEach((l) => l());
+  listeners.forEach((l) => l());
+}
+
+/**
+ * Drop the signed-out account's local copies of the synced library.
+ *
+ * The account's own copy is safe on the server, so signing back in pulls it
+ * down again. What this prevents is the next person to use the browser
+ * inheriting it: the local library is shared by every account on the device,
+ * so it has to be empty at the moment the session ends.
+ */
+export function clearLocalLibrary() {
+  localStorage.removeItem(WATCHLIST_KEY);
+  localStorage.removeItem(CONTINUE_KEY);
+  localStorage.removeItem(OWNER_KEY);
+  continueCache = null;
+  watchlistCache = null;
+  watchlistListeners.forEach((l) => l());
+  listeners.forEach((l) => l());
+}
+
+/**
+ * Keep tabs in step.
+ *
+ * The `storage` event only fires in the other tabs, so this is how a save in
+ * one tab reaches the open tabs in the same browser. Without it the library
+ * looked stale in every other tab until a reload.
+ */
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("storage", (event) => {
+    if (event.key === WATCHLIST_KEY) {
+      watchlistCache = null;
+      watchlistListeners.forEach((l) => l());
+    }
+    if (event.key === CONTINUE_KEY) {
+      continueCache = null;
+      listeners.forEach((l) => l());
+    }
+  });
 }

@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { STATE_TRANSITION } from "@/lib/motion";
+import { returnPath } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
 export default function AccountMenu({ className }: { className?: string }) {
@@ -51,7 +52,7 @@ export default function AccountMenu({ className }: { className?: string }) {
     return (
       <Link
         to="/auth"
-        state={{ from: location.pathname }}
+        state={{ from: returnPath(location) }}
         aria-label="Sign in"
         className={cn("uf-chip uf-chip-sm rounded-pill text-decoration-none", className)}
       >

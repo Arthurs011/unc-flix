@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Play, Plus, Check, ChevronLeft, ChevronRight, Star, Shuffle } from "lucide-react";
 import { motion } from "motion/react";
-import { Movie, imgUrl, getTitle, getYear } from "@/lib/tmdb";
+import { Movie, imgUrl, getTitle, getYear, srcSetUrl } from "@/lib/tmdb";
 import { useWatchlistItem } from "@/hooks/useWatchlist";
 import { animate } from "animejs";
 import { prefersReducedMotion, revealStagger } from "@/lib/anim";
@@ -16,11 +16,14 @@ const AUTOPLAY_MS = 8000;
 
 export default function HeroBanner({ movies }: Props) {
   const [idx, setIdx] = useState(0);
+  // The carousel stops while the visitor is reading it or typing in it.
+  const [paused, setPaused] = useState(false);
   const safeMovies = useMemo(() => movies ?? [], [movies]);
   const featured = useMemo(() => safeMovies.slice(0, 8), [safeMovies]);
   const current = featured[idx] ?? null;
   const titleRef = useRef<HTMLHeadingElement>(null);
   const progressRef = useRef<HTMLSpanElement>(null);
+  const progressAnimRef = useRef<{ pause: () => void; play: () => void } | null>(null);
 
   const { saved: inWatchlist, toggle } = useWatchlistItem(current);
 
@@ -34,9 +37,12 @@ export default function HeroBanner({ movies }: Props) {
 
   useEffect(() => {
     if (!featured.length) return;
+    // A reduced-motion visitor gets a still hero, not a slideshow that keeps
+    // moving on its own.
+    if (paused || prefersReducedMotion()) return;
     const t = setInterval(next, AUTOPLAY_MS);
     return () => clearInterval(t);
-  }, [next, idx, featured.length]);
+  }, [next, idx, featured.length, paused]);
 
   const handleShuffle = () => {
     if (!safeMovies.length) return;
@@ -57,24 +63,51 @@ export default function HeroBanner({ movies }: Props) {
   // Progress bar animation.
   useEffect(() => {
     if (!progressRef.current || prefersReducedMotion()) return;
-    animate(progressRef.current, {
+    const animation = animate(progressRef.current, {
       scaleX: [0, 1],
       duration: AUTOPLAY_MS,
       ease: "linear",
     });
+    progressAnimRef.current = animation as unknown as { pause: () => void; play: () => void };
+    return () => {
+      animation.pause();
+      progressAnimRef.current = null;
+    };
   }, [idx]);
+
+  // The countdown and the carousel pause together, so a paused hero does not
+  // keep filling its progress bar.
+  useEffect(() => {
+    const animation = progressAnimRef.current;
+    if (!animation) return;
+    if (paused) animation.pause();
+    else animation.play();
+  }, [paused]);
 
   if (!current) return null;
 
   const words = getTitle(current).split(" ");
 
   return (
-    <div className="uf-hero">
+    <div
+      className="uf-hero"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
+    >
+      {/* The headline changes under the visitor, so it is announced. */}
+      <p className="visually-hidden" aria-live="polite">
+        Slide {idx + 1} of {featured.length}: {getTitle(current)}
+      </p>
+
       {/* Backdrop */}
       <div className="position-absolute top-0 bottom-0 start-0 end-0">
         <img
           key={current.id}
           src={imgUrl(current.backdrop_path, "w1280", true)}
+          srcSet={srcSetUrl(current.backdrop_path)}
+          sizes="100vw"
           alt={getTitle(current)}
           loading="eager"
           decoding="async"

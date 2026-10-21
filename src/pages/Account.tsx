@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, User, SlidersHorizontal, Shield, Database,
-  Check, Loader2, LogOut, Monitor,
+  Check, Loader2, LogOut, Monitor, Cloud, Play, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import PageShell from "@/components/PageShell";
@@ -13,6 +13,7 @@ import { updateProfile, AVATAR_COLORS } from "@/lib/profile";
 import { clearLocalUserData } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { revealNow } from "@/lib/anim";
+import { returnPath } from "@/lib/navigation";
 import "@/styles/watch.css";
 
 function Card({
@@ -77,6 +78,7 @@ export default function Account() {
   const { user, loading, signOut } = useAuth();
   const profile = useProfile();
   const navigate = useNavigate();
+  const location = useLocation();
   usePageTitle("Account");
   const pageRef = useRef<HTMLDivElement>(null);
 
@@ -146,20 +148,48 @@ export default function Account() {
 
   if (!user) {
     return (
-      <PageShell className="min-vh-100 d-flex flex-column align-items-center justify-content-center gap-4 px-3">
-        <h1 className="fw-extrabold text-white" style={{ fontSize: "1.5rem" }}>Sign in to manage your account</h1>
-        <Link
-          to="/auth"
-          className="uf-btn uf-btn-md btn-gradient rounded-pill px-4"
-        >
-          Sign In
-        </Link>
+      <PageShell className="min-vh-100 d-flex align-items-center justify-content-center px-3" style={{ paddingTop: "7rem", paddingBottom: "9rem" }}>
+        <div className="uf-account-gate text-center">
+          <span className="uf-auth-tile mx-auto mb-4">
+            <Cloud size={22} />
+          </span>
+          <h1 className="fw-extrabold text-white mb-2" style={{ fontSize: "1.5rem", letterSpacing: "-0.02em" }}>
+            Sign in to manage your account
+          </h1>
+          <p className="mb-4 mx-auto" style={{ maxWidth: "26rem", color: "var(--uf-muted)", fontSize: "0.875rem", lineHeight: 1.7 }}>
+            An account keeps your library with you. Without one, everything you save stays on this
+            device only.
+          </p>
+
+          <ul className="uf-gate-list text-start mb-4">
+            <li>
+              <Cloud size={15} />
+              <span>Watchlist and continue-watching follow you across devices</span>
+            </li>
+            <li>
+              <Play size={15} />
+              <span>Resume exactly where you stopped, on any screen</span>
+            </li>
+            <li>
+              <ShieldCheck size={15} />
+              <span>Your library is private to your account</span>
+            </li>
+          </ul>
+
+          <Link
+            to="/auth"
+            state={{ from: returnPath(location) }}
+            className="uf-btn uf-btn-md btn-gradient rounded-pill px-4"
+          >
+            Sign In
+          </Link>
+        </div>
       </PageShell>
     );
   }
 
   return (
-    <PageShell className="min-vh-100 px-3" style={{ paddingTop: "7rem", paddingBottom: "6rem" }}>
+    <PageShell className="min-vh-100 px-3" style={{ paddingTop: "7rem", paddingBottom: "9rem" }}>
       <div ref={pageRef} className="uf-account-wrap">
         <Link to="/" className="uf-back-link">
           <ArrowLeft size={14} />

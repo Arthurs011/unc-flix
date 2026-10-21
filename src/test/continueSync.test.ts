@@ -143,7 +143,7 @@ describe("account sync", () => {
     expect(getContinueWatching()[0].progress).toBe(95);
   });
 
-  it("scopes uploads to the account being synced", async () => {
+  it("does not hand one account's history to another account", async () => {
     updateContinueWatching(item());
     await syncContinueWatchingForUser("user-1");
     h.upsert.mockClear();
@@ -151,8 +151,20 @@ describe("account sync", () => {
     updateContinueWatching(item({ id: 999, title: "New" }));
     await syncContinueWatchingForUser("user-2");
 
+    // The local library belonged to user-1, so user-2 gets their own copy
+    // instead of inheriting it - and nothing is uploaded on user-2's behalf.
+    expect(h.upsert).not.toHaveBeenCalled();
+    expect(getContinueWatching()).toHaveLength(0);
+  });
+
+  it("merges a library that was built while signed out", async () => {
+    updateContinueWatching(item());
+    await syncContinueWatchingForUser("user-3");
+
+    // No owner yet, so this is the signed-out library and it still merges.
     expect(h.upsert).toHaveBeenCalledTimes(1);
-    expect(h.upsert.mock.calls[0][0]).toBe("user-2");
+    expect(h.upsert.mock.calls[0][0]).toBe("user-3");
+    expect(getContinueWatching()).toHaveLength(1);
   });
 
   it("keeps the account's copy when it is newer than the local one", async () => {
