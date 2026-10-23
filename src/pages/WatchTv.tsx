@@ -35,6 +35,18 @@ export default function WatchTv() {
   // The next episode the embed asked for, with the countdown that gives the
   // viewer a chance to stay on this one.
   const [pendingNext, setPendingNext] = useState<{ season: number; episode: number } | null>(null);
+  const [autoNext, setAutoNext] = useState(() => {
+    const saved = localStorage.getItem("uncflix_autonext");
+    return saved === null ? true : saved === "true";
+  });
+
+  const toggleAutoNext = () => {
+    setAutoNext((v) => {
+      const next = !v;
+      localStorage.setItem("uncflix_autonext", String(next));
+      return next;
+    });
+  };
   const [countdown, setCountdown] = useState(0);
   const [liveEp, setLiveEp] = useState<{ season: number; episode: number } | null>(null);
   const lastSaveRef = useRef(0);
@@ -184,6 +196,24 @@ export default function WatchTv() {
     return () => window.clearInterval(timer);
   }, [pendingNext, navigate, id]);
 
+  // Reset the pending-next prompt whenever the viewer moves to a new episode.
+  useEffect(() => {
+    setPendingNext(null);
+  }, [s, e]);
+
+  // Auto-next: when enabled, schedule the next episode shortly before the
+  // current one is expected to end (based on its runtime). The player itself
+  // does not emit end-of-playback events, so the runtime is our best cue.
+  useEffect(() => {
+    if (!autoNext || !nextEp || !currentEp) return;
+    const minutes = currentEp.runtime && currentEp.runtime > 0 ? currentEp.runtime : 45;
+    const delay = Math.max(0, (minutes * 60 - 15) * 1000);
+    const timer = window.setTimeout(() => {
+      setPendingNext({ season: nextEp.season_number, episode: nextEp.episode_number });
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [autoNext, nextEp, currentEp]);
+
   const pendingTitle =
     seasonData?.episodes.find(
       (ep) => ep.season_number === pendingNext?.season && ep.episode_number === pendingNext?.episode,
@@ -287,6 +317,38 @@ export default function WatchTv() {
                     </div>
                   </div>
                 )}
+
+                {/* Episode controls */}
+                <div className="d-flex flex-wrap gap-2 mb-3 px-1">
+                  {nextEp && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(`/watch/tv/${id}/${nextEp.season_number}/${nextEp.episode_number}`)
+                      }
+                      className="uf-chip"
+                      style={{ fontSize: "0.7rem" }}
+                    >
+                      Next: S{nextEp.season_number} · E{nextEp.episode_number}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => goToEpisode(de - 1)}
+                    className="uf-chip"
+                    style={{ fontSize: "0.7rem" }}
+                  >
+                    Previous episode
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleAutoNext}
+                    className={`uf-chip${autoNext ? " active" : ""}`}
+                    style={{ fontSize: "0.7rem" }}
+                  >
+                    Auto-next {autoNext ? "On" : "Off"}
+                  </button>
+                </div>
 
                 {/* Action dock */}
                 <div className="uf-action-dock d-none d-sm-flex glass-strong">
