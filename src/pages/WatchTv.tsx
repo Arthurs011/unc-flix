@@ -319,14 +319,14 @@ export default function WatchTv() {
                 )}
 
                 {/* Episode controls */}
-                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 px-1">
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 mb-2 px-1">
                   <div className="d-flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => goToEpisode(de - 1)}
                       className="uf-chip"
                       disabled={!seasonData?.episodes.some((ep) => ep.episode_number === de - 1)}
-                      style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase" }}
+                      style={{ fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase" }}
                     >
                       Previous
                     </button>
@@ -337,7 +337,7 @@ export default function WatchTv() {
                           navigate(`/watch/tv/${id}/${nextEp.season_number}/${nextEp.episode_number}`)
                         }
                         className="uf-chip"
-                        style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase" }}
+                        style={{ fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase" }}
                       >
                         Next · S{nextEp.season_number} E{nextEp.episode_number}
                       </button>
@@ -348,7 +348,7 @@ export default function WatchTv() {
                     onClick={toggleAutoNext}
                     className={`uf-chip${autoNext ? " active" : ""}`}
                     aria-pressed={autoNext}
-                    style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase" }}
+                    style={{ fontSize: "0.7rem", letterSpacing: "0.08em", textTransform: "uppercase" }}
                   >
                     Auto-next {autoNext ? "On" : "Off"}
                   </button>
