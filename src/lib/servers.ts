@@ -7,6 +7,9 @@ export interface StreamSource {
   build: (type: MediaType, id: string | number, season?: number, episode?: number) => string;
 }
 
+// Hindi (nxsha.space) servers scraped from vidbox.wtf.
+export * from "./hindiServers";
+
 /**
  * EXCLUSIVE SOURCE LIST
  * CineSrc embed with brand accent + auto-next.
@@ -14,13 +17,13 @@ export interface StreamSource {
  */
 export const SOURCES: StreamSource[] = [
   {
-    id: "cinesrc",
-    name: "CineSrc",
-    baseUrl: "https://cinesrc.st",
+    id: "hindi",
+    name: "Hindi",
+    baseUrl: "https://nxsha.space",
     build: (type, id, s, e) =>
       type === "movie"
-        ? `https://cinesrc.st/embed/movie/${id}?color=%230ea5e9&autoplay=true`
-        : `https://cinesrc.st/embed/tv/${id}?s=${s ?? 1}&e=${e ?? 1}&color=%230ea5e9&autoplay=true&autonext=true&nextepisode=true`
+        ? `https://nxsha.space/embed/movie/${id}?lang=hindi&autoplay=true`
+        : `https://nxsha.space/embed/tv/${id}/${s ?? 1}/${e ?? 1}?lang=hindi&autoplay=true`
   }
 ];
 
