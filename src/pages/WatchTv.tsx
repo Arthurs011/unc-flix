@@ -138,11 +138,13 @@ export default function WatchTv() {
       }
 
       if (t === "cinesrc:nextepisode" || t === "nextepisode" || t === "player:nextepisode" || t === "nxsha:nextepisode") {
-        const ns = Number(data.season), ne = Number(data.episode);
+        const ns = Number(data.season ?? data.s), ne = Number(data.episode ?? data.e);
         if (!ns || !ne || (ns === ds && ne === de)) return;
 
         if (data.internalNavigation === true || t === "nxsha:nextepisode" || t === "player:nextepisode") {
+          // Update live episode immediately
           setLiveEp({ season: ns, episode: ne });
+          // Also sync route to match
           if (id) {
             window.history.replaceState(null, "", `/watch/tv/${id}/${ns}/${ne}`);
           }
