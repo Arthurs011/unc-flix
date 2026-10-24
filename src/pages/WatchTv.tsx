@@ -8,7 +8,7 @@ import { usePlayerShortcuts, toggleStageFullscreen } from "@/hooks/usePlayerShor
 import { SOURCES } from "@/lib/servers";
 import PageShell from "@/components/PageShell";
 import ScrollProgress from "@/components/ScrollProgress";
-import PlayerFrame from "@/components/PlayerFrame";
+import CustomPlayerFrame from "@/components/CustomPlayerFrame";
 import WatchHeader from "@/components/WatchHeader";
 import { revealNow } from "@/lib/anim";
 import "@/styles/watch.css";
@@ -236,7 +236,7 @@ export default function WatchTv() {
               <section className="uf-stage">
                 <div className="uf-stage-glow" aria-hidden="true" />
                 <div className="uf-stage-frame">
-                  <PlayerFrame
+                  <CustomPlayerFrame
                     src={embedSrc}
                     title={`S${ds} E${de} player`}
                     poster={show?.backdrop_path || show?.poster_path}
