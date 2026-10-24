@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { Star, ThumbsUp, ThumbsDown, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { updateContinueWatching } from "@/lib/storage";
+import { getContinueWatching, updateContinueWatching } from "@/lib/storage";
 import { tmdb, getTitle, imgUrl, posterUrl, Movie, MovieDetails, formatCount, getYear } from "@/lib/tmdb";
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { usePlayerShortcuts, toggleStageFullscreen } from "@/hooks/usePlayerShortcuts";
@@ -13,7 +13,7 @@ import WatchHeader from "@/components/WatchHeader";
 import { revealNow } from "@/lib/anim";
 import "@/styles/watch.css";
 
-const CINESRC_ORIGIN = SOURCES[0].baseUrl;
+const PLAYER_ORIGIN = SOURCES[0].baseUrl;
 
 export default function WatchMovie() {
   const { id } = useParams();
@@ -38,6 +38,16 @@ export default function WatchMovie() {
     tmdb.movieDetails(Number(id)).then((m) => {
       setMovie(m);
       document.title = `Watch ${getTitle(m)} · UNCFLIX`;
+      const prior = getContinueWatching().find((c) => c.type === "movie" && c.id === m.id);
+      updateContinueWatching({
+        id: m.id,
+        type: "movie",
+        title: getTitle(m),
+        poster_path: m.poster_path,
+        backdrop_path: m.backdrop_path,
+        progress: prior?.progress ?? 0,
+        timestamp: Date.now(),
+      });
     }).catch(() => setMovie(null))
       .finally(() => setLoading(false));
 
@@ -60,14 +70,16 @@ export default function WatchMovie() {
     }
   }, [recommendations.length]);
 
-  // CineSrc progress sync
+  // Player progress sync (works with nxsha and any compatible player)
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== CINESRC_ORIGIN) return;
+      if (event.origin !== PLAYER_ORIGIN) return;
       const data = event.data;
       if (!data || typeof data !== "object") return;
 
-      if (data.type === "cinesrc:timeupdate" && typeof data.currentTime === "number" && typeof data.duration === "number" && data.duration > 0 && id) {
+      const t = data.type;
+      if ((t === "cinesrc:timeupdate" || t === "timeupdate" || t === "player:timeupdate" || t === "nxsha:timeupdate") &&
+          typeof data.currentTime === "number" && typeof data.duration === "number" && data.duration > 0 && id) {
         setPlaying(true);
         const now = Date.now();
         if (now - lastSaveRef.current < 15000 || !movie) return;
@@ -80,6 +92,22 @@ export default function WatchMovie() {
           backdrop_path: movie.backdrop_path,
           progress: Math.min(100, Math.round((data.currentTime / data.duration) * 100)),
           timestamp: now,
+        });
+      }
+
+      if (t === "cinesrc:nextepisode" || t === "nextepisode" || t === "player:nextepisode") {
+        const ns = Number(data.season), ne = Number(data.episode);
+        if (!ns || !ne || !id || !movie) return;
+        updateContinueWatching({
+          id: Number(id),
+          type: "tv",
+          title: getTitle(movie),
+          poster_path: movie.poster_path,
+          backdrop_path: movie.backdrop_path,
+          progress: 0,
+          season: ns,
+          episode: ne,
+          timestamp: Date.now(),
         });
       }
     };
