@@ -154,6 +154,10 @@ export default function WatchTv() {
             tmdb.tvSeason(Number(id), ns)
               .then((d) => setSeasonData(d))
               .catch(() => setSeasonData(null));
+            tmdb.tvDetails(Number(id)).then((d) => {
+              setShow(d);
+              document.title = `Watch ${getTitle(d)} · UNCFLIX`;
+            }).catch(() => {});
           }
           if (id) {
             updateContinueWatching({
