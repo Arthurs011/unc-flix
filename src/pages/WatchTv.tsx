@@ -140,6 +140,15 @@ export default function WatchTv() {
           if (id) {
             window.history.replaceState(null, "", `/watch/tv/${id}/${ns}/${ne}`);
           }
+          // Force refresh of episode data for the new episode
+          if (id) {
+            tmdb.tvEpisode(Number(id), ns, ne)
+              .then((ep) => setCurrentEp(ep))
+              .catch(() => setCurrentEp(null));
+            tmdb.tvSeason(Number(id), ns)
+              .then((d) => setSeasonData(d))
+              .catch(() => setSeasonData(null));
+          }
           if (id) {
             updateContinueWatching({
               id: Number(id),
