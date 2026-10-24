@@ -135,35 +135,22 @@ export default function WatchTv() {
       }
 
       if (t === "cinesrc:nextepisode" || t === "nextepisode" || t === "player:nextepisode" || t === "nxsha:nextepisode" || data.nextepisode || data.nextEpisode) {
-        const ns = Number(data.season ?? data.s ?? data.nextSeason), ne = Number(data.episode ?? data.e ?? data.nextEpisode);
-        if (!ns || !ne) return;
+        const ns = Number(data.season ?? data.s ?? data.nextSeason ?? data.season_number), ne = Number(data.episode ?? data.e ?? data.nextEpisode ?? data.episode_number);
+        if (!ns || !ne || !id) return;
 
-        // Always update UI regardless
-        setLiveEp({ season: ns, episode: ne });
-        if (id) {
-          window.history.replaceState(null, "", `/watch/tv/${id}/${ns}/${ne}`);
-          tmdb.tvEpisode(Number(id), ns, ne)
-            .then((ep) => { setCurrentEp(ep); })
-            .catch(() => {});
-          tmdb.tvSeason(Number(id), ns)
-            .then((d) => { setSeasonData(d); })
-            .catch(() => {});
-          tmdb.tvDetails(Number(id)).then((d) => {
-            setShow(d);
-            document.title = `Watch ${getTitle(d)} · UNCFLIX`;
-          }).catch(() => {});
-          updateContinueWatching({
-            id: Number(id),
-            type: "tv",
-            title: getTitle(show),
-            poster_path: show?.poster_path,
-            backdrop_path: show?.backdrop_path,
-            progress: 0,
-            season: ns,
-            episode: ne,
-            timestamp: Date.now(),
-          });
-        }
+        // Navigate to the new episode so UI fully syncs
+        navigate(`/watch/tv/${id}/${ns}/${ne}`, { replace: true });
+        updateContinueWatching({
+          id: Number(id),
+          type: "tv",
+          title: getTitle(show),
+          poster_path: show?.poster_path,
+          backdrop_path: show?.backdrop_path,
+          progress: 0,
+          season: ns,
+          episode: ne,
+          timestamp: Date.now(),
+        });
       }
     };
     window.addEventListener("message", onMessage);
