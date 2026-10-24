@@ -54,6 +54,12 @@ export default function WatchTv() {
 
   // A real URL change means the user picked an episode ourselves.
   useEffect(() => { setLiveEp(null); }, [s, e]);
+  // Also clear if the liveEp no longer matches the new route context
+  useEffect(() => {
+    if (liveEp && (liveEp.season !== s || liveEp.episode !== e)) {
+      setLiveEp({ season: s, episode: e });
+    }
+  }, [s, e, liveEp]);
 
   // Entrances: content is visible by default; anime.js only fades it in.
   useEffect(() => {
