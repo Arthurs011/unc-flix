@@ -243,7 +243,7 @@ export default function WatchTv() {
                 <div className="uf-stage-frame">
                   <PlayerFrame
                     src={embedSrc}
-                    title={`S${s} E${e} player`}
+                    title={`S${ds} E${de} player`}
                     poster={show?.backdrop_path || show?.poster_path}
                     playing={playing}
                   />
