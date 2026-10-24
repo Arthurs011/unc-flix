@@ -164,7 +164,7 @@ export default function WatchTv() {
       }
     };
     window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
+    return () => { window.removeEventListener("message", onMessage); clearInterval(check); };
   }, [id, ds, de, show, navigate]);
 
   const embedSrc = SOURCES[0].build("tv", id || "", s, e);
