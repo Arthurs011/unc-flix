@@ -36,7 +36,10 @@ export default function WatchTv() {
   // viewer a chance to stay on this one.
   const [pendingNext, setPendingNext] = useState<{ season: number; episode: number } | null>(null);
   const [countdown, setCountdown] = useState(0);
-  const [liveEp, setLiveEp] = useState<{ season: number; episode: number } | null>(null);
+  const [liveEp, setLiveEp] = useState<{ season: number; episode: number } | null>(() => {
+    if (season && episode) return { season: Number(season), episode: Number(episode) };
+    return null;
+  });
   const lastSaveRef = useRef(0);
   const stageRef = useRef<HTMLDivElement>(null);
   const infoRef = useRef<HTMLDivElement>(null);
@@ -53,13 +56,7 @@ export default function WatchTv() {
   const de = liveEp?.episode ?? e;
 
   // A real URL change means the user picked an episode ourselves.
-  useEffect(() => { setLiveEp(null); }, [s, e]);
-  // Also clear if the liveEp no longer matches the new route context
-  useEffect(() => {
-    if (liveEp && (liveEp.season !== s || liveEp.episode !== e)) {
-      setLiveEp({ season: s, episode: e });
-    }
-  }, [s, e, liveEp]);
+  useEffect(() => { setLiveEp({ season: s, episode: e }); }, [s, e]);
 
   // Entrances: content is visible by default; anime.js only fades it in.
   useEffect(() => {
