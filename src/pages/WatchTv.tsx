@@ -244,63 +244,6 @@ export default function WatchTv() {
                   />
                 </div>
 
-                <div className="d-flex flex-wrap gap-2 mt-3 mb-2 px-1">
-                  {nextEp && (
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/watch/tv/${id}/${nextEp.season_number}/${nextEp.episode_number}`)}
-                      className="uf-chip"
-                      style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase" }}
-                    >
-                      Next Episode · S{nextEp.season_number} E{nextEp.episode_number}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => window.location.reload()}
-                    className="uf-chip"
-                    style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase" }}
-                  >
-                    Sync
-                  </button>
-                </div>
-
-                {/* Next episode countdown */}
-                {pendingNext && (
-                  <div className="uf-nextup glass-strong" role="status" aria-live="polite">
-                    <p className="kicker mb-1">Up next</p>
-                    <p className="uf-nextup-title">
-                      S{pendingNext.season} · E{pendingNext.episode} — {pendingTitle}
-                    </p>
-                    <p className="mb-3" style={{ fontSize: "0.8125rem", color: "var(--uf-muted)" }}>
-                      Starting in {countdown}s
-                    </p>
-                    <div className="d-flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          navigate(`/watch/tv/${id}/${pendingNext.season}/${pendingNext.episode}`, {
-                            replace: true,
-                          })
-                        }
-                        className="uf-btn uf-btn-sm btn-gradient rounded-pill px-3"
-                      >
-                        <Play size={14} />
-                        Play now
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPendingNext(null)}
-                        className="uf-btn uf-btn-sm uf-btn-glass rounded-pill px-3"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-
-
                 {/* Action dock */}
                 <div className="uf-action-dock d-none d-sm-flex glass-strong">
                   <button
