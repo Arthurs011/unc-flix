@@ -137,6 +137,7 @@ export default function WatchTv() {
       if (t === "cinesrc:nextepisode" || t === "nextepisode" || t === "player:nextepisode" || t === "nxsha:nextepisode" || data.nextepisode || data.nextEpisode) {
         const ns = Number(data.season ?? data.s ?? data.nextSeason ?? data.season_number), ne = Number(data.episode ?? data.e ?? data.nextEpisode ?? data.episode_number);
         if (!ns || !ne || !id) return;
+        if (ns === ds && ne === de) return;
 
         // Navigate to the new episode so UI fully syncs
         navigate(`/watch/tv/${id}/${ns}/${ne}`, { replace: true });
