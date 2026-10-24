@@ -1,28 +1,3 @@
-
-(function(){
-  if (window.__watchTvPatched) return;
-  window.__watchTvPatched = true;
-  window.addEventListener('message', function(ev){
-    try {
-      const d = ev.data;
-      if (!d || typeof d !== 'object') return;
-      const t = d.type;
-      if (t === 'cinesrc:nextepisode' || t === 'nextepisode' || t === 'player:nextepisode' || t === 'nxsha:nextepisode' || d.nextepisode || d.nextEpisode) {
-        const ns = Number(d.season || d.s || d.nextSeason || d.season_number);
-        const ne = Number(d.episode || d.e || d.nextEpisode || d.episode_number);
-        if (!ns || !ne) return;
-        const m = location.pathname.match(//watch/tv/(\d+)\/\d+\/\d+/);
-        if (m) {
-          const id = m[1];
-          const cur = location.pathname.match(/\/watch\/tv\/\d+\/(\d+)\/(\d+)/);
-          if (cur && cur[1] == ns && cur[2] == ne) return;
-          location.replace('/watch/tv/' + id + '/' + ns + '/' + ne);
-        }
-      }
-    } catch(e){}
-  }, true);
-})();
-
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Star, ThumbsUp, ThumbsDown, Share2, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
