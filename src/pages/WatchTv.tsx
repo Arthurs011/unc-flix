@@ -108,17 +108,7 @@ export default function WatchTv() {
 
   // Player events: progress sync + out-of-player episode navigation
   useEffect(() => {
-    // Fallback: check URL param changes from iframe
-    const check = setInterval(() => {
-      try {
-        const ifr = document.querySelector('iframe');
-        if (ifr && ifr.contentWindow) {
-          // Can't access cross-origin, but try
-        }
-      } catch(e) {}
-    }, 2000);
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== PLAYER_ORIGIN) return;
       const data = event.data;
       if (!data || typeof data !== "object") return;
 
@@ -164,7 +154,7 @@ export default function WatchTv() {
       }
     };
     window.addEventListener("message", onMessage);
-    return () => { window.removeEventListener("message", onMessage); clearInterval(check); };
+    return () => { window.removeEventListener("message", onMessage); };
   }, [id, ds, de, show, navigate]);
 
   const embedSrc = SOURCES[0].build("tv", id || "", s, e);
