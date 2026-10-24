@@ -244,6 +244,27 @@ export default function WatchTv() {
                   />
                 </div>
 
+                <div className="d-flex flex-wrap gap-2 mt-3 mb-2 px-1">
+                  {nextEp && (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/watch/tv/${id}/${nextEp.season_number}/${nextEp.episode_number}`)}
+                      className="uf-chip"
+                      style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase" }}
+                    >
+                      Next Episode · S{nextEp.season_number} E{nextEp.episode_number}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="uf-chip"
+                    style={{ fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase" }}
+                  >
+                    Sync
+                  </button>
+                </div>
+
                 {/* Next episode countdown */}
                 {pendingNext && (
                   <div className="uf-nextup glass-strong" role="status" aria-live="polite">
