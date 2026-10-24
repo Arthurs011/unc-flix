@@ -134,45 +134,35 @@ export default function WatchTv() {
         });
       }
 
-      if (t === "cinesrc:nextepisode" || t === "nextepisode" || t === "player:nextepisode" || t === "nxsha:nextepisode") {
-        const ns = Number(data.season ?? data.s), ne = Number(data.episode ?? data.e);
-        if (!ns || !ne || (ns === ds && ne === de)) return;
+      if (t === "cinesrc:nextepisode" || t === "nextepisode" || t === "player:nextepisode" || t === "nxsha:nextepisode" || data.nextepisode || data.nextEpisode) {
+        const ns = Number(data.season ?? data.s ?? data.nextSeason), ne = Number(data.episode ?? data.e ?? data.nextEpisode);
+        if (!ns || !ne) return;
 
-        if (data.internalNavigation === true || t === "nxsha:nextepisode" || t === "player:nextepisode") {
-          // Update live episode immediately
-          setLiveEp({ season: ns, episode: ne });
-          // Also sync route to match
-          if (id) {
-            window.history.replaceState(null, "", `/watch/tv/${id}/${ns}/${ne}`);
-          }
-          // Force refresh of episode data for the new episode
-          if (id) {
-            tmdb.tvEpisode(Number(id), ns, ne)
-              .then((ep) => setCurrentEp(ep))
-              .catch(() => setCurrentEp(null));
-            tmdb.tvSeason(Number(id), ns)
-              .then((d) => setSeasonData(d))
-              .catch(() => setSeasonData(null));
-            tmdb.tvDetails(Number(id)).then((d) => {
-              setShow(d);
-              document.title = `Watch ${getTitle(d)} · UNCFLIX`;
-            }).catch(() => {});
-          }
-          if (id) {
-            updateContinueWatching({
-              id: Number(id),
-              type: "tv",
-              title: getTitle(show),
-              poster_path: show?.poster_path,
-              backdrop_path: show?.backdrop_path,
-              progress: 0,
-              season: ns,
-              episode: ne,
-              timestamp: Date.now(),
-            });
-          }
-        } else {
-          setPendingNext({ season: ns, episode: ne });
+        // Always update UI regardless
+        setLiveEp({ season: ns, episode: ne });
+        if (id) {
+          window.history.replaceState(null, "", `/watch/tv/${id}/${ns}/${ne}`);
+          tmdb.tvEpisode(Number(id), ns, ne)
+            .then((ep) => { setCurrentEp(ep); })
+            .catch(() => {});
+          tmdb.tvSeason(Number(id), ns)
+            .then((d) => { setSeasonData(d); })
+            .catch(() => {});
+          tmdb.tvDetails(Number(id)).then((d) => {
+            setShow(d);
+            document.title = `Watch ${getTitle(d)} · UNCFLIX`;
+          }).catch(() => {});
+          updateContinueWatching({
+            id: Number(id),
+            type: "tv",
+            title: getTitle(show),
+            poster_path: show?.poster_path,
+            backdrop_path: show?.backdrop_path,
+            progress: 0,
+            season: ns,
+            episode: ne,
+            timestamp: Date.now(),
+          });
         }
       }
     };
