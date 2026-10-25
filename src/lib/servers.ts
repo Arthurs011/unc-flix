@@ -17,13 +17,13 @@ export * from "./hindiServers";
  */
 export const SOURCES: StreamSource[] = [
   {
-    id: "hindi",
-    name: "Hindi",
-    baseUrl: "https://nxsha.space",
+    id: "filmu",
+    name: "FilmU",
+    baseUrl: "https://embed.filmu.in",
     build: (type, id, s, e) =>
       type === "movie"
-        ? `https://nxsha.space/embed/movie/${id}?lang=hindi&autoplay=true`
-        : `https://nxsha.space/embed/tv/${id}/${s ?? 1}/${e ?? 1}?lang=hindi&autoplay=true`
+        ? `https://embed.filmu.in/movie/${id}`
+        : `https://embed.filmu.in/tv/${id}/${s ?? 1}/${e ?? 1}`
   }
 ];
 

@@ -72,7 +72,6 @@ export default function CustomPlayerFrame({ src, title, poster, playing = false,
         allowFullScreen
         allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
         referrerPolicy="no-referrer-when-downgrade"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
         title={title}
         loading="eager"
         onLoad={() => setLoaded(true)}

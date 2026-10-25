@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
+import type { MediaPlaylist } from "hls.js";
 import { 
   Play, Pause, Volume2, VolumeX, Maximize, Minimize, 
   SkipBack, SkipForward, Subtitles, Settings, 
@@ -25,6 +26,12 @@ export default function CustomPlayer({ src, poster, autoPlay = true, onEnded, on
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+  const onEndedRef = useRef(onEnded);
+  const onTimeUpdateRef = useRef(onTimeUpdate);
+  const autoPlayRef = useRef(autoPlay);
+  useEffect(() => { onEndedRef.current = onEnded; }, [onEnded]);
+  useEffect(() => { onTimeUpdateRef.current = onTimeUpdate; }, [onTimeUpdate]);
+  useEffect(() => { autoPlayRef.current = autoPlay; }, [autoPlay]);
   
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -34,7 +41,7 @@ export default function CustomPlayer({ src, poster, autoPlay = true, onEnded, on
   const [showControls, setShowControls] = useState(true);
   const [loading, setLoading] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
-  const [levels, setLevels] = useState<any[]>([]);
+  const [levels, setLevels] = useState<Hls.Level[]>([]);
   const [currentLevel, setCurrentLevel] = useState(-1);
   const [showSettings, setShowSettings] = useState(false);
   const [audioTracks, setAudioTracks] = useState<Track[]>([]);
@@ -62,7 +69,7 @@ export default function CustomPlayer({ src, poster, autoPlay = true, onEnded, on
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setLevels(hls.levels);
         setLoading(false);
-        if (autoPlay) {
+        if (autoPlayRef.current) {
           video.play().catch(() => {});
         }
       });
@@ -80,27 +87,27 @@ export default function CustomPlayer({ src, poster, autoPlay = true, onEnded, on
       video.src = src;
       video.addEventListener('loadedmetadata', () => {
         setLoading(false);
-        if (autoPlay) video.play().catch(() => {});
+        if (autoPlayRef.current) video.play().catch(() => {});
       });
     } else {
       video.src = src;
       video.addEventListener('loadedmetadata', () => {
         setLoading(false);
-        if (autoPlay) video.play().catch(() => {});
+        if (autoPlayRef.current) video.play().catch(() => {});
       });
     }
 
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
       setDuration(video.duration || 0);
-      onTimeUpdate?.(video.currentTime, video.duration);
+      onTimeUpdateRef.current?.(video.currentTime, video.duration);
     };
 
     const handlePlay = () => setPlaying(true);
     const handlePause = () => setPlaying(false);
     const handleEnded = () => {
       setPlaying(false);
-      onEnded?.();
+      onEndedRef.current?.();
     };
     const handleWaiting = () => setLoading(true);
     const handleCanPlay = () => setLoading(false);
@@ -346,7 +353,7 @@ export default function CustomPlayer({ src, poster, autoPlay = true, onEnded, on
               </div>
             )}
             
-            {hlsRef.current && (hlsRef.current as any).audioTracks && (hlsRef.current as any).audioTracks.length > 1 && (
+            {hlsRef.current && hlsRef.current.audioTracks && hlsRef.current.audioTracks.length > 1 && (
               <div className="position-relative">
                 <button 
                   onClick={() => setShowAudioMenu(!showAudioMenu)} 
@@ -358,7 +365,7 @@ export default function CustomPlayer({ src, poster, autoPlay = true, onEnded, on
                 {showAudioMenu && (
                   <div className="position-absolute bottom-100 end-0 mb-2 bg-dark rounded p-2" style={{ minWidth: '150px' }}>
                     <div className="text-white small mb-1 fw-bold">Audio</div>
-                    {(hlsRef.current as any).audioTracks.map((track: any, idx: number) => (
+                    {hlsRef.current.audioTracks.map((track: MediaPlaylist, idx: number) => (
                       <button 
                         key={idx}
                         onClick={() => changeAudioTrack(idx)}

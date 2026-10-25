@@ -6,14 +6,13 @@ import { tmdb, getTitle, imgUrl, posterUrl, Movie, MovieDetails, formatCount, ge
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { usePlayerShortcuts, toggleStageFullscreen } from "@/hooks/usePlayerShortcuts";
 import { SOURCES } from "@/lib/servers";
+import { parsePlayerMessage, PLAYER_ORIGINS } from "@/lib/playerEvents";
 import PageShell from "@/components/PageShell";
 import ScrollProgress from "@/components/ScrollProgress";
 import CustomPlayerFrame from "@/components/CustomPlayerFrame";
 import WatchHeader from "@/components/WatchHeader";
 import { revealNow } from "@/lib/anim";
 import "@/styles/watch.css";
-
-const PLAYER_ORIGIN = SOURCES[0].baseUrl;
 
 export default function WatchMovie() {
   const { id } = useParams();
@@ -70,46 +69,29 @@ export default function WatchMovie() {
     }
   }, [recommendations.length]);
 
-  // Player progress sync (works with nxsha and any compatible player)
+  // Player progress sync (FilmU posts VIDLY_PLAYER_EVENT messages).
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== PLAYER_ORIGIN) return;
-      const data = event.data;
-      if (!data || typeof data !== "object") return;
+      if (!PLAYER_ORIGINS.includes(event.origin)) return;
+      const update = parsePlayerMessage(event.data);
+      if (!update || !id) return;
 
-      const t = data.type;
-      if ((t === "cinesrc:timeupdate" || t === "timeupdate" || t === "player:timeupdate" || t === "nxsha:timeupdate") &&
-          typeof data.currentTime === "number" && typeof data.duration === "number" && data.duration > 0 && id) {
-        setPlaying(true);
-        const now = Date.now();
-        if (now - lastSaveRef.current < 15000 || !movie) return;
-        lastSaveRef.current = now;
-        updateContinueWatching({
-          id: Number(id),
-          type: "movie",
-          title: getTitle(movie),
-          poster_path: movie.poster_path,
-          backdrop_path: movie.backdrop_path,
-          progress: Math.min(100, Math.round((data.currentTime / data.duration) * 100)),
-          timestamp: now,
-        });
-      }
+      setPlaying(true);
+      if (!movie || update.duration <= 0) return;
 
-      if (t === "cinesrc:nextepisode" || t === "nextepisode" || t === "player:nextepisode") {
-        const ns = Number(data.season), ne = Number(data.episode);
-        if (!ns || !ne || !id || !movie) return;
-        updateContinueWatching({
-          id: Number(id),
-          type: "tv",
-          title: getTitle(movie),
-          poster_path: movie.poster_path,
-          backdrop_path: movie.backdrop_path,
-          progress: 0,
-          season: ns,
-          episode: ne,
-          timestamp: Date.now(),
-        });
-      }
+      const now = Date.now();
+      if (now - lastSaveRef.current < 15000) return;
+      lastSaveRef.current = now;
+
+      updateContinueWatching({
+        id: Number(id),
+        type: "movie",
+        title: getTitle(movie),
+        poster_path: movie.poster_path,
+        backdrop_path: movie.backdrop_path,
+        progress: Math.min(100, Math.round((update.currentTime / update.duration) * 100)),
+        timestamp: now,
+      });
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);

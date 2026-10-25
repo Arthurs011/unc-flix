@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Star, ThumbsUp, ThumbsDown, Share2, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { getContinueWatching, updateContinueWatching } from "@/lib/storage";
@@ -6,6 +6,7 @@ import { tmdb, getTitle, MovieDetails, Episode, SeasonDetails, imgUrl, formatCou
 import { useFullscreenOrientation } from "@/hooks/useFullscreenOrientation";
 import { usePlayerShortcuts, toggleStageFullscreen } from "@/hooks/usePlayerShortcuts";
 import { SOURCES } from "@/lib/servers";
+import { parsePlayerMessage, PLAYER_ORIGINS } from "@/lib/playerEvents";
 import PageShell from "@/components/PageShell";
 import ScrollProgress from "@/components/ScrollProgress";
 import CustomPlayerFrame from "@/components/CustomPlayerFrame";
@@ -13,14 +14,8 @@ import WatchHeader from "@/components/WatchHeader";
 import { revealNow } from "@/lib/anim";
 import "@/styles/watch.css";
 
-const PLAYER_ORIGIN = SOURCES[0].baseUrl;
-
-/** How long the viewer has to cancel the next episode. */
-const NEXT_EPISODE_SECONDS = 6;
-
 export default function WatchTv() {
   const { id, season, episode } = useParams();
-  const navigate = useNavigate();
   useFullscreenOrientation();
   const [show, setShow] = useState<MovieDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,10 +27,6 @@ export default function WatchTv() {
   // True once the embed reports playback, which dismisses the app-owned
   // loading state.
   const [playing, setPlaying] = useState(false);
-  // The next episode the embed asked for, with the countdown that gives the
-  // viewer a chance to stay on this one.
-  const [pendingNext, setPendingNext] = useState<{ season: number; episode: number } | null>(null);
-  const [countdown, setCountdown] = useState(0);
   const [liveEp, setLiveEp] = useState<{ season: number; episode: number } | null>(() => {
     if (season && episode) return { season: Number(season), episode: Number(episode) };
     return null;
@@ -48,14 +39,13 @@ export default function WatchTv() {
   const s = Number(season) || 1;
   const e = Number(episode) || 1;
 
-  // The embed switches episodes by itself (autonext / its own selector) and
-  // always flags that as internalNavigation, so the URL params go stale.
-  // `ds`/`de` are what the UI shows; `s`/`e` stay pinned to the URL so the
-  // iframe is never remounted, which would restart playback mid-advance.
+  // `ds`/`de` are the episode the UI shows. Normally they follow the URL, but
+  // the player can switch episodes on its own (episode picker / auto-next), in
+  // which case we mirror the change here as well.
   const ds = liveEp?.season ?? s;
   const de = liveEp?.episode ?? e;
 
-  // A real URL change means the user picked an episode ourselves.
+  // A real URL change means the viewer picked an episode in the app.
   useEffect(() => { setLiveEp({ season: s, episode: e }); }, [s, e]);
 
   // Entrances: content is visible by default; anime.js only fades it in.
@@ -106,86 +96,53 @@ export default function WatchTv() {
     return () => { cancelled = true; document.title = "UNCFLIX"; };
   }, [id, ds, de]);
 
-  // Player events: progress sync + out-of-player episode navigation
+  // Player events: progress sync + episode changes made inside the player.
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      const data = event.data;
-      if (!data || typeof data !== "object") return;
+      // Only accept messages from our configured player origins.
+      if (!PLAYER_ORIGINS.includes(event.origin)) return;
+      const update = parsePlayerMessage(event.data);
+      if (!update || !id) return;
 
-      const t = data.type;
-      if ((t === "cinesrc:timeupdate" || t === "timeupdate" || t === "player:timeupdate" || t === "nxsha:timeupdate") &&
-          typeof data.currentTime === "number" && typeof data.duration === "number" && data.duration > 0) {
-        setPlaying(true);
-        const now = Date.now();
-        if (now - lastSaveRef.current < 15000) return;
+      setPlaying(true);
+
+      const nextSeason = update.season ?? ds;
+      const nextEpisode = update.episode ?? de;
+      const now = Date.now();
+
+      if (show && update.duration > 0 && now - lastSaveRef.current >= 15000) {
         lastSaveRef.current = now;
-        if (!id) return;
         updateContinueWatching({
           id: Number(id),
           type: "tv",
           title: getTitle(show),
-          poster_path: show?.poster_path,
-          backdrop_path: show?.backdrop_path,
-          progress: Math.min(100, Math.round((data.currentTime / data.duration) * 100)),
-          season: ds,
-          episode: de,
+          poster_path: show.poster_path,
+          backdrop_path: show.backdrop_path,
+          progress: Math.min(100, Math.round((update.currentTime / update.duration) * 100)),
+          season: nextSeason,
+          episode: nextEpisode,
           timestamp: now,
         });
       }
 
-      if (t === "cinesrc:nextepisode" || t === "nextepisode" || t === "player:nextepisode" || t === "nxsha:nextepisode" || data.nextepisode || data.nextEpisode) {
-        const ns = Number(data.season ?? data.s ?? data.nextSeason ?? data.season_number), ne = Number(data.episode ?? data.e ?? data.nextEpisode ?? data.episode_number);
-        if (!ns || !ne || !id) return;
-        if (ns === ds && ne === de) return;
-
-        // Navigate to the new episode so UI fully syncs
-        navigate(`/watch/tv/${id}/${ns}/${ne}`, { replace: true });
-        updateContinueWatching({
-          id: Number(id),
-          type: "tv",
-          title: getTitle(show),
-          poster_path: show?.poster_path,
-          backdrop_path: show?.backdrop_path,
-          progress: 0,
-          season: ns,
-          episode: ne,
-          timestamp: Date.now(),
-        });
+      // The player switched episodes on its own. Mirror that into the address
+      // bar and the UI. We deliberately bypass React Router here: its routes
+      // are keyed by pathname, and a normal navigation would remount this page
+      // and restart the iframe from the beginning.
+      if (nextSeason !== ds || nextEpisode !== de) {
+        setLiveEp({ season: nextSeason, episode: nextEpisode });
+        window.history.replaceState(
+          window.history.state,
+          "",
+          `/watch/tv/${id}/${nextSeason}/${nextEpisode}`,
+        );
       }
     };
     window.addEventListener("message", onMessage);
     return () => { window.removeEventListener("message", onMessage); };
-  }, [id, ds, de, show, navigate]);
+  }, [id, ds, de, show]);
 
   const embedSrc = SOURCES[0].build("tv", id || "", s, e);
-
-  // The countdown to the next episode. It only runs while a next episode is
-  // pending, and cancelling it stops the timer for good.
-  useEffect(() => {
-    if (!pendingNext) return;
-    setCountdown(NEXT_EPISODE_SECONDS);
-    const timer = window.setInterval(() => {
-      setCountdown((c) => {
-        if (c <= 1) {
-          window.clearInterval(timer);
-          navigate(`/watch/tv/${id}/${pendingNext.season}/${pendingNext.episode}`, { replace: true });
-          return 0;
-        }
-        return c - 1;
-      });
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [pendingNext, navigate, id]);
-
-  // Reset the pending-next prompt whenever the viewer moves to a new episode.
-  useEffect(() => {
-    setPendingNext(null);
-  }, [s, e]);
-
-  const pendingTitle =
-    seasonData?.episodes.find(
-      (ep) => ep.season_number === pendingNext?.season && ep.episode_number === pendingNext?.episode,
-    )?.name ?? nextEp?.name ?? "Next episode";
 
   // Keyboard control: F goes fullscreen.
   usePlayerShortcuts({
