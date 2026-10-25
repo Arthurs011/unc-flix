@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ExternalLink, Loader2, RefreshCw, TriangleAlert, X } from "lucide-react";
 import { imgUrl } from "@/lib/tmdb";
+import PlayerIframe from "./PlayerIframe";
 
 interface Props {
   src: string;
@@ -54,16 +55,12 @@ export default function PlayerFrame({ src, title, poster, playing = false }: Pro
 
   return (
     <div className="uf-stage-player">
-      <iframe
+      <PlayerIframe
         key={frameKey}
         src={src}
+        title={title}
         className="position-absolute top-0 start-0 w-100 h-100 border-0"
         style={{ zIndex: 10 }}
-        allowFullScreen
-        allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-        referrerPolicy="no-referrer-when-downgrade"
-        title={title}
-        loading="eager"
         onLoad={() => setLoaded(true)}
       />
 

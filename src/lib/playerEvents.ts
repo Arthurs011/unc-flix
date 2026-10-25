@@ -14,8 +14,8 @@ export interface PlayerProgress {
   episode?: number;
 }
 
-/** Origins our embedded players are served from (FilmU redirects to vidly.pro). */
-export const PLAYER_ORIGINS = ["https://embed.filmu.in", "https://vidly.pro"];
+/** Origins our embedded player can be served from. */
+export const PLAYER_ORIGINS = ["https://vidly.pro", "https://embed.filmu.in"];
 
 const LEGACY_TIMEUPDATE_TYPES = new Set([
   "cinesrc:timeupdate",

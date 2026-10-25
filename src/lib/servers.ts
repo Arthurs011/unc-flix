@@ -12,18 +12,22 @@ export * from "./hindiServers";
 
 /**
  * EXCLUSIVE SOURCE LIST
- * CineSrc embed with brand accent + auto-next.
- * Events: cinesrc:timeupdate / cinesrc:nextepisode via postMessage (origin https://cinesrc.st)
+ * FilmU (Vidly) embed with brand accent + auto-next.
+ * Events: VIDLY_PLAYER_EVENT via postMessage (see lib/playerEvents.ts).
+ *
+ * Use vidly.pro directly: embed.filmu.in serves the same app but bounces the
+ * frame to vidly.pro, and that hop drops the iframe's fullscreen/autoplay
+ * grant, which made the player's fullscreen button do nothing.
  */
 export const SOURCES: StreamSource[] = [
   {
     id: "filmu",
     name: "FilmU",
-    baseUrl: "https://embed.filmu.in",
+    baseUrl: "https://vidly.pro",
     build: (type, id, s, e) =>
       type === "movie"
-        ? `https://embed.filmu.in/movie/${id}`
-        : `https://embed.filmu.in/tv/${id}/${s ?? 1}/${e ?? 1}`
+        ? `https://vidly.pro/movie/${id}`
+        : `https://vidly.pro/tv/${id}/${s ?? 1}/${e ?? 1}`
   }
 ];
 
